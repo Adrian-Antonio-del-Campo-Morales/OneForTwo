@@ -1,5 +1,7 @@
 # Experimento de portapapeles
 
+Para la primera conexión entre Windows y Ubuntu, seguir la [preparación LAN](lan/README.md). Incluye asistente de identidades y comandos, certificado público Windows y muestras sintéticas; no inicia conexiones automáticamente.
+
 ## Encargo para el agente
 
 Implementa este experimento siguiendo [las instrucciones comunes](../AGENTS.md) y [el modelo de entrega](../README.md). Tu directorio exclusivo es `D:/DEVEL/OneInTwo/experiments/clipboard`. Las pruebas con el portapapeles real las ejecutará manualmente el usuario.

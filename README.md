@@ -26,6 +26,7 @@ La fase local disponible en Ubuntu tiene resultados observados y limitaciones re
 - [Experimentos de viabilidad](experiments/README.md): estado de los prototipos y orden de validación manual.
 - [Pendientes](TODO.md): problemas y verificaciones todavía abiertos.
 - [Validación en Ubuntu](VALIDACION_UBUNTU.md): encargo para continuar en la segunda máquina y coordinar las pruebas entre equipos.
+- [Primera prueba LAN de portapapeles](experiments/clipboard/lan/README.md): identidades públicas, preparación de ambos extremos y matriz de ejecución.
 - [Distribución Windows](packaging/windows/README.md) y [distribución Ubuntu](packaging/ubuntu/README.md).
 
 ## Responsabilidad de este archivo

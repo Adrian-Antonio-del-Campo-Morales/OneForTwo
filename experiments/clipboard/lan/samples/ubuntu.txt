@@ -1,0 +1,3 @@
+OneInTwo — muestra U1 copiada en Ubuntu.
+Acentos: Á É Í Ó Ú; eñe: Ñ; símbolos: € @ #.
+Esta es la última línea de la muestra Ubuntu.

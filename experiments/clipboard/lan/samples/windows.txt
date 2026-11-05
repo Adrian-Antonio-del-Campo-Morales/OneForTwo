@@ -1,0 +1,3 @@
+OneInTwo — muestra W1 copiada en Windows.
+Acentos: á é í ó ú; eñe: ñ; símbolos: € @ #.
+Esta es la última línea de la muestra Windows.

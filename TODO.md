@@ -1,5 +1,21 @@
 # Problemas pendientes
 
+## EXP-LAN-01 — Completar la preparación de la primera conexión
+
+Estado: Windows preparado; pendiente de identidad pública e IP Ubuntu.
+
+El [paquete LAN de portapapeles](experiments/clipboard/lan/README.md) incluye
+asistente probado sin red/escritorio, muestras sintéticas y certificado público
+Windows. La clave privada queda solo en `.local-state/lan-clipboard/windows/`.
+El puerto 47831 está libre; el perfil Windows observado es Public. No se ha
+creado una regla de cortafuegos ni abierto una escucha.
+
+El agente Ubuntu debe descargar `validation/windows`, generar su identidad,
+publicar únicamente el certificado público y su huella y comunicar su IP LAN.
+Después, sincronizar ambos extremos, comprobar identidades y aplicar solo la
+regla temporal necesaria antes de ejecutar la matriz acordada. Ninguna prueba
+entre equipos está superada por esta preparación.
+
 ## EXP-BUILD-01 — Completar la evidencia de compilación nativa
 
 Estado: **completado en Ubuntu/Wayland y Windows para la revisión de entrega; X11 sin evidencia nueva**. Actualizado: 5 de noviembre de 2026.
