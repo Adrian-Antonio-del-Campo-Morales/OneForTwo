@@ -1,8 +1,19 @@
 # Problemas pendientes
 
+## EXP-FILES-LAN-01 — Transferencia y pegado Windows → Ubuntu
+
+Estado: preparación de la primera sesión. Fuente Windows sintética preparada:
+cinco archivos, 5.551.150 bytes. Manifiesto y pasos en
+`experiments/files/lan/README.md`. Puerto 47654, servidor Windows y receptor
+Ubuntu con publicación GTK asistida. Regla temporal limitada al programa y
+a las dos IP acordadas. Falta ejecutar, observar el pegado y verificar el destino.
+
+La recepción se hará sin `--to`; el destino de Nautilus debe llenarse mediante
+el pegado del usuario. No dar por probado el pegado solo por verificar la caché.
+
 ## EXP-CLIP-LAN-02 — Contrastar ecos y selección inicial entre equipos
 
-Estado: observado en la primera sesión; causa pendiente de correlación de logs.
+Estado: pendiente de conclusión; experimento de texto suspendido por el usuario. No iniciar nuevas pruebas ni conexiones de texto mientras se avanza en archivos.
 
 TLS y saludo funcionaron y el usuario confirmó el pegado en ambos sentidos.
 El registro Windows incluye una actualización inicial Ubuntu de 48 bytes,
