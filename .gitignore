@@ -1,0 +1,18 @@
+# Responsabilidad: excluir productos locales y datos privados de desarrollo.
+# Ajustar con el sistema de compilación definitivo.
+/build/
+/out/
+/.cache/
+
+# Metadatos locales de herramientas; no forman parte del proyecto compartido.
+/.cloud-attachments/
+/.freebuff/
+
+# Ubicaciones de desarrollo propuestas; no son rutas de instalación.
+/.local-state/
+/transfer-cache/
+
+# Archivos temporales de editores.
+*.swp
+*.swo
+

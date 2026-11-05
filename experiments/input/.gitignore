@@ -1,0 +1,12 @@
+# Responsabilidad: excluir artefactos, temporales y secretos del prototipo.
+/build/
+/out/
+/deps/
+/.cache/
+/.local-state/
+/test-data/
+/test-output/
+/manual-output/
+/certificates/
+*.key
+

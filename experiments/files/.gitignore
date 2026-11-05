@@ -1,0 +1,13 @@
+# Responsabilidad: excluir artefactos, temporales y secretos del prototipo.
+/build/
+/out/
+/deps/
+/.cache/
+/.o2f-selftest-*/
+/.local-state/
+/test-data/
+/test-output/
+/manual-output/
+/certificates/
+*.key
+
