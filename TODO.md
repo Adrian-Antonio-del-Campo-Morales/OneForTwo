@@ -1,5 +1,21 @@
 # Problemas pendientes
 
+## EXP-CLIP-LAN-02 — Contrastar ecos y selección inicial entre equipos
+
+Estado: observado en la primera sesión; causa pendiente de correlación de logs.
+
+TLS y saludo funcionaron y el usuario confirmó el pegado en ambos sentidos.
+El registro Windows incluye una actualización inicial Ubuntu de 48 bytes,
+reemisiones finitas, rechazos por orden y dos capturas locales de 147 bytes
+separadas por unos 277 ms. El agente Ubuntu informa de selección previa y
+reemisiones. Comparar tiempos relativos, origen, generación, contador lógico
+y acciones del usuario antes de concluir si hay ecos incorrectos o duplicación
+de notificaciones. No confundir ausencia de bucle infinito con política correcta.
+
+Log compartido: `experiments/clipboard/lan/evidence/windows-session-01.log`.
+No aplicar correcciones especulativas ni repetir pruebas de escritorio sin un
+caso acordado. Certificado incorrecto y reconexión siguen sin probar.
+
 ## EXP-CLIP-TLS-01 — Fallo de lectura PEM al arrancar Windows
 
 Estado: **corregido y verificado en Windows**, 5 de noviembre de 2026.
@@ -7,30 +23,31 @@ Estado: **corregido y verificado en Windows**, 5 de noviembre de 2026.
 El servidor terminó por `no OPENSSL_Applink` antes de abrir el puerto. Se
 cambiaron ambas lecturas de certificados del transporte a BIO de memoria.
 Regresión aislada superada con los dos certificados públicos, rechazos
-correctos y self-test 149/0. Servidor real activo en 192.168.1.147:47831,
-escucha confirmada. Handshake y copia entre equipos todavía pendientes;
-recompilación de esta corrección en Ubuntu pendiente. Evidencia en
+correctos y self-test 149/0. El servidor llegó a escuchar y completó la primera
+sesión TLS con pegado en ambos sentidos, confirmado por el usuario. Después se
+cerró y retiró su regla temporal. Recompilación de esta corrección en Ubuntu
+pendiente de confirmar con su agente. Evidencia en
 `experiments/clipboard/RESULTS.md`.
 
 ## EXP-LAN-01 — Completar la preparación de la primera conexión
 
-Estado: identidades públicas Windows/Ubuntu preparadas; pendiente de IP Windows y coordinación del arranque.
+Estado: preparación completada y primera sesión terminada. Servidor Windows cerrado, cero escuchas y regla temporal retirada. TLS/saludo y pegado bidireccional confirmados; ecos, selección inicial, certificado incorrecto y reconexión pendientes de validación.
 
 El [paquete LAN de portapapeles](experiments/clipboard/lan/README.md) incluye
 asistente probado sin red/escritorio, muestras sintéticas y certificado público
 Windows. La clave privada queda solo en `.local-state/lan-clipboard/windows/`.
-El puerto 47831 está libre; el perfil Windows observado es Public. No se ha
-creado una regla de cortafuegos ni abierto una escucha.
+El perfil Windows observado es Public. Se abrió una regla limitada al ensayo y
+una escucha en 47831; ambas se han cerrado al terminar la primera sesión.
 
 Ubuntu avanzó sin conflictos a `6c2ec07`, generó su identidad y exportó solo
 `public/ubuntu.pem` y `public/ubuntu.sha256`. Clave privada local ignorada;
 huellas de ambos certificados coherentes con sus archivos SHA-256. IP LAN
 Ubuntu consultada y comunicada al usuario fuera de Git. Sin recompilar C++
 ni repetir pruebas ya válidas: los commits Windows no cambiaron esas fuentes.
-Falta que Windows obtenga esta entrega y comunique su IP LAN actual.
-Después, sincronizar ambos extremos, comprobar identidades y aplicar solo la
-regla temporal necesaria antes de ejecutar la matriz acordada. Ninguna prueba
-entre equipos está superada por esta preparación.
+Windows incorporó esa entrega, verificó la identidad y comunicó su IP. Para el
+siguiente intento volver a acordar revisión, identidades, arranque y regla
+temporal. La primera sesión no valida automáticamente todos los casos de la
+matriz; consultar EXP-CLIP-LAN-02 y el informe de portapapeles.
 
 ## EXP-BUILD-01 — Completar la evidencia de compilación nativa
 

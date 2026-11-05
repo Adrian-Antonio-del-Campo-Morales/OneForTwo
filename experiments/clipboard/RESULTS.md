@@ -1,5 +1,53 @@
 # Resultados — Portapapeles
 
+## Primera sesión Windows ↔ Ubuntu cerrada — 5 de noviembre de 2026
+
+Servidor Windows con la corrección de `780f8c5`, PID 159244, escuchando en
+192.168.1.147:47831 y fijando el certificado Ubuntu comunicado. El agente
+Ubuntu informa de `devices=0` y de confirmación del usuario de pegado correcto
+en ambos sentidos. La revisión efectiva y el log del cliente deben acompañar
+la comparación: no se deducen del protocolo.
+
+Registro Windows completo, solo metadatos y sin texto del portapapeles:
+[windows-session-01.log](lan/evidence/windows-session-01.log).
+
+| Momento relativo | Evidencia Windows |
+| --- | --- |
+| Inicio | Certificado Ubuntu SHA-256 correcto, TLS aceptado y `session ready`, generación `808fb17411cd9893` |
+| +129/+130 ms | Actualización Ubuntu de 48 bytes recibida y aplicada; Windows suprime su notificación propia mediante marcador |
+| +145201 ms | Copia local de 147 bytes enviada con lógico 2 |
+| +145302 ms | Actualización Ubuntu de 147 bytes, lógico 2, rechazada como anterior al estado actual |
+| +145304 ms | Ubuntu confirma aplicada la operación de origen Windows con lógico 2 |
+| +145478/+145583 ms | Segunda captura local de 147 bytes con lógico 3; Ubuntu confirma aplicación |
+| +184345/+184346 ms | Windows envía 145 bytes con lógico 4 y recibe 145 bytes de origen Ubuntu con lógico 4; rechaza esta última como anterior |
+| +184460 ms | Ubuntu confirma aplicada la operación de origen Windows con lógico 4 |
+| +203392/+203393 ms | Lectura TLS termina con `unexpected eof`; la sesión acaba y el servidor vuelve a esperar |
+
+El EOF es coherente con el cierre del cliente comunicado por el usuario; no
+demuestra un cierre TLS ordenado ni constituye por sí solo un fallo de
+autenticación. El log muestra una sola sesión y no prueba reconexión.
+
+**Resultado:** TLS/saludo y pegado bidireccional confirmados para esta sesión.
+**No se da por correcta la política de ecos.** Hay reemisiones finitas y dos
+capturas locales de 147 bytes separadas por unos 277 ms. Sin correlacionar
+eventos y acciones del usuario en ambos extremos no puede atribuirse su causa.
+La actualización inicial de 48 bytes coincide con la selección previa que
+señala el agente Ubuntu; no se considera validada la política de arranque.
+El campo de capacidades recibido por Windows dice `independent_of_input=no`;
+esto se conserva en el log y debe interpretarse con el informe Ubuntu, que
+confirma `devices=0`, sin concluir que se haya concedido entrada.
+
+Tras recibir la confirmación de cierre del cliente se detuvo únicamente el
+proceso Windows identificado. Comprobaciones: `StillRunning=false`, cero
+escuchas en 192.168.1.147:47831. Se retiró la regla temporal
+`OneInTwo-Clipboard-LAN-47831`; el asistente elevado confirmó `RulePresent=false`.
+Se archivaron los logs y el cierre en `.local-state/lan-clipboard/windows/session-01/`.
+No queda servidor activo ni se ha iniciado otro intento.
+
+Pendientes: comparación de ambos logs, rechazo real de certificado incorrecto
+y reconexión, estos dos últimos en otra sesión coordinada. No se repiten ni
+se dan por superados automáticamente a partir de este resultado.
+
 ## Arranque del servidor Windows y corrección PEM — 5 de noviembre de 2026
 
 Tras incorporar `e2af22b` y verificar la huella pública Ubuntu comunicada por el
