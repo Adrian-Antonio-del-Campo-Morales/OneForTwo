@@ -1,6 +1,6 @@
 # Manual de ejecución — Teclado y ratón
 
-Actualizado: **5 de noviembre de 2026**. Describe el código actual, incluidos Windows, Wayland y la alternativa X11. Las pruebas reales siguen pendientes. Este manual es para ejecución explícita del usuario; compilar o ejecutar self-tests no autoriza el arranque automático de captura o inyección.
+Actualizado: **5 de noviembre de 2026**. Describe el código actual, incluidos Windows, Wayland y la alternativa X11. Atajo, demostración local y R2/R9 Wayland verificados; recuperación ante cortes y entrada entre equipos pendientes. Este manual es para ejecución explícita del usuario; compilar o ejecutar self-tests no autoriza el arranque automático de captura o inyección.
 
 ## 1. Antes de empezar
 
@@ -10,9 +10,12 @@ Actualizado: **5 de noviembre de 2026**. Describe el código actual, incluidos W
 - Sin argumentos o con `--help`, el programa muestra ayuda.
 - `input_self_test` y `--self-test` no usan escritorio ni red.
 - `--diagnose` consulta el escritorio y, en Wayland, el bus de sesión; no solicita las sesiones de control.
+- `--check-target` en Wayland abre solo GlobalShortcuts y espera el atajo;
+  no abre RemoteDesktop, EIS ni red, ni exige geometría. Es la primera prueba
+  supervisada de la versión corregida, verificada con el usuario y la guía de 30 s.
 - `--inject-demo` mueve el cursor y escribe. `--source` y `--target` usan dispositivos y red.
-- La salida prevista es **Ctrl+Alt+F12**. En Wayland destino debe autorizarse mediante GlobalShortcuts. Verificarla manualmente antes de prolongar el control.
-- Falta evidencia de compilación nativa Linux. Si falla, registrar el error; no continuar con una compilación que haya excluido silenciosamente el backend que se quiere evaluar.
+- Destino Wayland: **Ctrl+Shift+F12**, mediante GlobalShortcuts y con identificador nuevo. Windows/X11 conservan Ctrl+Alt+F12. No usar Ctrl+Alt+F12 para esta prueba Wayland: coincide con el cambio de consola de Mutter.
+- Compilación nativa Ubuntu/Wayland, demostración, emergencia con EIS activo y retirada de permiso verificadas. Cortes entre equipos pendientes; el incidente anterior con reinicio se conserva (EXP-INPUT-02).
 
 ## 2. Requisitos y compilación
 
@@ -157,21 +160,181 @@ El destino prepara permisos antes de escuchar en red. El origen también prepara
 
 Si el escritorio no reserva la salida local requerida, el backend destino debe rechazar la preparación. No dar por verificado el atajo por aceptar un diálogo: comprobar que la combinación realmente libera el control.
 
+### Comprobar la salida sin inyectar
+
+#### Guía supervisada con vuelta automática a los 30 segundos
+
+Este ensayo aislado pasó con el usuario presente el 5 de noviembre; no valida
+todavía control EIS ni recuperación de una imagen congelada. Para repetirlo,
+con el usuario presente, desde la raíz del repositorio:
+
+```bash
+env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py
+```
+
+La ventana explica los pasos y **no inicia la prueba al abrirse**:
+
+1. Pulsar «Iniciar prueba de 30 segundos» en la guía.
+2. En GNOME, comprobar la fila «Devolver el control local (OneInTwo)» con
+   Ctrl+Shift+F12 y pulsar **«Añadir» / «Add», arriba a la derecha**.
+   Si propone Ctrl+Alt+F12 o compartir pantalla/control, pulsar Cancelar.
+3. Volver a la guía y esperar **«AHORA: pulsa y suelta Ctrl+Shift+F12»**,
+   arriba en grande, junto a la cuenta atrás.
+   Pulsarlo una sola vez. Si ya no aparece el diálogo porque el permiso está
+   guardado, esperar igualmente al mensaje de la guía.
+4. Esperar sin más teclas. A los 30 s de armar el temporizador se cierra el
+   ámbito del ensayo y se intenta reactivar la sesión gráfica original.
+   «Cancelar y volver al escritorio» permite hacerlo antes.
+
+La vuelta depende de un servicio transitorio separado de la guía y del
+prototipo. Se comprueba primero que puede reactivar la sesión sin pedir
+contraseña; si falla, no arranca el ensayo. La prueba del supervisor con un
+proceso `sleep` funcionó. No se ha validado un retorno desde otra VT ni se
+promete reparar GNOME o la imagen si el compositor se bloquea. Confirmar
+siempre el resultado visual con el usuario. Sigue siendo solo GlobalShortcuts,
+sin RemoteDesktop, EIS, captura ni red. Python, PyGObject y GTK3 ya están
+presentes; no se instala nada. Los logs quedan en `manual-output/guided-*`.
+
+#### Comando directo anterior con guarda de 60 segundos
+
+El ensayo anterior con Ctrl+Alt+F12 abrió EIS y terminó en una congelación
+comunicada por el usuario, con recuperación mediante reinicio. Sigue
+registrado como fallo en EXP-INPUT-02. La preparación se ha corregido por
+petición del usuario. El primer intento corregido, solo de GlobalShortcuts,
+terminó a los 63 s por la guarda externa; el atajo aún no quedó verificado.
+
+La versión nueva usa Ctrl+Shift+F12 y `oneintwo-emergency-v2`, para no reutilizar
+una concesión persistida de Ctrl+Alt+F12. `--check-target` abre **solo
+GlobalShortcuts**: ningún permiso RemoteDesktop, conexión EIS, transacción de
+emulación o red. No necesita desactivar monitores para esta comprobación.
+
+En una futura sesión supervisada, con recuperación independiente preparada,
+autorizar solo el atajo. Si el diálogo propone la combinación antigua, cancelar;
+no pulsarla. Cuando aparezca la espera, pulsar Ctrl+Shift+F12 una vez. Debe
+imprimir «Atajo local verificado» y cerrar con código 0; permiso rechazado,
+sesión cerrada o tiempo agotado dan código 1. No avanzar a inyección si falla.
+El límite de espera empieza después del permiso; usar también la guarda externa
+indicada abajo. No interpretar esta separación como garantía de que un
+compositor o controlador gráfico nunca pueda bloquearse.
+
+GlobalShortcuts exige identidad de aplicación. En la validación Ubuntu se
+preparó una entrada `io.github.OneForTwo.InputExperiment.desktop` en el
+directorio de logs del proyecto, con enlace del mismo nombre en
+`~/.local/share/applications/`. Debe identificar este prototipo con
+`Type=Application`, `Name=OneInTwo — prueba de entrada`, `Exec` apuntando al
+binario real, `Terminal=true` y `NoDisplay=true`; no usar la identidad de otra
+aplicación. El enlace es temporal y puede retirarse al acabar. No hace falta
+instalación global ni autoinicio.
+
+Desde la raíz del repositorio, con ese registro preparado, lanzar el prototipo
+en un ámbito de aplicación transitorio:
+
+```bash
+env -u LD_LIBRARY_PATH systemd-run --user --scope --collect \
+  --unit=app-io.github.OneForTwo.InputExperiment-check \
+  --property=RuntimeMaxSec=60s --property=TimeoutStopSec=3s \
+  /bin/bash -c 'source .local-state/ubuntu-validation/env.sh; exec timeout --signal=TERM --kill-after=3s 60s ./experiments/input/build/ubuntu-wayland/input_experiment --check-target --max-seconds 60'
+```
+
+Los 60 segundos externos incluyen autorización e inicio, no solo la espera
+del atajo. El gestor systemd limita el ámbito independientemente del bucle del
+prototipo; `timeout` limita también el proceso, con tres segundos de margen
+antes del cierre forzado. Esto no garantiza recuperar un compositor bloqueado.
+Si se agota el tiempo en un diálogo, registrar el ensayo como incompleto.
+
+Cargar las bibliotecas locales dentro del hijo: `systemd-run` debe usar las
+del sistema. El log indica la descripción de la combinación devuelta por el
+portal; recibir un identificador no prueba que la combinación física funcione.
+El diálogo del atajo puede no repetirse si el escritorio conserva la concesión.
+Para investigar una desconexión sin inyectar, `ONEINTWO_EI_DEBUG=1` habilita el
+log de libei; limitarlo a la preparación con datos de prueba. No habilitarlo
+sobre sesiones con contenido privado.
+
 ## 5. Inyección local opcional
 
-Esta prueba sí mueve y escribe. Abrir un editor desechable y lanzar:
+Esta prueba sí mueve y escribe. El atajo aislado, el supervisor de 30 s y una
+demostración local pasaron el 5 de noviembre: texto `oneintwo`, movimiento y
+escritorio respondiendo confirmados por el usuario. Con el usuario presente, la guía local incluye
+un recuadro de texto desechable y los pasos para autorizar la demostración:
+
+```bash
+env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py --inject-demo
+```
+
+Pulsar Iniciar, comprobar y pulsar/soltar Ctrl+Shift+F12 cuando diga AHORA,
+autorizar interacción remota de teclado y ratón sin pantalla y, cuando diga
+ZONA DE PRUEBA, enfocar el recuadro de la guía. No escribir ni cambiar de
+ventana. El prototipo espera 5 s e intenta mover el puntero unos píxeles y
+escribir `oneintwo`, sin clics. El límite independiente de 30 s incluye los
+diálogos y cierra solo el ámbito de este ensayo; si se agota antes, registrar
+la prueba como incompleta. El botón Cancelar permite terminar antes.
+La guía no registra el contenido del recuadro; confirmar texto, movimiento
+y respuesta del escritorio con el usuario. Logs en `manual-output/guided-*`.
+
+Con un editor desechable externo, el ejemplo Windows es:
 
 ```powershell
 .\build\windows\input_experiment.exe --inject-demo --arm-seconds 5
 ```
 
+En Wayland, tanto `--inject-demo` como `--target` reservan primero el atajo
+y exigen **pulsar y soltar Ctrl+Shift+F12 en 30 segundos**, antes de solicitar
+RemoteDesktop o conectar EIS. Si falta activación, liberación o el portal
+cierra el atajo, terminan sin abrir control. Esta verificación se repite en
+cada ejecución; el ensayo separado no guarda una marca de confianza.
+
+Solo después aparecen los permisos de RemoteDesktop. Autorizar teclado y
+ratón sin pantalla, con un único monitor activo y editor desechable preparado.
+Después comienza la cuenta atrás: enfocar el editor durante ese intervalo.
+EIS espera dispositivos reanudados y no inicia emulación al preparar permisos;
+la inicia al enviar el primer evento real. Pausa, retirada o cierre detienen
+el flujo, sin reanudarlo automáticamente. El cierre normal libera las teclas
+y botones que este emisor haya dejado pulsados y finaliza su emulación.
+
+La prueba intenta un movimiento breve y escribe `oneintwo`. Registrar lo
+observado: «Demostracion finalizada» no certifica texto, movimiento o recuperación.
+El siguiente comando directo anterior solo limita el proceso; para repetir
+en esta máquina usar la guía de 30 s de arriba, que añade recuperación
+independiente. Desde la raíz y con la identidad de aplicación preparada:
+
 ```bash
-./build/wayland/input_experiment --inject-demo --arm-seconds 5
+env -u LD_LIBRARY_PATH systemd-run --user --scope --collect \
+  --unit=app-io.github.OneForTwo.InputExperiment-demo \
+  --property=RuntimeMaxSec=60s --property=TimeoutStopSec=3s \
+  /bin/bash -c 'source .local-state/ubuntu-validation/env.sh; exec timeout --signal=TERM --kill-after=3s 60s ./experiments/input/build/ubuntu-wayland/input_experiment --inject-demo --arm-seconds 10'
 ```
 
-En Wayland se solicitan primero los permisos del destino; después comienza la cuenta atrás. Enfocar el editor en ese intervalo. El prototipo intenta un movimiento breve y escribe `oneintwo`. Registrar el resultado real, los errores y la capacidad de salir; la impresión «Demostracion finalizada» no sustituye a observar el editor.
+La guarda limita el proceso; no garantiza restaurar un compositor congelado.
+
+Completar antes `--check-target`. La demostración atiende el atajo durante
+la cuenta atrás y entre eventos; no iniciar captura si la recuperación local
+no ha sido comprobada en el escritorio real.
 
 ## 6. Red local
+
+### Comprobaciones locales R2/R9 antes de pasar a dos equipos
+
+Requieren un monitor activo y usuario presente. Las guías conservan el
+supervisor independiente de 30 s y la verificación del atajo antes de EIS:
+
+```bash
+env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py --emergency-check
+# En otra ejecución, después de terminar la anterior:
+env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py --revoke-check
+```
+
+Siguen el guion de inyección local, pero mantienen EIS abierto después de
+escribir. R2: cuando diga AHORA SALIDA, pulsar y soltar Ctrl+Shift+F12 otra
+vez. R9: cuando diga AHORA RETIRA EL PERMISO, pulsar el indicador superior
+de GNOME «Stop Screen Sharing». No usar el botón Cancelar como sustituto de
+retirar permiso. La guía debe confirmar la salida esperada y el escritorio
+responder. Un timeout no valida la salida. Después del rechazo inicial por
+varios monitores y la pausa, R2 y R9 pasaron con un único monitor el 5 de
+noviembre: salida 0, cierre antes del temporizador y escritorio operativo
+confirmado por el usuario. Evidencia detallada en RESULTS.md.
+
+La CLI usa `--inject-demo --wait-for-stop --arm-seconds 3 --max-seconds 30`;
+ese argumento adicional sirve solo para esta comprobación experimental.
 
 Puerto del ejemplo: **47830/TCP**. Ambos equipos deben ser alcanzables. El destino escucha en las interfaces que use su implementación; el usuario debe limitar el cortafuegos a la IP del origen.
 
@@ -253,31 +416,33 @@ Una dirección correcta no valida la inversa. Si se prueba Xorg, repetir y regis
 
 ## 9. Matriz manual
 
-Todas estas pruebas están pendientes. Registrar sistema, versión de sesión/escritorio, portales, libei, layout, compilación y resultado observado.
+La columna Observado distingue la evidencia local Ubuntu de los casos aún
+pendientes. Registrar sistema, sesión/escritorio, portales, libei y layout;
+el detalle y los intentos anteriores se conservan en RESULTS.md.
 
 | Caso | Acción | Resultado que se debe comprobar | Observado |
 | --- | --- | --- | --- |
 | D1 | Diagnóstico Windows | Backend y capacidades declaradas coherentes | Pendiente |
-| D2 | Diagnóstico Wayland | Portales y capacidades exigidas; sin fallback X11 | Pendiente |
+| D2 | Diagnóstico Wayland | Portales y capacidades exigidas; sin fallback X11 | Ubuntu verificado; origen bloqueado por InputCapture v1 |
 | D3 | Diagnóstico Xorg opcional | X11/XI2/XTest, si se compiló ese backend | Pendiente |
 | P1 | Denegar o cancelar InputCapture | Origen rechaza y limpia la preparación | Pendiente |
-| P2 | Denegar RemoteDesktop o el atajo | Destino no habilita la sesión de control | Pendiente |
-| P3 | Aceptar permisos | Geometría y dispositivos requeridos disponibles | Pendiente |
-| I1/I2 | Inyección local Windows/Wayland | Movimiento y texto en el editor elegido | Pendiente |
+| P2 | Denegar RemoteDesktop o el atajo | Destino no habilita la sesión de control | Cancelación RemoteDesktop verificada en Ubuntu |
+| P3 | Aceptar permisos | Geometría y dispositivos requeridos disponibles | Destino Ubuntu verificado, un monitor |
+| I1/I2 | Inyección local Windows/Wayland | Movimiento y texto en el editor elegido | I2 Ubuntu superado; I1 Windows pendiente |
 | C1 | Windows → Ubuntu | Cruce, entrada y retorno | Pendiente |
 | C2 | Ubuntu → Windows | Activación por barrera, entrada y retorno | Pendiente |
 | C3 | Salir y acercarse de nuevo al borde | Sin rebotes ni sesiones duplicadas | Pendiente |
 | K1 | Teclado español | ñ, acentos, AltGr, símbolos y modificadores | Pendiente |
 | K2 | Clic, arrastre y rueda tras cruzar | Acciones y liberaciones correctas | Pendiente |
 | R1 | Emergencia en origen | Captura liberada sin esperar al destino | Pendiente |
-| R2 | Emergencia en destino | Entrada liberada y salida local operativa | Pendiente |
+| R2 | Emergencia en destino | Entrada liberada y salida local operativa | Ubuntu local superado, 5 noviembre 2026 |
 | R3 | Actividad física en destino Windows | Sesión termina y se libera estado | Pendiente |
 | R4 | Corte de red con tecla/botón pulsado | Recuperación local y watchdog remoto | Pendiente |
 | R5 | Cerrar proceso origen desde otro medio | Destino libera por su temporizador | Pendiente |
 | R6 | Alcanzar duración máxima | Cierre y limpieza en ambos extremos | Pendiente |
 | R7 | Cancelar antes de cruzar | Salida y cierre de sesiones autorizadas | Pendiente |
 | R8 | Huella incorrecta en cada extremo | Rechazo, sin sesión de control autorizada | Pendiente |
-| R9 | Retirar sesión/permiso del escritorio | Error, liberación y recuperación | Pendiente |
+| R9 | Retirar sesión/permiso del escritorio | Error, liberación y recuperación | Ubuntu local superado, 5 noviembre 2026 |
 | R10 | Cierre de EIS o cambio de zona | Recuperación o rechazo con explicación | Pendiente |
 | R11 | Falta de portal/dispositivos/atajo | Error concreto, sin simular éxito | Pendiente |
 | R12 | Puerto inaccesible | No queda captura activa ni entrada inyectada | Pendiente |
@@ -296,7 +461,7 @@ Ctrl, Alt, Shift y AltGr
 - Origen: la combinación de emergencia prevista es Ctrl+Alt+F12 durante captura. Debe devolver a control local; su comportamiento real está sin verificar.
 - Destino Windows: hook local de emergencia y detección de actividad física.
 - Destino X11: reserva del atajo mediante XGrabKey.
-- Destino Wayland: GlobalShortcuts; no se inicia el control si el flujo no concede la reserva.
+- Destino Wayland: GlobalShortcuts con Ctrl+Shift+F12; exige activación y liberación antes de RemoteDesktop/EIS. Si falla, no se abre control.
 - Pérdida de comunicación: objetivo del código de 2 s en origen y 1,5 s de watchdog en destino. Son temporizadores configurados, no latencias medidas.
 - Wayland origen solicita posición de retorno; Wayland destino no restaura un cursor global previo.
 - El watchdog no sobrevive a la muerte del propio receptor. Usar la salida prevista y liberar estados antes de cerrar forzosamente ese proceso.

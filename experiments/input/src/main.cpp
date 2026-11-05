@@ -63,7 +63,7 @@ void installSignalHandlers() {
 #endif
 }
 
-enum class Mode { Help, SelfTest, Diagnose, InjectDemo, Source, Target };
+enum class Mode { Help, SelfTest, Diagnose, CheckTarget, InjectDemo, Source, Target };
 
 struct Options {
   Mode mode = Mode::Help;
@@ -75,6 +75,7 @@ struct Options {
   oit::Edge edge = oit::Edge::Right;
   int armSeconds = 5;
   int maxSeconds = 180;
+  bool waitForStop = false;
 };
 
 void printHelp() {
@@ -86,6 +87,7 @@ void printHelp() {
       "Modos (uno solo):\n"
       "  --self-test          Pruebas aisladas del nucleo; no toca el escritorio ni la red.\n"
       "  --diagnose           Inventario de plataforma y capacidades; no instala hooks.\n"
+      "  --check-target       Comprueba la salida; Wayland: solo GlobalShortcuts, sin EIS.\n"
       "  --inject-demo        Inyecta un movimiento breve y escribe 'oneintwo' en la ventana\n"
       "                       enfocada. Solo manual: enfoque un editor desechable.\n"
       "  --source             Origen de teclado y raton (captura e envia).\n"
@@ -103,12 +105,13 @@ void printHelp() {
       "  --edge right|left         Borde compartido del origen (por defecto right).\n"
       "  --arm-seconds N           Preparacion visible antes de capturar (1..60, def. 5).\n"
       "  --max-seconds N           Duracion maxima de la sesion (10..3600, def. 180).\n"
+      "  --wait-for-stop           Tras --inject-demo, espera emergencia o retirada de permiso.\n"
       "\n"
-      "Salida local de emergencia durante el control remoto: Ctrl+Alt+F12.\n"
+      "Salida: Ctrl+Alt+F12 (Windows/X11); Ctrl+Shift+F12 (destino Wayland).\n"
       "El destino tambien libera al recibir ese atajo o actividad fisica local (Windows).\n"
       "\n"
       "Wayland (Linux): usa los portales InputCapture y RemoteDesktop + libei.\n"
-      "El escritorio debe autorizar la captura y Ctrl+Alt+F12. Sin esa salida local\n"
+      "El destino comprueba Ctrl+Shift+F12 antes de abrir RemoteDesktop/EIS. Sin esa salida\n"
       "el destino no inicia la inyeccion. Requiere gio-2.0 y libei-1.0 al compilar.\n"
       "\n"
       "Ejemplos:\n"
@@ -175,8 +178,12 @@ bool parseArgs(int argc, char** argv, Options& options, std::string& error) {
       if (!setMode(Mode::SelfTest)) return false;
     } else if (argument == "--diagnose") {
       if (!setMode(Mode::Diagnose)) return false;
+    } else if (argument == "--check-target") {
+      if (!setMode(Mode::CheckTarget)) return false;
     } else if (argument == "--inject-demo") {
       if (!setMode(Mode::InjectDemo)) return false;
+    } else if (argument == "--wait-for-stop") {
+      options.waitForStop = true;
     } else if (argument == "--source") {
       if (!setMode(Mode::Source)) return false;
     } else if (argument == "--target") {
@@ -232,6 +239,10 @@ bool parseArgs(int argc, char** argv, Options& options, std::string& error) {
     }
   }
 
+  if (options.waitForStop && options.mode != Mode::InjectDemo) {
+    error = "--wait-for-stop requiere --inject-demo";
+    return false;
+  }
   if (options.mode == Mode::Source || options.mode == Mode::Target) {
     if (options.certFile.empty() || options.keyFile.empty() || options.fingerprint.empty()) {
       error = "faltan --cert, --key o --peer-fingerprint";
@@ -286,14 +297,22 @@ void printBackend(const oit::Backend& backend) {
   std::fflush(stdout);
 }
 
-bool countdown(int seconds, const char* message) {
+bool countdown(int seconds, const char* message, oit::Backend* target = nullptr) {
   for (int left = seconds; left > 0; --left) {
     if (interrupted()) return false;
     std::printf("%s %d s...\n", message, left);
     std::fflush(stdout);
     for (int slice = 0; slice < 10; ++slice) {
       if (interrupted()) return false;
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      if (target != nullptr) {
+        oit::TargetSignal signal;
+        if (target->nextTargetSignal(signal, 100)) {
+          std::printf("Salida local recibida durante la preparacion.\n");
+          return false;
+        }
+      } else {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
     }
   }
   return !interrupted();
@@ -403,14 +422,43 @@ int runDiagnose(oit::Backend& backend) {
   return 0;
 }
 
+int runCheckTarget(oit::Backend& backend, const Options& options) {
+  if (!backend.caps().inject) {
+    std::printf("La preparacion de destino no esta disponible en este entorno.\n");
+    return 1;
+  }
+  std::string error;
+  if (!backend.prepareTargetExit(error)) {
+    std::printf("No se pudo preparar el destino: %s\n", error.c_str());
+    backend.stopTarget();
+    return 1;
+  }
+  std::printf("Comprobacion de salida. Pulse %s ahora.\n", backend.targetExitShortcut());
+  std::fflush(stdout);
+  const int64_t deadline = oit::steadyNowMs() + options.maxSeconds * 1000LL;
+  bool verified = false;
+  while (!interrupted() && oit::steadyNowMs() < deadline) {
+    oit::TargetSignal signal;
+    if (!backend.nextTargetSignal(signal, 100)) continue;
+    verified = signal.kind == oit::TargetSignal::Kind::Emergency;
+    std::printf(verified ? "Atajo local verificado; cerrando sesiones.\n"
+                         : "El escritorio cerro o interrumpio la preparacion.\n");
+    break;
+  }
+  backend.stopTarget();
+  if (!verified) std::printf("Atajo no verificado; no se ha inyectado entrada.\n");
+  return verified ? 0 : 1;
+}
+
 int runInjectDemo(oit::Backend& backend, const Options& options) {
   if (!backend.caps().inject) {
     std::printf("La inyeccion de entrada no esta disponible en este entorno.\n");
     return 1;
   }
   std::string error;
-  if (!backend.prepareTarget(error)) {
+  if (!backend.prepareTarget(error) || !backend.startTarget(error)) {
     std::printf("No se pudo preparar la inyeccion: %s\n", error.c_str());
+    backend.stopTarget();
     return 1;
   }
   const oit::Geo geo = backend.geometry();
@@ -423,7 +471,7 @@ int runInjectDemo(oit::Backend& backend, const Options& options) {
   std::printf(
       "Demostracion de inyeccion: se movera el cursor unos pixeles y se escribira\n"
       "'oneintwo'. No se pulsan botones. Enfoque una ventana de texto desechable.\n");
-  if (!countdown(options.armSeconds, "Comienzo en")) {
+  if (!countdown(options.armSeconds, "Comienzo en", &backend)) {
     std::printf("Cancelado.\n");
     backend.stopTarget();
     return 0;
@@ -433,28 +481,72 @@ int runInjectDemo(oit::Backend& backend, const Options& options) {
   int baseY = geo.y + geo.h / 2;
   backend.cursorPosition(baseX, baseY);
 
+  bool stopped = false;
+  bool failed = false;
+  const auto shouldStop = [&] {
+    oit::TargetSignal signal;
+    if (interrupted() || backend.nextTargetSignal(signal, 0)) {
+      stopped = true;
+      return true;
+    }
+    return false;
+  };
+
   const int offsets[][2] = {{0, 0}, {12, 0}, {-12, 0}, {0, 0}};
   for (const auto& offset : offsets) {
-    if (interrupted()) break;
-    backend.injectMove(baseX + offset[0], baseY + offset[1], error);
+    if (shouldStop()) break;
+    if (!backend.injectMove(baseX + offset[0], baseY + offset[1], error)) {
+      failed = true;
+      break;
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(80));
   }
 
   const uint16_t keys[] = {oit::hid::O, oit::hid::N, oit::hid::E, oit::hid::I,
                            oit::hid::N, oit::hid::T, oit::hid::W, oit::hid::O};
   for (uint16_t usage : keys) {
-    if (interrupted()) break;
+    if (failed || stopped || shouldStop()) break;
     if (!backend.injectKey(usage, true, error)) {
-      std::printf("Fallo al inyectar tecla: %s\n", error.c_str());
+      failed = true;
       break;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    backend.injectKey(usage, false, error);
+    if (!backend.injectKey(usage, false, error)) {
+      failed = true;
+      break;
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
-  backend.injectMove(baseX, baseY, error);
+  if (!failed && !stopped && !shouldStop()) {
+    failed = !backend.injectMove(baseX, baseY, error);
+  }
+  if (options.waitForStop && !failed && !stopped && !interrupted()) {
+    std::printf("CONTROL ACTIVO: esperando emergencia o retirada de permiso.\n");
+    std::fflush(stdout);
+    const int64_t deadline = oit::steadyNowMs() + options.maxSeconds * 1000LL;
+    while (!interrupted() && oit::steadyNowMs() < deadline) {
+      oit::TargetSignal signal;
+      if (!backend.nextTargetSignal(signal, 100)) continue;
+      std::printf(signal.kind == oit::TargetSignal::Kind::Emergency
+                      ? "Control detenido por emergencia local.\n"
+                      : "Control detenido por cierre del escritorio o dispositivo.\n");
+      backend.stopTarget();
+      return 0;
+    }
+    backend.stopTarget();
+    std::printf("Control no verificado: tiempo agotado o interrupcion externa.\n");
+    return 1;
+  }
   backend.stopTarget();
+  if (failed) {
+    std::printf("Demostracion detenida por fallo: %s\n", error.c_str());
+    return 1;
+  }
+  if (stopped || interrupted()) {
+    std::printf("Demostracion interrumpida; entrada liberada.\n");
+    return 0;
+  }
   std::printf("Demostracion finalizada. Revise el texto y el cursor.\n");
   return 0;
 }
@@ -628,7 +720,8 @@ int runTarget(oit::Backend& backend, const Options& options) {
   oit::TargetController controller(geo, io, tuning, oit::steadyNowMs());
 
   std::printf(
-      "[destino] Conexion aceptada. Ctrl+Alt+F12 libera el control localmente.\n");
+      "[destino] Conexion aceptada. %s libera el control localmente.\n",
+      backend.targetExitShortcut());
   std::fflush(stdout);
 
   const int64_t startMs = oit::steadyNowMs();
@@ -693,6 +786,13 @@ int main(int argc, char** argv) {
     return 0;
   }
   if (options.mode == Mode::SelfTest) {
+#ifdef OIT_WITH_WAYLAND
+    if (!oit::runWaylandPortalResponseChecks()) {
+      std::printf("FAIL native_portal_response_and_shortcut (aislado, sin bus)\n");
+      return 1;
+    }
+    std::printf("PASS native_portal_response_and_shortcut (aislado, sin bus)\n");
+#endif
     return oit::runSelfTests() == 0 ? 0 : 1;
   }
 
@@ -709,6 +809,8 @@ int main(int argc, char** argv) {
   switch (options.mode) {
     case Mode::Diagnose:
       return runDiagnose(*backend);
+    case Mode::CheckTarget:
+      return runCheckTarget(*backend, options);
     case Mode::InjectDemo:
       return runInjectDemo(*backend, options);
     case Mode::Source:

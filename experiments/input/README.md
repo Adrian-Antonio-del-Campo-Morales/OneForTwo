@@ -76,9 +76,24 @@ La decisión arquitectónica esperada es cómo implementar el contrato de entrad
 - `src/net/tls_link.cpp`: comunicación directa con certificados y huellas en ambos extremos.
 - `tests/self_test.cpp`: núcleo y flujos Wayland aislados, sin escritorio ni red.
 
-La ejecución del binario independiente Windows el 5 de noviembre dio **538 comprobaciones, 0 fallos**. La cifra histórica de 403 pertenece a la primera entrega anterior a la ampliación Wayland. No hay evidencia registrada de compilación del adaptador nativo Wayland, X11 o TLS en Linux; una compilación del núcleo con backend `none` no los verifica.
+La ejecución del binario independiente Windows el 5 de noviembre dio **538 comprobaciones, 0 fallos**. La cifra histórica de 403 pertenece a la primera entrega anterior a la ampliación Wayland. En Ubuntu están compilados Wayland nativo y TLS; el self-test actualizado de núcleo y flujos da **579/0**, más las regresiones nativas en memoria. X11 no tiene evidencia nueva. Ninguna de estas pruebas aisladas valida la recuperación del escritorio.
 
-La preparación Wayland exige las interfaces y dispositivos que comprueba el código: InputCapture v2 en origen, RemoteDesktop v2 y GlobalShortcuts v1 en destino, teclado/puntero concedidos y geometría EIS utilizable. Sin la reserva de salida local no se habilita el control en destino. La disponibilidad y comportamiento reales siguen pendientes.
+La preparación Wayland exige InputCapture v2 en origen, RemoteDesktop v2 y
+GlobalShortcuts v1 en destino, dispositivos reanudados y una región EIS
+utilizable. El destino reserva Ctrl+Shift+F12 con identidad nueva y exige
+pulsarlo y soltarlo antes de abrir RemoteDesktop/EIS. `--check-target` prueba
+solo GlobalShortcuts; no abre control. La emulación empieza con el primer
+evento real y el cierre normal libera el estado propio. Estas correcciones
+se compilaron y probaron de forma aislada. El 5 de noviembre el usuario
+verificó primero Ctrl+Shift+F12 por separado y después la demostración
+RemoteDesktop/EIS con la guía y el temporizador independiente de 30 s:
+movimiento breve, texto `oneintwo`, salida 0 y escritorio respondiendo.
+Después pasaron R2 (emergencia con EIS activo) y R9 (retirada del permiso en
+GNOME), ambas salida 0 y escritorio operativo confirmado. La fase local
+prevista está completada en la configuración de un monitor. No se observó
+otra congelación; no se garantiza reparar un compositor bloqueado. Estados
+retenidos, cortes y entrada entre equipos siguen pendientes (EXP-INPUT-02);
+origen Ubuntu bloqueado por InputCapture v1.
 
 El [manual](MANUAL.md) contiene compilación explícita por backend y pasos de permisos, cruce, retorno, cancelación y recuperación. El [informe](RESULTS.md) distingue evidencia histórica, comprobación actual y validación manual. Ningún resultado aislado afirma que ya funcionen el escritorio o la conexión entre equipos.
 

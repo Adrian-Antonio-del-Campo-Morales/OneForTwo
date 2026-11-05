@@ -220,9 +220,15 @@ registra como tal.
 ### L4. Caché local en Ubuntu (Nautilus)
 
 1. `./build/oneintwo-files --publish-cache ~/o2t-manual/datos`
-2. En Nautilus, abrir una carpeta nueva y pegar `Ctrl+V`.
-3. Comprobar estructura, tamaño y `sha256sum`.
-4. `Ctrl+C` en la terminal.
+2. En Wayland aparece una ventana de prueba: pulsar **Publicar archivos** y
+   dejarla abierta. Es una acción local necesaria para que GTK pueda entregar
+   una selección válida al compositor; el modo asistido no valida publicación
+   automática en segundo plano. En X11 no se requiere esa ventana.
+3. En Nautilus, abrir una carpeta nueva y pegar `Ctrl+V`. Preparar la carpeta
+   antes de publicar si hay que copiar su ruta: copiar texto después sustituye
+   la oferta de archivos.
+4. Comprobar estructura, tamaño y `sha256sum`.
+5. Cerrar la ventana de prueba o usar `Ctrl+C` en la terminal.
 
 **Esperado:** pegado completo con nombres Unicode. **Fallo:** Nautilus no
 muestra la opción de pegar archivos, pega solo texto o faltan elementos.

@@ -10,3 +10,4 @@
 /certificates/
 *.key
 
+__pycache__/

@@ -270,7 +270,12 @@ backend. La mera presencia de la interfaz en D-Bus no concede acceso.
    ```
 
    Aprobar el diálogo y pegar en un editor Wayland con Ctrl+V. Debe aparecer el
-   texto. El protocolo del portal no transporta el marcador privado de Windows;
+   texto. En Wayland el proceso conserva la oferta y atiende las solicitudes
+   de pegado durante un máximo de **60 segundos después de autorizar**; pegar
+   dentro de ese intervalo. Ctrl+C termina antes. Al salir se retira la oferta.
+   `readback=match` comprueba la copia interna del adaptador y **no demuestra
+   un pegado real**: hay que observar el editor.
+   El protocolo del portal no transporta el marcador privado de Windows;
    la salida lo indica y el motor usa la huella de contenido como respaldo de
    eco. Verificar `readback=match`.
 
@@ -446,8 +451,10 @@ permiso del portal fue concedido o denegado.
 ## 8. Detener y restaurar
 
 - `--watch`, `--serve` y `--connect`: Ctrl+C.
-- `--read-text`, `--publish-text`, `--publish-file`, `--inventory`,
-  `--self-test` y `--emit-samples`: terminan solos.
+- `--read-text`, `--inventory`, `--self-test` y `--emit-samples`: terminan solos.
+- `--publish-text` y `--publish-file`: en Windows terminan tras publicar;
+  en Wayland atienden la oferta durante hasta 60 segundos y después terminan.
+  Ctrl+C permite terminar antes.
 - Al terminar un modo Wayland se cierra la sesión del portal. El prototipo no
   crea servicios, claves de registro, reglas de firewall ni tareas de inicio.
 - Si se creó una regla de firewall para la prueba, retirarla manualmente.

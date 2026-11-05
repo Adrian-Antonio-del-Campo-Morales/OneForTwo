@@ -1,5 +1,266 @@
 # Resultados — Portapapeles
 
+## Cierre del caso local de copia aislada — 5 de noviembre de 2026
+
+Con el mismo binario y base Git `450cbb2e340a381bda01274eb86df0e05934e822`
+más las correcciones locales previas, se ejecutó `--watch` sobre el portal
+real. El usuario autorizó y confirmó una única copia. Una ventana auxiliar
+con muestra desechable registró **una sola acción `copy-clipboard`** a las
+**19:20:24.324 CET**; no cambió el observador ni filtró sus resultados.
+La muestra conocida tiene 62 bytes, huella `af28ca2273e2d495`.
+
+`watch.log` contiene una notificación anterior de otro contenido (183 bytes)
+y **una sola notificación de la muestra** (62 bytes), sin nuevas entradas
+durante los **12 s siguientes**. `devices=0`, `clipboard_enabled=true`.
+El usuario confirmó «una sola copia y observación terminada». Caso local
+superado; no demuestra ausencia de ecos entre equipos.
+
+Evidencia ignorada en `manual-output/local-final-20261105/`: `watch_once.py`,
+`command.json`, `watch.log`, `copy-actions.json`, `process.json`. La ayuda
+ejecutó `timeout --signal=TERM --kill-after=1s 90s
+experiments/clipboard/build/ubuntu/oneintwo-clipboard --watch`, con las
+bibliotecas locales solo en el hijo. Se detuvo el grupo propio tras la
+observación a las **19:20:36.329 CET**; el supervisor devolvió 124 al recibir
+la señal externa, no por un error del portal. No se añadieron tests ni se
+repitieron lectura, pegado, denegación o self-tests ya válidos.
+
+## Validación local de escritorio — 5 de noviembre de 2026
+
+El usuario reanudó las pruebas y confirmó su presencia. Se trabajó únicamente
+con textos sintéticos en GNOME Text Editor, sin iniciar captura/inyección de
+entrada ni red de prueba. El agente ejecutó los comandos y leyó los logs;
+las acciones y el pegado del editor fueron **observaciones del usuario**,
+porque esta sesión no ofrece control visual de las ventanas nativas.
+
+Revisión base: `450cbb2e340a381bda01274eb86df0e05934e822`, rama
+`validation/ubuntu`, más los cambios locales descritos aquí y la cabecera TLS
+ya documentada. Sin commit ni publicación. Entorno y dependencias: los de la
+compilación inicial que sigue, ahora en `.local-state/ubuntu-validation/`.
+
+### Resultados observados
+
+| Caso | Evidencia | Resultado |
+| --- | --- | --- |
+| Diálogo solo portapapeles | Usuario: Share inicialmente deshabilitado; se habilita activando Allow Remote Interaction y Allow Remote Clipboard, sin seleccionar pantalla | Observado en GNOME 50 |
+| Primera solicitud de lectura | El diálogo agotó el límite externo de 90 s; salida 137 tras la terminación forzada prevista | No evaluó la lectura; se repitió |
+| Lectura antes de corregir | Tras autorizar, `cannot read portal selection pipe: Resource temporarily unavailable`, salida 2 | Fallo real, corregido y repetido |
+| Lectura corregida | `read-03.log`: 61 bytes, 3 líneas, acentos y emoji; comparación con la muestra del editor correcta, salida 0 | Superado |
+| Primera publicación | `written` y `readback=match`, salida 0; el usuario informa que no pega el texto esperado | Fallo real; readback interno no prueba pegado |
+| Publicación corregida | `publish-02.log`: 57 bytes, 3 líneas; el usuario confirma que pega las tres líneas correctas en documento nuevo; cierre a los 60 s, salida 0 | Superado con observación del usuario |
+| Permisos concedidos | Publicación y observación: `portal_start clipboard_enabled=true devices=0` | Verificado por respuesta real del portal |
+| Observación en segundo plano | Usuario copia con editor enfocado; `watch-03.log` muestra cambios de 191 bytes/8 líneas y 207 bytes/9 líneas, sin mostrar contenido | Detección verificada; el usuario aclara que pulsó Ctrl+C varias veces |
+| Una notificación por copia / ausencia de ecos | Hay notificaciones con huellas repetidas y varias copias deliberadas; no se midió una única pulsación aislada ni una sesión sincronizada | No afirmar correspondencia exacta ni ausencia de eco remoto |
+| Permiso denegado | Usuario pulsa Cancelar; `clipboard unavailable: the portal start request was cancelled or failed (response 1)`, salida 2 | Superado; no se lee ni se usa otro backend |
+
+La muestra de lectura guardada tiene un LF final adicional al texto seleccionado
+en el editor. La comparación aceptó exactamente las tres líneas esperadas sin
+ese LF (61 bytes), sin alterar acentos, emoji o saltos interiores.
+
+### Correcciones necesarias y comprobación
+
+1. `SelectionRead` devolvió un descriptor no bloqueante. Se extrajo la lectura
+   del pipe a una función que usa `poll`, tolera EINTR/EAGAIN, conserva el
+   límite de 256 KiB y espera datos/EOF con plazo total de 30 s.
+   La nueva regresión aislada usa pipes sintéticos para datos Unicode diferidos,
+   EOF, pipe vacío y timeout, sin bus ni portapapeles. La batería pasa de
+   **151/0 a 153/0**; `self-test-final.log` registra el resultado del estado actual.
+2. El modo de publicación terminaba tras verificar su copia interna y cerraba
+   la sesión antes de que el editor pudiera solicitar los datos. Ahora la CLI
+   atiende eventos del portal durante hasta 60 s tras autorizar, o hasta que
+   otra selección la sustituye. El comportamiento de publicación Windows se
+   conserva. El manual y la ayuda explican el intervalo de pegado.
+3. Los metadatos de `--watch` sin `--show-content` quedaban en el búfer al
+   redirigir la salida. Se vacían inmediatamente tras imprimir cada cambio.
+   Se añadieron diagnósticos de permisos y notificaciones, sin contenido.
+   `watch-02.log` confirma recepción de notificaciones; `watch-03.log` ya
+   permite observar los cambios en tiempo real. No se cambió el filtrado de
+   duplicados para convertir la repetición de Ctrl+C en un éxito artificial.
+
+### Comandos, logs y parada
+
+Desde la raíz, cargar `source .local-state/ubuntu-validation/env.sh`; después,
+desde `experiments/clipboard`, se ejecutaron los modos reales:
+
+```bash
+./build/ubuntu/oneintwo-clipboard --read-text --show-content
+./build/ubuntu/oneintwo-clipboard --publish-file RUTA_MUESTRA/publicacion.txt --show-content
+./build/ubuntu/oneintwo-clipboard --watch
+./build/ubuntu/oneintwo-clipboard --read-text   # Cancelar el diálogo
+./build/ubuntu/oneintwo-clipboard --self-test
+```
+
+Las muestras y logs locales ignorados están en
+`manual-output/ubuntu-local-20261105-de47_iib/`: `lectura.txt`,
+`publicacion.txt`, `read.log`, `read-02.log`, `read-03.log`,
+`publish-01.log`, `publish-02.log`, `watch-01.log`, `watch-02.log`,
+`watch-03.log`, `denied-01.log`, logs de reconstrucción y
+`self-test-final.log`. La reconstrucción se hizo con
+`cmake --build experiments/clipboard/build/ubuntu -j4`, salida 0.
+Las lecturas/publicaciones se envolvieron en `timeout --signal=TERM
+--kill-after=3s` con límites externos de 180/240 s; el primer intento usó
+INT con 90 s y KILL tras 5 s. Los observadores tuvieron supervisión de 180 s
+y se detuvieron de forma dirigida al terminar el caso (salidas de supervisión
+130/124; no indican rechazo del portal). No quedó observador activo al pasar
+al siguiente experimento. El editor y las muestras se conservan para el usuario.
+
+Windows y la sincronización bidireccional siguen pendientes de coordinación.
+No se modifica la evidencia histórica siguiente ni se integra el producto.
+
+## Compilación inicial Ubuntu nativa — 5 de noviembre de 2026
+
+**Resultado actual: compilación con portal y TLS completada; 151 comprobaciones,
+0 fallos, salida 0.** El usuario limitó esta sesión a compilación y pruebas
+aisladas. No se abrió ninguna sesión de permisos, portapapeles ni conexión de
+prueba. La evidencia Windows y WSL de las secciones posteriores se conserva
+como histórica; sus bloqueos de compilación Linux quedan actualizados aquí.
+
+### Entorno y revisión
+
+- Directorio: `/home/pholtergate/DEV/OneForTwo`.
+- Base Git: `450cbb2e340a381bda01274eb86df0e05934e822`.
+  Rama local `validation/ubuntu`; sin commit ni publicación de estos cambios.
+- Código verificado: esa base **más la corrección local** de `<signal.h>` a
+  `<csignal>` en `src/net/tls_channel.cpp`. SHA-256 del archivo corregido:
+  `3be6de1a8ec6f3fff237ad3392820066754360f150f05bc6185e631a3effd842`.
+- Fecha local del inventario: 2026-11-05, zona `Europe/Madrid`.
+- Ubuntu 26.04.1 LTS, Linux 7.0.0-42-generic, x86_64; entorno heredado
+  `XDG_SESSION_TYPE=wayland`, `XDG_CURRENT_DESKTOP=ubuntu:GNOME`,
+  `WAYLAND_DISPLAY=wayland-0`, `DISPLAY=:0`.
+- Paquetes instalados: GNOME Shell `50.1-0ubuntu1.5`, Mutter
+  `50.1-0ubuntu2.4`, Nautilus `1:50.2.2-0ubuntu0.2`;
+  xdg-desktop-portal `1.21.1+ds-1ubuntu3.1`, backend GNOME `50.0-0ubuntu1`,
+  backend GTK `1.15.3-2ubuntu1`. Son versiones de paquetes; no se consultó
+  el bus ni se verificaron las interfaces o permisos del compositor.
+- GCC/G++ `15.2.0-16ubuntu1`, GNU Make 4.4.1, pkg-config 2.5.1;
+  CMake local 4.2.3. libdbus 1.16.2 (`1.16.2-2ubuntu4`) y
+  OpenSSL 3.5.5 (`3.5.5-1ubuntu3.7`).
+
+Inventario obtenido con `git status --short --branch`, `git rev-parse HEAD`,
+`cat /etc/os-release`, `uname -srmo`, `printenv`, `c++ --version`,
+`pkg-config --version`, `openssl version`, `dpkg-query -W` y
+`pkg-config --modversion dbus-1 openssl`. No se infiere soporte de portales
+a partir de la versión de Ubuntu.
+
+### Dependencias locales de esta validación
+
+Faltaban CMake y los paquetes de desarrollo dbus, OpenSSL, GTK3, GLib/GIO y
+libei. Se descargaron los paquetes y sus dependencias, **sin instalar**, en
+`/tmp/onefortwo-ubuntu-validation-20261105/debs` y se extrajeron mediante
+`dpkg-deb -x` en el subdirectorio `root`. El proceso mantuvo UID 1000, sin
+`sudo`, cambios globales ni cambios de cortafuegos. Se reutilizan las
+bibliotecas de ejecución ya instaladas mediante enlaces dentro de esa raíz
+local; las bibliotecas auxiliares ausentes también están extraídas allí.
+
+Después, a petición del usuario, **se trasladó toda esa preparación a
+`/home/pholtergate/DEV/OneForTwo/.local-state/ubuntu-validation/`**, incluidos
+los 101 paquetes `.deb`, bibliotecas, herramientas, configuración y logs de
+descarga (aproximadamente 301 MiB). La carpeta está excluida por la regla
+`/.local-state/` existente en `.gitignore`. Los enlaces a bibliotecas del
+sistema siguen siendo válidos; ninguno apunta a `/tmp`.
+
+Comando de descarga inicial completado (histórico, salida 0, 101 paquetes, 56,1 MB):
+
+```bash
+mkdir -p /tmp/onefortwo-ubuntu-validation-20261105/{debs,root}
+apt-get --download-only --yes --no-install-recommends \
+  -o Debug::NoLocking=1 -o Acquire::Retries=0 -o Acquire::http::Timeout=10 \
+  -o Dir::Cache::archives=/tmp/onefortwo-ubuntu-validation-20261105/debs \
+  install cmake libdbus-1-dev libssl-dev libgtk-3-dev libglib2.0-dev libei-dev
+for deb in /tmp/onefortwo-ubuntu-validation-20261105/debs/*.deb; do
+  dpkg-deb -x "$deb" /tmp/onefortwo-ubuntu-validation-20261105/root
+done
+```
+
+El primer intento en el sandbox falló con `Temporary failure resolving`
+(salida 100); la repetición con acceso de red permitido funcionó. Crear la
+rama también requirió acceso de escritura a `.git` fuera del sandbox; no se
+elevaron privilegios del usuario.
+
+El archivo local actual `.local-state/ubuntu-validation/env.sh` configura lo
+siguiente; debe cargarse con `source` desde Bash antes de compilar o repetir
+las pruebas. Calcula la raíz desde su propia ubicación:
+
+```bash
+export OIT_VALIDATION_DEPS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/root" && pwd)"
+export PATH="$OIT_VALIDATION_DEPS/usr/bin:$PATH"
+export LD_LIBRARY_PATH="$OIT_VALIDATION_DEPS/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export LIBRARY_PATH="$OIT_VALIDATION_DEPS/usr/lib/x86_64-linux-gnu${LIBRARY_PATH:+:$LIBRARY_PATH}"
+export PKG_CONFIG_SYSROOT_DIR="$OIT_VALIDATION_DEPS"
+export PKG_CONFIG_LIBDIR="$OIT_VALIDATION_DEPS/usr/lib/x86_64-linux-gnu/pkgconfig:$OIT_VALIDATION_DEPS/usr/share/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
+export CMAKE_PREFIX_PATH="$OIT_VALIDATION_DEPS/usr"
+export CPATH="$OIT_VALIDATION_DEPS/usr/include/x86_64-linux-gnu${CPATH:+:$CPATH}"
+```
+
+La preparación ya no depende de que se conserve `/tmp`. Sigue siendo propia
+de esta instalación Ubuntu: usa bibliotecas de ejecución instaladas en el
+sistema. No se han añadido dependencias, binarios o scripts de entorno al
+control de versiones. Los `.deb` se conservan para poder repetir la extracción.
+Los otros experimentos usan esta misma preparación, sin enlazarse entre sí.
+
+### Compilación y self-test observados
+
+Desde la raíz del repositorio:
+
+```bash
+source .local-state/ubuntu-validation/env.sh
+cmake --fresh -S experiments/clipboard -B experiments/clipboard/build/ubuntu \
+  -DCMAKE_BUILD_TYPE=Release -DOIT_ENABLE_PORTAL=ON -DOIT_ENABLE_PEER=ON \
+  -DOPENSSL_ROOT_DIR="$OIT_VALIDATION_DEPS/usr"
+cmake --build experiments/clipboard/build/ubuntu -j4
+cd experiments/clipboard
+./build/ubuntu/oneintwo-clipboard --self-test
+./build/ubuntu/oneintwo-clipboard --inventory
+```
+
+Configuración, compilación, self-test e inventario finales: salida 0.
+Tras el traslado se regeneró la caché con `--fresh`, se reconstruyó el
+ejecutable con las rutas persistentes y se repitió el self-test: **151/0**.
+Se compiló `portal_clipboard.cpp` y el transporte `tls_channel.cpp`/`peer.cpp`;
+las definiciones finales incluyen `OIT_HAVE_PORTAL=1` y `OIT_HAVE_OPENSSL=1`.
+El ELF enlaza `libdbus-1.so.3`, `libssl.so.3` y `libcrypto.so.3`;
+`ldd` no informa bibliotecas ausentes. Inventario inocuo:
+`portal_client=compiled`, `tls=openssl`,
+`backend=xdg-desktop-portal-clipboard`. Declara capacidades; no negocia permisos.
+
+```text
+checks=151 failures=0
+SELF-TEST RESULT: PASS
+```
+
+Incidencias resueltas antes del resultado final:
+
+1. `openssl/opensslconf.h: No such file or directory`: faltaba exponer las
+   cabeceras multiarch extraídas; se corrigió `CPATH`, sin editar el código.
+2. `error: 'signal' is not a member of 'std'`: el transporte Linux incluía
+   `<signal.h>` y llamaba a `std::signal`. Se cambió únicamente esa cabecera
+   a `<csignal>`; la reconstrucción y las 151 comprobaciones pasaron.
+
+Logs locales ignorados en `build/ubuntu/`: `configure.log`, `build.log`,
+`build-initial.log`, `build-tls-failure.log`, `self-test.log`, `inventory.log`,
+`libraries.log`, `dependencies-download.log`, `dependencies-dns-failure.log`,
+`dependencies-packages.tsv` y copia `dependencies-env.sh`.
+La copia `dependencies-env.sh` conserva la configuración temporal inicial
+como evidencia; para trabajar se carga el archivo actual de `.local-state`.
+La ejecución posterior al traslado queda en `configure-persistent.log`,
+`build-persistent.log`, `self-test-persistent.log`, `inventory-persistent.log`
+y `libraries-persistent.log`, dentro de la misma carpeta de compilación.
+
+### Escritorio, dos equipos y siguiente paso
+
+Lectura, publicación/pegado, observación en segundo plano, permiso denegado y
+concesión real de `devices=0`: **pendientes por decisión del usuario**.
+No se ha medido la experiencia de GNOME 50 ni se ha validado un handshake.
+
+Antes de reanudar: usuario presente, editor con texto sintético, salida preparada
+y un solo experimento activo, siguiendo MANUAL §5. Antes de conectar Windows,
+acordar una revisión que incluya la corrección local, reconstrucción de ambos
+extremos, direcciones y puerto 47831/TCP, roles, certificados públicos/huellas,
+duración y observación. No se ha contactado ni conectado con Windows; no se han
+generado claves. La publicación por Git queda por acordar. Integración del
+producto aplazada.
+
+## Evidencia histórica conservada — entrega y revisión anteriores
+
 Fecha: 4 de noviembre de 2026.
 
 Revisión documental: 5 de noviembre de 2026. Se conserva la evidencia de la entrega del agente; esta revisión no repite compilaciones ni pruebas de portapapeles o red. El estado consolidado figura en [experiments/README.md](../README.md).

@@ -4,6 +4,7 @@
 
 #include "cli.hpp"
 
+#include <chrono>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -109,7 +110,8 @@ void print_metrics(const Validation& validation, const std::string& marker) {
             << " lines=" << validation.metrics.lines
             << " fnv1a64="
             << fingerprint_hex(fingerprint(validation.normalized))
-            << " marker=" << (marker.empty() ? "absent" : "present") << "\n";
+            << " marker=" << (marker.empty() ? "absent" : "present") << "\n"
+            << std::flush;
 }
 
 void print_capabilities(const ClipboardCapabilities& capabilities) {
@@ -154,6 +156,30 @@ int run_read_text(const Options& options) {
   return 0;
 }
 
+int hold_portal_publication(ClipboardPort& port) {
+  if (port.capabilities().backend != "xdg-desktop-portal-clipboard") {
+    return 0;
+  }
+  std::cout << "publishing for 60 seconds; paste in the editor now. "
+               "Ctrl+C stops publication.\n" << std::flush;
+  const auto deadline = std::chrono::steady_clock::now() +
+                        std::chrono::seconds(60);
+  while (std::chrono::steady_clock::now() < deadline) {
+    ClipboardContent change;
+    std::string detail;
+    const WaitResult result = port.wait_for_change(change, 100, detail);
+    if (result == WaitResult::Error) {
+      std::cerr << "publication failed: " << detail << "\n";
+      return 2;
+    }
+    if (result == WaitResult::Stopped || result == WaitResult::Change) {
+      break;
+    }
+  }
+  std::cout << "publication finished; portal selection released.\n";
+  return 0;
+}
+
 int publish_text(const Options& options, const std::string& text) {
   const Validation validation = validate_text(text);
   if (!validation.valid) {
@@ -184,13 +210,13 @@ int publish_text(const Options& options, const std::string& text) {
   const Status read_status = creation.port->read(readback);
   if (!read_status.ok()) {
     std::cout << "readback=unavailable (" << read_status.detail << ")\n";
-    return 0;
+    return hold_portal_publication(*creation.port);
   }
   const Validation read_validation = validate_text(readback.text);
   if (!read_validation.valid) {
     std::cout << "readback=invalid (" << read_validation.status.detail
               << ")\n";
-    return 0;
+    return hold_portal_publication(*creation.port);
   }
   const bool match = fingerprint(read_validation.normalized) ==
                      fingerprint(validation.normalized);
@@ -199,7 +225,7 @@ int publish_text(const Options& options, const std::string& text) {
   if (options.show_content) {
     print_content(read_validation.normalized);
   }
-  return 0;
+  return hold_portal_publication(*creation.port);
 }
 
 int run_watch(const Options& options) {
@@ -292,6 +318,7 @@ void print_help() {
       << "  --read-text          Lee una vez el texto del portapapeles.\n"
       << "  --publish-text <t>   Escribe <t> en el portapapeles y verifica la lectura.\n"
       << "  --publish-file <p>   Escribe el contenido UTF-8 de <p> en el portapapeles.\n"
+      << "                       En Wayland mantiene la oferta hasta 60 s para pegar.\n"
       << "  --watch              Observa cambios hasta Ctrl+C; contenido oculto por defecto.\n"
       << "  --emit-samples <dir> Crea archivos UTF-8 de prueba en un directorio existente.\n"
       << "  --serve              Escucha una conexión TLS; requiere --port y certificados.\n"

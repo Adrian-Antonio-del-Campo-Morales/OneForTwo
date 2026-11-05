@@ -38,6 +38,12 @@ class Backend {
   virtual bool prepareSource(Edge edge, std::string& error) = 0;
   virtual bool prepareTarget(std::string& error) = 0;
 
+  // Wayland lo separa de RemoteDesktop/EIS para probar la salida sin control.
+  virtual bool prepareTargetExit(std::string& error) {
+    return prepareTarget(error) && startTarget(error);
+  }
+  virtual const char* targetExitShortcut() const { return "Ctrl+Alt+F12"; }
+
   // Origen: observa el escritorio sin bloquear hasta que se active la captura.
   virtual bool startSource(std::string& error) = 0;
   virtual void stopSource() = 0;
@@ -64,5 +70,10 @@ class Backend {
 };
 
 std::unique_ptr<Backend> makePlatformBackend(std::string& error);
+
+#ifdef OIT_WITH_WAYLAND
+// Regresiones de Response y señales del atajo en memoria; sin bus ni escritorio.
+bool runWaylandPortalResponseChecks();
+#endif
 
 }  // namespace oit
