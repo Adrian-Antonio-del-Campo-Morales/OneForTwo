@@ -1,5 +1,17 @@
 # Problemas pendientes
 
+## EXP-CLIP-TLS-01 — Fallo de lectura PEM al arrancar Windows
+
+Estado: **corregido y verificado en Windows**, 5 de noviembre de 2026.
+
+El servidor terminó por `no OPENSSL_Applink` antes de abrir el puerto. Se
+cambiaron ambas lecturas de certificados del transporte a BIO de memoria.
+Regresión aislada superada con los dos certificados públicos, rechazos
+correctos y self-test 149/0. Servidor real activo en 192.168.1.147:47831,
+escucha confirmada. Handshake y copia entre equipos todavía pendientes;
+recompilación de esta corrección en Ubuntu pendiente. Evidencia en
+`experiments/clipboard/RESULTS.md`.
+
 ## EXP-LAN-01 — Completar la preparación de la primera conexión
 
 Estado: identidades públicas Windows/Ubuntu preparadas; pendiente de IP Windows y coordinación del arranque.

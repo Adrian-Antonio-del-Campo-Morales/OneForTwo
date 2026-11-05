@@ -1,5 +1,41 @@
 # Resultados — Portapapeles
 
+## Arranque del servidor Windows y corrección PEM — 5 de noviembre de 2026
+
+Tras incorporar `e2af22b` y verificar la huella pública Ubuntu comunicada por el
+usuario, se intentó arrancar el servidor acordado. El primer proceso terminó
+con salida 1, antes de escuchar, por `OPENSSL_Uplink: no OPENSSL_Applink`.
+Las dos lecturas PEM del transporte pasaban un `FILE*` de la aplicación a
+OpenSSL. Se sustituyeron por lectura C++ acotada y `PEM_read_bio_X509` sobre
+un BIO de memoria, sin cambiar autenticación, protocolo o certificados.
+
+Se reconstruyó únicamente portapapeles y se comprobó:
+
+- `clipboard_tls_certificate_test` con el certificado público Windows y su
+  SHA-256: lectura y huella correctas; rechazo de archivo ausente y no PEM.
+- La misma regresión con el certificado público Ubuntu: superada.
+- `oneintwo-clipboard.exe --self-test`: **149 comprobaciones, 0 fallos**.
+- Segundo arranque real: proceso activo, `listening=192.168.1.147:47831` y
+  `netstat` mostrando `LISTENING` para el PID 159244.
+
+El servidor usa la clave privada Windows local y fija el certificado público
+Ubuntu; no se han regenerado identidades. Logs ignorados en
+`.local-state/lan-clipboard/windows/`: `server.log`, `server-error.log` y
+`server-error-before-pem-fix.log`. Compilación en
+`build/windows-ready/build-pem-fix.log`.
+
+El nuevo ejecutable de regresión se construye cuando hay OpenSSL. Desde la
+carpeta del experimento puede ejecutarse sin red ni escritorio:
+
+```powershell
+.\build\windows-ready\Release\clipboard_tls_certificate_test.exe lan/public/windows.pem lan/public/windows.sha256 lan/samples/windows.txt
+```
+
+El arranque confirma escucha y carga de certificados, no handshake ni
+sincronización. El servidor queda esperando al cliente Ubuntu; los resultados
+de conexión y copias se registrarán después de observarlos. La corrección
+común de lectura PEM aún no se ha recompilado en Ubuntu.
+
 ## Preparación LAN Ubuntu — 5 de noviembre de 2026
 
 Se descargó `origin/validation/windows` y se avanzó sin conflictos desde
