@@ -12,8 +12,11 @@ la publicación de archivos en el portapapeles es parte de su pegado nativo.
 - Cinco archivos, 5.551.150 bytes, con archivo vacío, Unicode y carpetas vacías.
 - [Manifiesto de comparación](windows-fixtures.json): estructura, tamaños y SHA-256 de los datos sintéticos.
 - Binario Windows ya compilado con las correcciones de archivos de `2ae444d`.
-- Se reutilizan las identidades TLS locales ya verificadas. No se ejecuta el
-  prototipo de texto para usarlas.
+- Se usan identidades propias de archivos, distintas a las del experimento de
+  texto. Windows conserva su clave en `.local-state/lan-files/windows/private.key`
+  y publica solo `public/windows.pem` y `public/windows.sha256` en esta carpeta.
+- No hay servidor ni regla temporal activos: primero deben acordarse los dos
+  comandos y el arranque con el agente Ubuntu.
 
 La prueba se considera superada cuando el usuario pega realmente `datos` en
 Nautilus y la comparación del destino coincide con el manifiesto. Recibir y
@@ -42,30 +45,45 @@ Abrir esa carpeta en Nautilus. Debe estar vacía. No copiar archivos hacia ella
 mediante comandos: el contenido final debe proceder del pegado del usuario.
 Si ya contiene datos de otro intento, usar otro destino vacío, sin borrarlos.
 
-Comprobar los dos certificados públicos y las claves propias que ya existen:
+Comprobar las huellas de las identidades dedicadas y las claves propias:
 
-- Windows fija Ubuntu: `1eaf59dcb2489296c37ac5aa755b03a70637f47371d4bdfa0aabd69e36685c1e`.
-- Ubuntu fija Windows: `d9c9d49228fc82a3ddc31128dd111039fbed948d028a8011adaae72568744006`.
+- Windows fija Ubuntu, comunicada por su agente: `fc8fe7d1f4a48636d5fe87792883a1288f76e7db2d24cfaddad7f116d28b2fe5`.
+- Ubuntu fija Windows: `6b06e68f0888ba23d88281a8a6fb69f6ad20f7da7b870201cc2278a61f8ccbf0`.
+
+El código C++ de archivos no ha cambiado respecto a `bb7df3b`; las revisiones
+posteriores añaden preparación y certificados públicos. Antes de conectar,
+confirmar un mismo SHA Git con esos documentos en ambas máquinas, conservando
+informes locales y sin forzar la sincronización.
 
 ## Arranque y recepción
 
-Windows inicia `--share` con la fuente sintética, certificado/clave propios,
-huella Ubuntu fijada, dirección `192.168.1.147` y puerto 47654. Esperar su
+El comando Windows acordado será el siguiente, pero **no se ejecuta todavía**:
+
+```powershell
+$env:Path = "C:\Program Files\OpenSSL-Win64\bin;" + $env:Path
+& 'D:\DEVEL\OneInTwo\experiments\files\build\windows-ready\Release\oneintwo-files.exe' --share --root 'D:\DEVEL\OneInTwo\.local-state\lan-files\windows\datos' --bind 192.168.1.147 --port 47654 --cert 'D:\DEVEL\OneInTwo\.local-state\lan-files\windows\cert.pem' --key 'D:\DEVEL\OneInTwo\.local-state\lan-files\windows\private.key' --client-pin fc8fe7d1f4a48636d5fe87792883a1288f76e7db2d24cfaddad7f116d28b2fe5 --timeout 120000
+```
+
+La excepción de cortafuegos, cuando se acuerde abrirla, se limitará al
+ejecutable de archivos, `192.168.1.146` como origen, `192.168.1.147` como destino
+y 47654/TCP. La regla de preparación anticipada ya fue retirada.
+
+Tras confirmar comandos, revisión y preparación, esperar la
 confirmación explícita **«Windows sirviendo archivos»** antes de conectar.
 
-Desde la raíz del repositorio, el comando Ubuntu es:
+Desde la raíz del repositorio, el comando Ubuntu propuesto es el siguiente.
+Su agente debe indicar las rutas reales de su nueva identidad en
+`UBUNTU_FILES_CERT` y `UBUNTU_FILES_KEY`, y confirmar el comando antes de ejecutarlo:
 
 ```bash
 ./experiments/files/build/ubuntu/oneintwo-files --receive-offer \
   --from 192.168.1.147:47654 \
-  --pin d9c9d49228fc82a3ddc31128dd111039fbed948d028a8011adaae72568744006 \
-  --cert .local-state/lan-clipboard/ubuntu/cert.pem \
-  --key .local-state/lan-clipboard/ubuntu/private.key \
+  --pin 6b06e68f0888ba23d88281a8a6fb69f6ad20f7da7b870201cc2278a61f8ccbf0 \
+  --cert "$UBUNTU_FILES_CERT" --key "$UBUNTU_FILES_KEY" \
   --cache .local-state/lan-files/ubuntu/cache --publish --timeout 120000
 ```
 
-Las rutas con `lan-clipboard` se refieren solo a los certificados ya creados;
-no activan el experimento suspendido. No copiar ni subir las claves privadas.
+No usar las identidades de texto para este nuevo caso ni subir claves privadas.
 Adaptar únicamente el entorno de bibliotecas al que ya se utilizó en Ubuntu.
 
 No añadir `--to`: en este caso queremos comprobar el pegado en el explorador,
