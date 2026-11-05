@@ -12,11 +12,11 @@ Los prototipos usan C++17 y bibliotecas generales documentadas en sus informes. 
 
 | Experimento | Estado resumido | Documentación |
 | --- | --- | --- |
-| Portapapeles | Windows y Wayland implementados; compilación Linux con portal verificada, TLS Linux pendiente | [Manual](experiments/clipboard/MANUAL.md) · [Resultados](experiments/clipboard/RESULTS.md) |
-| Archivos | Windows compilado; adaptador Linux escrito, compilación Ubuntu pendiente | [Manual](experiments/files/MANUAL.md) · [Resultados](experiments/files/RESULTS.md) |
-| Teclado y ratón | Windows, X11 y Wayland implementados; self-test Windows 538/0; sin evidencia de compilación nativa Linux | [Manual](experiments/input/MANUAL.md) · [Resultados](experiments/input/RESULTS.md) |
+| Portapapeles | Windows y Wayland/TLS compilados; lectura, pegado y observación locales Ubuntu verificados; sincronización entre equipos pendiente | [Manual](experiments/clipboard/MANUAL.md) · [Resultados](experiments/clipboard/RESULTS.md) |
+| Archivos | Windows y Ubuntu/GTK/TLS compilados; pegado asistido y casos TLS locales Ubuntu verificados; transferencias entre equipos pendientes | [Manual](experiments/files/MANUAL.md) · [Resultados](experiments/files/RESULTS.md) |
+| Teclado y ratón | Windows y Wayland/TLS compilados; self-tests 579/0; inyección y salidas locales Ubuntu verificadas con un monitor; origen Ubuntu bloqueado por InputCapture v1 | [Manual](experiments/input/MANUAL.md) · [Resultados](experiments/input/RESULTS.md) |
 
-Las pruebas reales de portapapeles, exploradores, captura/inyección y comunicación entre equipos siguen pendientes. El detalle de qué se ha compilado o probado está en cada `RESULTS.md`; no se deduce soporte de una plataforma de la mera existencia de código.
+La fase local disponible en Ubuntu tiene resultados observados y limitaciones registradas. La entrega Ubuntu se ha reconstruido en Windows sin repetir su escritorio. Siguen pendientes el escritorio Windows y las pruebas entre equipos. El detalle de cada caso y del incidente histórico de entrada está en los `RESULTS.md` y `TODO.md`; no se deduce soporte de una plataforma de la mera existencia de código.
 
 ## Documentación
 

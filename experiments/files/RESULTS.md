@@ -1,5 +1,27 @@
 # Resultados — Archivos
 
+## Reconstrucción Windows de la entrega Ubuntu — 5 de noviembre de 2026
+
+Fuentes verificadas: `2ae444df56689dbaebe9b796daca26a55bd02917`, recibido
+desde `origin/validation/ubuntu`. Comprobación realizada en la rama local
+`validation/windows`, sin modificar fuentes ni repetir pruebas Ubuntu.
+
+CMake de Visual Studio 18 2026, generador `Visual Studio 18 2026`, x64,
+configuración Release y OpenSSL habilitado. Reconstrucción completada, salida 0.
+Binario: `build/windows-ready/Release/oneintwo-files.exe`.
+
+Self-test Windows: **176 comprobaciones, 0 fallos**, salida 0.
+Se ejecutó el binario anterior con `--self-test`, sin escritorio ni red.
+El ejecutable principal también terminó correctamente con `--help`.
+No se accedió al portapapeles, se abrieron portales, se capturaron/inyectaron
+dispositivos ni se inició red de prueba.
+
+Evidencia local ignorada: `build/windows-ready/configure-ubuntu-sync.log`,
+`build-ubuntu-sync.log`, `self-test-ubuntu-sync.log` y `help-ubuntu-sync.log`.
+Esta evidencia cierra la reconstrucción Windows de esta revisión; no demuestra
+el funcionamiento real del escritorio o entre equipos. Se conserva a continuación
+la evidencia local Ubuntu y sus límites.
+
 ## Casos locales L6/L7/L8 completados — 5 de noviembre de 2026
 
 Base Git `450cbb2e340a381bda01274eb86df0e05934e822` más cambios locales.

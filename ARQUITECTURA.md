@@ -328,9 +328,9 @@ La responsabilidad de este documento es mantener la vista global y justificar lo
 
 ## 12. Evidencia experimental y decisiones de integración
 
-- [Portapapeles](experiments/clipboard/RESULTS.md): Windows y Wayland con RemoteDesktop + Clipboard solicitando cero dispositivos. El acceso real y la experiencia de permisos están pendientes; la compilación TLS Linux también.
-- [Entrada](experiments/input/RESULTS.md): Windows, X11 y Wayland con InputCapture, RemoteDesktop, GlobalShortcuts y libei. Los flujos portables tienen evidencia aislada; falta compilación nativa Linux y validación del escritorio.
-- [Archivos](experiments/files/RESULTS.md): caché como alternativa de referencia y entrega bajo demanda Windows como experimento acotado. El pegado real y la compilación Ubuntu siguen pendientes.
+- [Portapapeles](experiments/clipboard/RESULTS.md): Windows y Wayland/TLS compilados. Lectura, pegado, observación y cancelación locales Ubuntu verificados con cero dispositivos de entrada. La sincronización entre equipos sigue pendiente.
+- [Entrada](experiments/input/RESULTS.md): Windows y Wayland/TLS compilados. Ubuntu verificó inyección, atajo y retirada de permisos con un monitor; conserva el incidente histórico de congelación y sus límites. El origen Ubuntu está bloqueado por InputCapture v1 frente al requisito v2. Cruce y recuperación entre equipos pendientes; X11 sin validación nueva.
+- [Archivos](experiments/files/RESULTS.md): Windows y Ubuntu/GTK/TLS compilados. Caché, pegado asistido en Nautilus y pruebas TLS locales tienen evidencia. La publicación automática Wayland y la entrega bajo demanda Linux siguen limitadas; Explorer y las transferencias entre equipos están pendientes.
 
 Los tres prototipos mantienen transportes, protocolos y dependencias separados para no bloquear su desarrollo. No se deben enlazar entre sí como si compartieran un protocolo compatible. La integración futura elegirá una conexión de producto y coordinará un único propietario del portapapeles, preservando las responsabilidades anteriores.
 

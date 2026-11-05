@@ -2,7 +2,12 @@
 
 ## EXP-BUILD-01 — Completar la evidencia de compilación nativa
 
-Estado: **completado en Ubuntu/Wayland; pendiente de reconstrucción Windows de entrada y archivos**. Actualizado: 5 de noviembre de 2026.
+Estado: **completado en Ubuntu/Wayland y Windows para la revisión de entrega; X11 sin evidencia nueva**. Actualizado: 5 de noviembre de 2026.
+
+Reconstrucción Windows realizada sobre `2ae444df56689dbaebe9b796daca26a55bd02917`
+en `validation/windows`: los tres prototipos compilan en Release x64 con OpenSSL.
+Self-tests: portapapeles 149/0, archivos 176/0 y entrada 579/0; ayuda de los
+tres ejecutables correcta. Sin pruebas Windows de escritorio ni red.
 
 Base verificada: `450cbb2e340a381bda01274eb86df0e05934e822`, rama local
 `validation/ubuntu`, más la corrección mínima `<signal.h>` → `<csignal>` en
@@ -14,7 +19,7 @@ Rama de entrega de estas correcciones: `validation/ubuntu`.
 - Portapapeles: portal libdbus y TLS OpenSSL compilados en Ubuntu 26.04.1; **153/0**, salida 0, tras añadir la regresión de lectura diferida de pipes (151/0 iniciales). Corregidos `std::signal`, EAGAIN, vida de la oferta y vaciado de metadatos.
 - Archivos: adaptador GTK3 y TLS compilados, sin sustituir el adaptador por `clipboard_unavailable`; **176/0** previos. Reconstrucción posterior correcta tras finalizar los nombres recibidos; L6/L7/L8 reales superados sin repetir la batería.
 - Entrada: aplicación Wayland GDBus/libei y TLS compilada con X11 desactivado; **579/0** tras las regresiones de preparación segura (538/0 anteriores), más Response y señales del atajo en memoria. Corregidos callback/resultados, tipo de sesión, recepción del atajo y separación de la salida respecto al control EIS. R2/R9 locales superados; recuperación ante cortes entre equipos pendiente; X11 sin evidencia nueva.
-- Pendiente: reconstruir en Windows entrada y archivos con la revisión que incluya los cambios locales. La evidencia Windows existente se conserva y no se ha repetido.
+- Windows: reconstrucción de los tres experimentos y self-tests completados sobre el commit de entrega. Evidencia nueva al inicio de sus `RESULTS.md`; se conserva la evidencia anterior como histórica.
 
 Las dependencias se conservan en `.local-state/ubuntu-validation/`, dentro del
 proyecto y excluidas de Git, sin instalación global, `sudo` ni cambios de
