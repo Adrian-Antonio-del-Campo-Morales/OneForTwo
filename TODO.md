@@ -2,7 +2,7 @@
 
 ## EXP-LAN-01 — Completar la preparación de la primera conexión
 
-Estado: Windows preparado; pendiente de identidad pública e IP Ubuntu.
+Estado: identidades públicas Windows/Ubuntu preparadas; pendiente de IP Windows y coordinación del arranque.
 
 El [paquete LAN de portapapeles](experiments/clipboard/lan/README.md) incluye
 asistente probado sin red/escritorio, muestras sintéticas y certificado público
@@ -10,8 +10,12 @@ Windows. La clave privada queda solo en `.local-state/lan-clipboard/windows/`.
 El puerto 47831 está libre; el perfil Windows observado es Public. No se ha
 creado una regla de cortafuegos ni abierto una escucha.
 
-El agente Ubuntu debe descargar `validation/windows`, generar su identidad,
-publicar únicamente el certificado público y su huella y comunicar su IP LAN.
+Ubuntu avanzó sin conflictos a `6c2ec07`, generó su identidad y exportó solo
+`public/ubuntu.pem` y `public/ubuntu.sha256`. Clave privada local ignorada;
+huellas de ambos certificados coherentes con sus archivos SHA-256. IP LAN
+Ubuntu consultada y comunicada al usuario fuera de Git. Sin recompilar C++
+ni repetir pruebas ya válidas: los commits Windows no cambiaron esas fuentes.
+Falta que Windows obtenga esta entrega y comunique su IP LAN actual.
 Después, sincronizar ambos extremos, comprobar identidades y aplicar solo la
 regla temporal necesaria antes de ejecutar la matriz acordada. Ninguna prueba
 entre equipos está superada por esta preparación.

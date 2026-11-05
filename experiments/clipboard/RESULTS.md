@@ -1,5 +1,27 @@
 # Resultados — Portapapeles
 
+## Preparación LAN Ubuntu — 5 de noviembre de 2026
+
+Se descargó `origin/validation/windows` y se avanzó sin conflictos desde
+`2ae444d` a `6c2ec07600454faaf68bc2752ff492ec6c01b970`. Los dos commits
+añaden evidencia Windows y preparación LAN; no cambian el C++ validado.
+No se recompiló ni se repitieron self-tests.
+
+Comando: `env -u LD_LIBRARY_PATH /usr/bin/python3 -B
+experiments/clipboard/lan/prepare.py prepare --name ubuntu`, salida 0.
+Identidad de 14 días generada, clave conservada únicamente en
+`.local-state/lan-clipboard/ubuntu/private.key`, modo 0600 y excluida de Git.
+Se exportan solo `lan/public/ubuntu.pem` y `ubuntu.sha256`. Huella DER SHA-256:
+`1eaf59dcb2489296c37ac5aa755b03a70637f47371d4bdfa0aabd69e36685c1e`.
+La huella del certificado Windows también coincide con su archivo SHA-256;
+esto comprueba coherencia del paquete, no sustituye la confirmación entre
+operadores. IP LAN propia consultada con `ip -brief -4 address show scope
+global` y ruta por defecto; comunicada al usuario sin publicarla en Git.
+
+No se ejecutó el prototipo, no se accedió al portapapeles, no se abrió red
+de prueba ni se cambió cortafuegos. Pendientes: revisión compartida con Windows,
+su IP LAN, confirmación de huellas y arranque coordinado en 47831/TCP.
+
 ## Reconstrucción Windows de la entrega Ubuntu — 5 de noviembre de 2026
 
 Fuentes verificadas: `2ae444df56689dbaebe9b796daca26a55bd02917`, recibido
