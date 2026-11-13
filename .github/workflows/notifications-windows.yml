@@ -1,0 +1,76 @@
+name: notifications-windows
+
+on:
+  push:
+    branches:
+      - ci/notifications-windows
+    paths:
+      - "src/**"
+      - "cmake/notifications/**"
+      - "tests/notifications/**"
+      - ".github/workflows/notifications-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  msvc:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure, build and test with MSVC
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ci-logs | Out-Null
+          $status = @()
+          $status += "runner=$env:ImageOS"
+          cmake --version *> ci-logs/versions.txt
+          cmake -S cmake/notifications -B build/notifications -A x64 `
+                -DONEINTWO_BUILD_TESTS=ON `
+                -DONEINTWO_BUILD_NATIVE_NOTIFICATION_TESTS=ON *> ci-logs/configure.log
+          $configure = $LASTEXITCODE
+          $status += "configure=$configure"
+
+          $build = -1
+          if ($configure -eq 0) {
+            cmake --build build/notifications --config Debug -- /m *> ci-logs/build.log
+            $build = $LASTEXITCODE
+            $status += "build=$build"
+          }
+
+          $test = -1
+          if ($build -eq 0) {
+            ctest --test-dir build/notifications -C Debug `
+                  -E "notifications-native-windows" --output-on-failure *> ci-logs/test.log
+            $test = $LASTEXITCODE
+            $status += "test=$test"
+          }
+
+          $status | Set-Content ci-logs/status.txt
+          Get-Content ci-logs/status.txt
+          if ($configure -ne 0 -or $build -ne 0 -or $test -ne 0) { exit 1 }
+
+      - name: Publish build logs to the branch
+        if: always()
+        shell: pwsh
+        run: |
+          git config user.name "oneintwo-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add ci-logs
+          if (-not (git status --porcelain ci-logs)) {
+            Write-Host "Sin cambios en ci-logs"
+            exit 0
+          }
+          git commit -m "ci: windows build logs [skip ci]"
+          git push origin "HEAD:refs/heads/${{ github.ref_name }}"
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notifications-windows-logs
+          path: ci-logs
