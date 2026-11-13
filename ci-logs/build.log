@@ -1,0 +1,132 @@
+MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
+
+  1>Checking Build System
+  Building Custom Rule D:/a/OneForTwo/OneForTwo/cmake/notifications/CMakeLists.txt
+  notifications.cpp
+  identity.cpp
+  text_validation.cpp
+  toast_text.cpp
+  Generating Code...
+  notifications.cpp
+C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include\experimental\coroutine(37,1): error C2338: static assertion failed: 'error STL1011: The /await compiler option, <experimental/coroutine>, <experimental/generator>, and <experimental/resumable> are deprecated by Microsoft and will be REMOVED SOON. They are superseded by the C++20 <coroutine> and C++23 <generator> headers. You can define _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS to suppress this error for now.' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+  (compiling source file '../../src/platform/windows/notifications.cpp')
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(269,26): error C3779: 'winrt::impl::consume_Windows_Foundation_Collections_IVector<winrt::Windows::Foundation::Collections::IVector<winrt::Windows::UI::Notifications::NotificationBinding>,T>::Size': a function that returns 'auto' cannot be used before it is defined [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(269,26): error C3779:         with [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(269,26): error C3779:         [ [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(269,26): error C3779:             T=winrt::Windows::UI::Notifications::NotificationBinding [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(269,26): error C3779:         ] [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\impl\Windows.Foundation.Collections.0.h(443,28):
+      see declaration of 'winrt::impl::consume_Windows_Foundation_Collections_IVector<winrt::Windows::Foundation::Collections::IVector<winrt::Windows::UI::Notifications::NotificationBinding>,T>::Size'
+          with
+          [
+              T=winrt::Windows::UI::Notifications::NotificationBinding
+          ]
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(270,36): error C3779: 'winrt::impl::consume_Windows_Foundation_Collections_IVector<winrt::Windows::Foundation::Collections::IVector<winrt::Windows::UI::Notifications::NotificationBinding>,T>::GetAt': a function that returns 'auto' cannot be used before it is defined [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(270,36): error C3779:         with [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(270,36): error C3779:         [ [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(270,36): error C3779:             T=winrt::Windows::UI::Notifications::NotificationBinding [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(270,36): error C3779:         ] [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\impl\Windows.Foundation.Collections.0.h(442,14):
+      see declaration of 'winrt::impl::consume_Windows_Foundation_Collections_IVector<winrt::Windows::Foundation::Collections::IVector<winrt::Windows::UI::Notifications::NotificationBinding>,T>::GetAt'
+          with
+          [
+              T=winrt::Windows::UI::Notifications::NotificationBinding
+          ]
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779: 'winrt::impl::consume_Windows_Foundation_Collections_IIterable<D,T>::begin': a function that returns 'auto' cannot be used before it is defined [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779:         with [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779:         [ [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779:             D=winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::Notifications::AdaptiveNotificationText>, [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779:             T=winrt::Windows::UI::Notifications::AdaptiveNotificationText [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779:         ] [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\impl\Windows.Foundation.Collections.0.h(240,14):
+      see declaration of 'winrt::impl::consume_Windows_Foundation_Collections_IIterable<D,T>::begin'
+          with
+          [
+              D=winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::Notifications::AdaptiveNotificationText>,
+              T=winrt::Windows::UI::Notifications::AdaptiveNotificationText
+          ]
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779: 'winrt::impl::consume_Windows_Foundation_Collections_IIterable<D,T>::end': a function that returns 'auto' cannot be used before it is defined [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779:         with [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779:         [ [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779:             D=winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::Notifications::AdaptiveNotificationText>, [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779:             T=winrt::Windows::UI::Notifications::AdaptiveNotificationText [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3779:         ] [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\impl\Windows.Foundation.Collections.0.h(241,14):
+      see declaration of 'winrt::impl::consume_Windows_Foundation_Collections_IIterable<D,T>::end'
+          with
+          [
+              D=winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::Notifications::AdaptiveNotificationText>,
+              T=winrt::Windows::UI::Notifications::AdaptiveNotificationText
+          ]
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3536: '<begin>$L0': cannot be used before it is initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,59): error C3536: '<end>$L0': cannot be used before it is initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(276,61): error C2100: you cannot dereference an operand of type '<error>' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(289,33): error C2039: 'UserNotificationChangedEventArgs': is not a member of 'winrt::Windows::UI::Notifications::Management' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\Windows.UI.Notifications.Management.h(259,24):
+      see declaration of 'winrt::Windows::UI::Notifications::Management'
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(289,21): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(289,65): error C2143: syntax error: missing ',' before '&' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(293,9): error C2065: 'args': undeclared identifier [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(293,36): error C2039: 'UserNotificationChangedKind': is not a member of 'winrt::Windows::UI::Notifications::Management' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\Windows.UI.Notifications.Management.h(259,24):
+      see declaration of 'winrt::Windows::UI::Notifications::Management'
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(293,36): error C3083: 'UserNotificationChangedKind': the symbol to the left of a '::' must be a type [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(293,65): error C2039: 'Added': is not a member of 'winrt::Windows::UI::Notifications::Management' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\Windows.UI.Notifications.Management.h(259,24):
+      see declaration of 'winrt::Windows::UI::Notifications::Management'
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(293,65): error C2065: 'Added': undeclared identifier [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(298,35): error C2065: 'args': undeclared identifier [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(298,20): error C2737: 'notification': const object must be initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(299,41): error C3536: 'notification': cannot be used before it is initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(299,29): error C2737: 'native_id': const object must be initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(334,53): error C2109: subscript requires array or pointer type [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(366,93): error C3779: 'winrt::impl::consume_Windows_Foundation_IAsyncOperation<winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::Notifications::UserNotification>>,TResult>::get': a function that returns 'auto' cannot be used before it is defined [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(366,93): error C3779:         with [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(366,93): error C3779:         [ [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(366,93): error C3779:             TResult=winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::Notifications::UserNotification> [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(366,93): error C3779:         ] [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\impl\Windows.Foundation.0.h(663,14):
+      see declaration of 'winrt::impl::consume_Windows_Foundation_IAsyncOperation<winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::Notifications::UserNotification>>,TResult>::get'
+          with
+          [
+              TResult=winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::Notifications::UserNotification>
+          ]
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(366,20): error C2737: 'existing': const object must be initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(368,26): error C2530: 'notification': references must be initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(368,26): error C3531: 'notification': a symbol whose type contains 'auto' must have an initializer [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(368,39): error C2143: syntax error: missing ';' before ':' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(368,41): error C3536: 'existing': cannot be used before it is initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(368,49): error C2143: syntax error: missing ';' before ')' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(381,46): error C2039: 'UserNotificationChangedEventArgs': is not a member of 'winrt::Windows::UI::Notifications::Management' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\Windows.UI.Notifications.Management.h(259,24):
+      see declaration of 'winrt::Windows::UI::Notifications::Management'
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(381,34): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(381,78): error C2143: syntax error: missing ',' before '&' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(382,52): error C2065: 'args': undeclared identifier [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(442,59): error C2039: 'AsyncStatus': is not a member of 'winrt' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\Windows.UI.Notifications.Management.h(259,24):
+      see declaration of 'winrt'
+  
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(442,59): error C2061: syntax error: identifier 'AsyncStatus' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(441,19): error C3779: 'winrt::impl::consume_Windows_Foundation_IAsyncOperation<winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Notifications::Management::UserNotificationListenerAccessStatus>,TResult>::Completed': a function that returns 'auto' cannot be used before it is defined [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(441,19): error C3779:         with [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(441,19): error C3779:         [ [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(441,19): error C3779:             TResult=winrt::Windows::UI::Notifications::Management::UserNotificationListenerAccessStatus [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(441,19): error C3779:         ] [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\impl\Windows.Foundation.0.h(660,14):
+      see declaration of 'winrt::impl::consume_Windows_Foundation_IAsyncOperation<winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Notifications::Management::UserNotificationListenerAccessStatus>,TResult>::Completed'
+          with
+          [
+              TResult=winrt::Windows::UI::Notifications::Management::UserNotificationListenerAccessStatus
+          ]
+  
