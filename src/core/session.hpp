@@ -23,9 +23,23 @@ struct FeatureSet {
 // Contrato inicial para aplicar el perfil y consultar la autorización resultante.
 class Session {
 public:
+    // Permisos efectivos = permisos concedidos por el par ∩ límites del perfil.
+    // Ambos conjuntos empiezan vacíos: ninguna capacidad se concede sin
+    // habilitación explícita del usuario y de la negociación.
     void applyProfileLimits(FeatureSet limits);
     FeatureSet effectiveSendFeatures() const;
     FeatureSet effectiveReceiveFeatures() const;
+
+    // Ampliaciones privadas de esta entrega para conectar sesión y coordinador.
+    void setGrantedFeatures(FeatureSet send, FeatureSet receive);
+    FeatureSet grantedSendFeatures() const;
+    FeatureSet grantedReceiveFeatures() const;
+    FeatureSet profileLimits() const;
+
+private:
+    FeatureSet granted_send_{};
+    FeatureSet granted_receive_{};
+    FeatureSet limits_{true, true, true, true, true, true, true, true, true};
 };
 
 } // namespace oneintwo
