@@ -11,14 +11,13 @@ MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
   oneintwo_notifications.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\Debug\oneintwo_notifications.lib
   Building Custom Rule D:/a/OneForTwo/OneForTwo/tests/notifications/CMakeLists.txt
   Building Custom Rule D:/a/OneForTwo/OneForTwo/tests/notifications/CMakeLists.txt
-  windows_presentation.cpp
   test_main.cpp
   test_notifications.cpp
-C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include\experimental\coroutine(37,1): error C2338: static assertion failed: 'error STL1011: The /await compiler option, <experimental/coroutine>, <experimental/generator>, and <experimental/resumable> are deprecated by Microsoft and will be REMOVED SOON. They are superseded by the C++20 <coroutine> and C++23 <generator> headers. You can define _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS to suppress this error for now.' [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows.vcxproj]
-  (compiling source file '../../../../tests/notifications/native/windows_presentation.cpp')
-  
+  windows_presentation.cpp
   test_support_helpers.cpp
   test_windows_helpers.cpp
   test_harness.cpp
+  oneintwo_notifications_native_windows.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\Debug\oneintwo_notifications_native_windows.exe
   Generating Code...
   oneintwo_notifications_tests.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\Debug\oneintwo_notifications_tests.exe
+  Building Custom Rule D:/a/OneForTwo/OneForTwo/cmake/notifications/CMakeLists.txt
