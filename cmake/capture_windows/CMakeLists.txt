@@ -46,8 +46,10 @@ if(WIN32)
     target_include_directories(oneintwo_capture_windows PUBLIC
         $<BUILD_INTERFACE:${ONEINTWO_REPO_ROOT}/src>)
     target_compile_features(oneintwo_capture_windows PUBLIC cxx_std_17)
+    # WGC exige el SDK 10.0.18362: IGraphicsCaptureItemInterop no existe antes.
     target_compile_definitions(oneintwo_capture_windows PRIVATE
-        UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+        UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX
+        _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(oneintwo_capture_windows
         PUBLIC oneintwo_capture_windows_model
         PRIVATE d3d11 dxgi dwmapi user32 gdi32 ole32 runtimeobject windowsapp)

@@ -1,5 +1,7 @@
 #if defined(_WIN32) && defined(__has_include)
-#if __has_include(<winrt/Windows.Graphics.Capture.h>)
+#if __has_include(<winrt/Windows.Graphics.Capture.h>) \
+    && __has_include(<windows.graphics.capture.interop.h>) \
+    && __has_include(<windows.graphics.directx.direct3d11.interop.h>)
 #define ONEINTWO_WGC_AVAILABLE 1
 #endif
 #endif
@@ -10,6 +12,7 @@
 
 #include <d3d11.h>
 #include <dxgi.h>
+#include <windows.graphics.capture.h>
 #include <windows.graphics.capture.interop.h>
 #include <windows.graphics.directx.direct3d11.interop.h>
 #include <winrt/Windows.Foundation.h>
@@ -102,15 +105,9 @@ public:
                 item_.Size());
             pool_size_ = size_;
             session_ = pool_.CreateCaptureSession(item_);
-            try {
-                session_.IsCursorCaptureEnabled(false);
-            } catch (...) {
-            }
-            try {
-                // Windows 11; en versiones anteriores la propiedad no existe.
-                session_.IsBorderRequired(false);
-            } catch (...) {
-            }
+            // El cursor y el borde usan el comportamiento del sistema: las
+            // propiedades para ocultarlos exigen SDK 10.0.19041/20348 y, en el
+            // caso del borde, consentimiento explícito del usuario.
             session_.StartCapture();
         } catch (...) {
             releaseGraphics();
@@ -170,7 +167,7 @@ private:
         }
         const HMONITOR monitor = reinterpret_cast<HMONITOR>(native_handle_);
         MONITORINFOEXW info{};
-        info.cbSize = sizeof(info);
+        info.cbSize = static_cast<DWORD>(sizeof(info));
         if (GetMonitorInfoW(monitor, &info) == FALSE) {
             return false;
         }
@@ -216,7 +213,7 @@ private:
                                            : VisualSourceState::available);
                 }
             }
-            if (suspended_.load() || session_ == nullptr || pool_ == nullptr) {
+            if (suspended_.load() || !session_ || !pool_) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(20));
                 continue;
             }
@@ -239,6 +236,12 @@ private:
             const std::uint32_t height = static_cast<std::uint32_t>(std::max(0, content.Height));
             if (saneSize(width, height)) {
                 if (width != pool_size_.width || height != pool_size_.height) {
+                    // El frame pertenece al pool anterior: cerrarlo antes de
+                    // recrear el pool y descartar este frame de transición.
+                    try {
+                        frame.Close();
+                    } catch (...) {
+                    }
                     try {
                         pool_.Recreate(
                             render_device_,
@@ -251,6 +254,7 @@ private:
                         stop_.store(true);
                         break;
                     }
+                    continue;
                 }
                 VisualFrame visual;
                 if (copyFrame(frame, width, height, visual)) {
@@ -297,12 +301,15 @@ private:
         try {
             const auto surface = frame.Surface();
             const auto access = surface.as<
-                ABI::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>();
+                ::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>();
             winrt::com_ptr<ID3D11Texture2D> texture;
-            winrt::check_hresult(access->GetDXGIInterface(
-                winrt::guid_of<ID3D11Texture2D>(), texture.put_void()));
+            winrt::check_hresult(access->GetInterface(
+                __uuidof(ID3D11Texture2D), texture.put_void()));
             D3D11_TEXTURE2D_DESC description{};
             texture->GetDesc(&description);
+            if (description.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
+                return false; // El contrato exige BGRA; no se entrega otro formato.
+            }
             const std::uint32_t copy_width = std::min(width, description.Width);
             const std::uint32_t copy_height = std::min(height, description.Height);
             if (!saneSize(copy_width, copy_height)
@@ -367,7 +374,15 @@ bool windowsGraphicsCaptureSupported()
 {
     try {
         initialiseApartment();
-        return winrt::Windows::Graphics::Capture::GraphicsCaptureSession::IsSupported();
+        if (!winrt::Windows::Graphics::Capture::GraphicsCaptureSession::IsSupported()) {
+            return false;
+        }
+        // IsSupported puede ser cierto en sistemas anteriores a 1903, donde la
+        // interfaz de interoperabilidad para HWND/HMONITOR todavía no existe.
+        const auto interop = winrt::get_activation_factory<
+            winrt::Windows::Graphics::Capture::GraphicsCaptureItem,
+            IGraphicsCaptureItemInterop>();
+        return static_cast<bool>(interop);
     } catch (...) {
         return false;
     }
@@ -395,18 +410,18 @@ std::unique_ptr<NativeCapture> createWin32Capture(std::uint64_t handle, VisualSo
             }
             GetWindowThreadProcessId(window, &process);
             winrt::check_hresult(interop->CreateForWindow(
-                window, winrt::guid_of<winrt::Windows::Graphics::Capture::GraphicsCaptureItem>(),
+                window, winrt::guid_of<ABI::Windows::Graphics::Capture::IGraphicsCaptureItem>(),
                 winrt::put_abi(item)));
         } else {
             const HMONITOR monitor = reinterpret_cast<HMONITOR>(handle);
             MONITORINFOEXW info{};
-            info.cbSize = sizeof(info);
+            info.cbSize = static_cast<DWORD>(sizeof(info));
             if (GetMonitorInfoW(monitor, &info) == FALSE) {
                 return nullptr;
             }
             monitor_name = info.szDevice;
             winrt::check_hresult(interop->CreateForMonitor(
-                monitor, winrt::guid_of<winrt::Windows::Graphics::Capture::GraphicsCaptureItem>(),
+                monitor, winrt::guid_of<ABI::Windows::Graphics::Capture::IGraphicsCaptureItem>(),
                 winrt::put_abi(item)));
         }
         if (!item) {

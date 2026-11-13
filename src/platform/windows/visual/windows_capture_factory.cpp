@@ -3,7 +3,9 @@
 #include "win32_capture_port.hpp"
 
 #if defined(_WIN32) && defined(__has_include)
-#if __has_include(<winrt/Windows.Graphics.Capture.h>)
+#if __has_include(<winrt/Windows.Graphics.Capture.h>) \
+    && __has_include(<windows.graphics.capture.interop.h>) \
+    && __has_include(<windows.graphics.directx.direct3d11.interop.h>)
 #define ONEINTWO_HAS_WGC 1
 #include "win32_port.hpp"
 #endif

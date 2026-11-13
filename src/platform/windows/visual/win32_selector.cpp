@@ -1,7 +1,11 @@
 #if defined(_WIN32) && defined(__has_include)
-#if __has_include(<winrt/Windows.Graphics.Capture.h>)
+#if __has_include(<winrt/Windows.Graphics.Capture.h>) \
+    && __has_include(<windows.graphics.capture.interop.h>) \
+    && __has_include(<windows.graphics.directx.direct3d11.interop.h>)
 
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 
 #include <dwmapi.h>
@@ -184,7 +188,7 @@ BOOL CALLBACK enumerateMonitorCallback(HMONITOR monitor, HDC, LPRECT, LPARAM par
 {
     auto* enumeration = reinterpret_cast<MonitorEnumeration*>(parameter);
     MONITORINFOEXW info{};
-    info.cbSize = sizeof(info);
+    info.cbSize = static_cast<DWORD>(sizeof(info));
     if (GetMonitorInfoW(monitor, &info) == FALSE) {
         return TRUE;
     }
@@ -226,7 +230,8 @@ BOOL CALLBACK enumerateWindowCallback(HWND window, LPARAM parameter)
         return TRUE;
     }
     BOOL cloaked = FALSE;
-    if (SUCCEEDED(DwmGetWindowAttribute(window, DWMWA_CLOAKED, &cloaked, sizeof(cloaked)))
+    if (SUCCEEDED(DwmGetWindowAttribute(window, DWMWA_CLOAKED, &cloaked,
+                                         static_cast<DWORD>(sizeof(cloaked))))
         && cloaked != FALSE) {
         return TRUE;
     }
@@ -240,7 +245,7 @@ BOOL CALLBACK enumerateWindowCallback(HWND window, LPARAM parameter)
 
     RECT bounds{};
     if (FAILED(DwmGetWindowAttribute(window, DWMWA_EXTENDED_FRAME_BOUNDS, &bounds,
-                                     sizeof(bounds)))) {
+                                     static_cast<DWORD>(sizeof(bounds))))) {
         if (GetWindowRect(window, &bounds) == FALSE) {
             return TRUE;
         }
