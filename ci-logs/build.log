@@ -8,11 +8,17 @@ MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
   toast_text.cpp
   Generating Code...
   notifications.cpp
-D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(308,40): error C2039: 'UserNotification': is not a member of 'winrt::Windows::UI::Notifications::UserNotificationChangedEventArgs' [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
-      C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\cppwinrt\winrt\impl\Windows.UI.Notifications.2.h(259,35):
-      see declaration of 'winrt::Windows::UI::Notifications::UserNotificationChangedEventArgs'
+  oneintwo_notifications.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\Debug\oneintwo_notifications.lib
+  Building Custom Rule D:/a/OneForTwo/OneForTwo/tests/notifications/CMakeLists.txt
+  Building Custom Rule D:/a/OneForTwo/OneForTwo/tests/notifications/CMakeLists.txt
+  windows_presentation.cpp
+  test_main.cpp
+  test_notifications.cpp
+C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include\experimental\coroutine(37,1): error C2338: static assertion failed: 'error STL1011: The /await compiler option, <experimental/coroutine>, <experimental/generator>, and <experimental/resumable> are deprecated by Microsoft and will be REMOVED SOON. They are superseded by the C++20 <coroutine> and C++23 <generator> headers. You can define _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS to suppress this error for now.' [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows.vcxproj]
+  (compiling source file '../../../../tests/notifications/native/windows_presentation.cpp')
   
-D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(308,20): error C2737: 'notification': const object must be initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
-D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(309,41): error C3536: 'notification': cannot be used before it is initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
-D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(309,29): error C2737: 'native_id': const object must be initialized [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
-D:\a\OneForTwo\OneForTwo\src\platform\windows\notifications.cpp(344,53): error C2109: subscript requires array or pointer type [D:\a\OneForTwo\OneForTwo\build\notifications\oneintwo_notifications.vcxproj]
+  test_support_helpers.cpp
+  test_windows_helpers.cpp
+  test_harness.cpp
+  Generating Code...
+  oneintwo_notifications_tests.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\Debug\oneintwo_notifications_tests.exe
