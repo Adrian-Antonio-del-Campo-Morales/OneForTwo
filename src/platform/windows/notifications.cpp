@@ -305,13 +305,19 @@ void handle_changed(const SharedPtr& shared, std::uint64_t identifier,
     }
 
     try {
-        const auto notification = args.UserNotification();
-        const std::uint32_t native_id = notification.Id();
+        const std::uint32_t native_id = args.UserNotificationId();
         {
             std::lock_guard<std::mutex> lock(shared->mutex);
             if (!shared->baseline.accept(native_id)) {
                 return; // Existía antes de iniciar la observación o ya se entregó.
             }
+        }
+
+        // El evento solo identifica el aviso; puede haberse retirado ya.
+        const auto notification =
+            wunm::UserNotificationListener::Current().GetNotification(native_id);
+        if (!notification) {
+            return;
         }
 
         const std::string app_id = winrt::to_string(notification.AppInfo().AppUserModelId());
