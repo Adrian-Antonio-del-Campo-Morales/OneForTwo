@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
-#include <signal.h>
+#include <csignal>
 #include <sys/socket.h>
 #include <unistd.h>
 #endif
@@ -24,6 +24,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -159,20 +160,43 @@ int verify_pinned_peer(int /*preverify_ok*/, X509_STORE_CTX* store) {
   return std::memcmp(digest, pin->sha256, 32) == 0 ? 1 : 0;
 }
 
+// No pasar FILE* de la CRT de la aplicación a la DLL de OpenSSL en Windows.
+X509* read_certificate(const std::string& path, const char* label,
+                       std::string& error) {
+  std::ifstream file(path, std::ios::binary | std::ios::ate);
+  if (!file) {
+    error = std::string("cannot open ") + label + ": " + path;
+    return nullptr;
+  }
+  const std::streamoff size = file.tellg();
+  if (size <= 0 || size > 1024 * 1024) {
+    error = std::string("invalid ") + label + " size: " + path;
+    return nullptr;
+  }
+  std::string pem(static_cast<std::size_t>(size), '\0');
+  file.seekg(0);
+  if (!file.read(&pem[0], static_cast<std::streamsize>(size))) {
+    error = std::string("cannot read ") + label + ": " + path;
+    return nullptr;
+  }
+  BIO* bio = BIO_new_mem_buf(pem.data(), static_cast<int>(pem.size()));
+  if (bio == nullptr) {
+    error = openssl_error_text("cannot allocate certificate BIO");
+    return nullptr;
+  }
+  X509* certificate = PEM_read_bio_X509(bio, nullptr, nullptr, nullptr);
+  BIO_free(bio);
+  if (certificate == nullptr) {
+    error = openssl_error_text((std::string("cannot parse ") + label).c_str()) +
+            " (" + path + ")";
+  }
+  return certificate;
+}
+
 bool load_peer_pin(const std::string& path, PinnedPeer& pin,
                    std::string& error) {
-  FILE* file = std::fopen(path.c_str(), "rb");
-  if (file == nullptr) {
-    error = "cannot open peer certificate: " + path;
-    return false;
-  }
-  X509* certificate = PEM_read_X509(file, nullptr, nullptr, nullptr);
-  std::fclose(file);
-  if (certificate == nullptr) {
-    error = openssl_error_text("cannot parse peer certificate") + " (" + path +
-            ")";
-    return false;
-  }
+  X509* certificate = read_certificate(path, "peer certificate", error);
+  if (certificate == nullptr) return false;
   unsigned char digest[EVP_MAX_MD_SIZE];
   unsigned int length = 0;
   const bool ok = certificate_digest(certificate, digest, length);
@@ -188,17 +212,8 @@ bool load_peer_pin(const std::string& path, PinnedPeer& pin,
 
 bool read_certificate_fingerprint(const std::string& path, std::string& out,
                                   std::string& error) {
-  FILE* file = std::fopen(path.c_str(), "rb");
-  if (file == nullptr) {
-    error = "cannot open certificate: " + path;
-    return false;
-  }
-  X509* certificate = PEM_read_X509(file, nullptr, nullptr, nullptr);
-  std::fclose(file);
-  if (certificate == nullptr) {
-    error = openssl_error_text("cannot parse certificate") + " (" + path + ")";
-    return false;
-  }
+  X509* certificate = read_certificate(path, "certificate", error);
+  if (certificate == nullptr) return false;
   unsigned char digest[EVP_MAX_MD_SIZE];
   unsigned int length = 0;
   const bool ok = certificate_digest(certificate, digest, length);

@@ -11,6 +11,8 @@ Responsabilidad: reunir pruebas del producto y sus criterios de aceptación. Los
 - Archivos: rutas que escapan del destino, nombres incompatibles, colisiones, archivos vacíos, integridad, disco lleno y cancelación.
 - Entrada: transiciones de foco, rechazo de eventos de otra generación, liberación de teclas y temporizador del receptor.
 
+El [diseño de las funciones adicionales](../FUNCIONALIDADES.md) incluye criterios de aceptación para envío directo, enlaces y perfiles.
+
 Usar dobles pequeños del contrato de escritorio y del transporte solo donde ayuden a observar estas garantías. No crear ahora un framework de simulación.
 
 ## Integración y comprobación manual

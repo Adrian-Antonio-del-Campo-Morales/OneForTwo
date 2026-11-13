@@ -1,5 +1,7 @@
 # Experimento de copiar y pegar archivos
 
+La siguiente prueba acordada es [Windows → Ubuntu, caché y pegado en Nautilus](lan/README.md). Incluye el manifiesto de datos sintéticos y el comando receptor; el resultado entre equipos sigue pendiente hasta observarlo.
+
 ## Encargo para el agente
 
 Implementa este experimento siguiendo [las instrucciones comunes](../AGENTS.md) y [el modelo de entrega](../README.md). Tu directorio exclusivo es `D:/DEVEL/OneInTwo/experiments/files`. Las operaciones sobre portapapeles y exploradores reales se ejecutarán manualmente.

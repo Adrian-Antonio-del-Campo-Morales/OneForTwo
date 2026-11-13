@@ -1,5 +1,276 @@
 # Resultados — Archivos
 
+## Estado vigente — pruebas LAN del 5 de noviembre de 2026
+
+Revisión de código común: `698a9a51e0de008d0bcdf9fa3fad9683d296e5de`.
+Sin cambios de código ni nuevas baterías. Este estado sustituye las afirmaciones
+históricas de pendiente que aparecen más abajo.
+
+| Caso | Resultado observado |
+| --- | --- |
+| T1 Windows → Ubuntu | Superado: TLS mutuo, cinco archivos/5.551.150 bytes, pegado humano en Nautilus sin `--to`, rutas/tamaños/SHA-256/directorios exactos. Receptor salida 0, servidor Windows cerrado y regla temporal retirada |
+| T2 Ubuntu → Windows | Recepción y copia CLI `--to` superadas: cinco archivos/5.551.150 bytes y estructura/hash exactos. Pegado Explorer pendiente; no se publicó portapapeles |
+| T0 pin servidor incorrecto | Salida 1, huella no coincide; sin descarga/caché |
+| T0 pin cliente incorrecto | Salida 1 en cliente (fallo lectura TLS); servidor registra certificado de cliente no autorizado; sin descarga/caché |
+| Colisión Windows | Segunda copia crea `datos (1)`; ambos árboles exactos e intactos |
+| Permisos Windows | ACL Write Deny solo en destino desechable; salida 1, destino vacío. ACL original restaurada en finally |
+| Corte LAN y reintento Windows | Relay TCP opaco local interrumpe tras 400.000 bytes cifrados. Salida 1; incoming/offers vacíos y cero .o2f-part. Reintento directo salida 0; cinco tamaños/SHA-256 coinciden |
+| Caché Windows | GC de caché propia elimina dos ofertas; lista posterior vacía. Copias de destino conservadas |
+| T3 bajo demanda / L2-L3 Explorer | No ejecutados: helper Computer Use falla antes de acceder al escritorio, incluso tras reset (setup refresh had errors / trusted Node process exited unexpectedly) |
+
+Fuentes T1: `lan/evidence/ubuntu-t1-receiver.log` y
+`lan/evidence/ubuntu-t1-integrity.json`. Evidencia nueva Windows:
+`lan/evidence/windows-auto-*`; originales en
+`.local-state/lan-files/windows/automatic-01/` (datos sintéticos conservados).
+Servidor Ubuntu inicial PID 200354 cerrado con SIGINT; supervisores posteriores
+200657 y 200867 cerrados con SIGINT a su grupo tras verificar cmdline.
+Consulta final `ss -ltnp sport = :47654`: ninguna escucha. No se creó regla nueva
+ni se alteró el cortafuegos Ubuntu. Windows no inició servidor en esta ronda.
+Texto suspendido. T2 no acredita pegado Explorer; T3 sigue sin evidencia.
+
+
+## Reconstrucción Windows de la entrega Ubuntu — 5 de noviembre de 2026
+
+Fuentes verificadas: `2ae444df56689dbaebe9b796daca26a55bd02917`, recibido
+desde `origin/validation/ubuntu`. Comprobación realizada en la rama local
+`validation/windows`, sin modificar fuentes ni repetir pruebas Ubuntu.
+
+CMake de Visual Studio 18 2026, generador `Visual Studio 18 2026`, x64,
+configuración Release y OpenSSL habilitado. Reconstrucción completada, salida 0.
+Binario: `build/windows-ready/Release/oneintwo-files.exe`.
+
+Self-test Windows: **176 comprobaciones, 0 fallos**, salida 0.
+Se ejecutó el binario anterior con `--self-test`, sin escritorio ni red.
+El ejecutable principal también terminó correctamente con `--help`.
+No se accedió al portapapeles, se abrieron portales, se capturaron/inyectaron
+dispositivos ni se inició red de prueba.
+
+Evidencia local ignorada: `build/windows-ready/configure-ubuntu-sync.log`,
+`build-ubuntu-sync.log`, `self-test-ubuntu-sync.log` y `help-ubuntu-sync.log`.
+Esta evidencia cierra la reconstrucción Windows de esta revisión; no demuestra
+el funcionamiento real del escritorio o entre equipos. Se conserva a continuación
+la evidencia local Ubuntu y sus límites.
+
+## Casos locales L6/L7/L8 completados — 5 de noviembre de 2026
+
+Base Git `450cbb2e340a381bda01274eb86df0e05934e822` más cambios locales.
+Se usaron los cinco archivos/5.551.150 bytes ya verificados, servidor y
+cliente reales con **TLS mutuo solo en 127.0.0.1**, huellas fijadas y pares
+de certificados de prueba de dos días, claves con modo 0600 dentro de la
+salida local ignorada. Sin portapapeles, permisos globales ni Windows.
+
+L6 descubrió un fallo de la CLI: `fetchFile` verificaba cada `.o2f-part`,
+pero `cmdReceive` no lo renombraba al nombre definitivo antes de publicar la
+oferta. Por eso `--to` fallaba con «falta un archivo verificado en la oferta
+de la caché». Se corrigió solo `cmdReceive` en `src/main.cpp`: renombrar tras
+la verificación, todavía dentro de `incoming`; un fallo abandona la recepción.
+No se cambió el contrato de `StagedFile`. Reconstrucción
+`source .local-state/ubuntu-validation/env.sh` y
+`cmake --build experiments/files/build/ubuntu -j4`, salida 0.
+Binario corregido SHA-256
+`35dd15ad8e2127f74453fa2e2a1e4f780c3fb7971be6d4c174de23914450b6cd`.
+Los casos reales siguientes constituyen la comprobación de la corrección;
+no se añadieron ni repitieron self-tests.
+
+| Caso | Resultado |
+| --- | --- |
+| L6 primera recepción y repetición | Salidas 0; `datos` y `datos (1)` con estructura y SHA-256 idénticos al origen, sin sobrescribir |
+| L6 destino sin escritura | Carpeta desechable modo 0500, salida 1, «no se pudo crear una carpeta en el destino»; destino vacío; modo restaurado a 0700 |
+| L7 cancelación | SIGINT después de observar 262.144 bytes en recepción parcial; salida 1, «transferencia cancelada»; `incoming` y `offers` vacíos, ningún `.o2f-part` |
+| L8 caché | Lista inicial con ofertas; `--cache-gc --max-age-hours 0`, salida 0; lista posterior vacía, originales y copia de destino intactos |
+
+Para poder interrumpir los 5 MiB a tiempo, L7 utilizó un relay TCP opaco de
+loopback que retrasó los bloques cifrados servidor→cliente (16 KiB/10 ms).
+No descifra ni altera TLS ni sustituye servidor/receptor por dobles. Solo
+se usó para L7. Servidor detenido normalmente, salida 0.
+
+Comando reproducible: `/usr/bin/python3
+experiments/files/manual-output/local-final-20261105-fixed/run.py`.
+`commands.json` conserva argumentos completos y puertos elegidos;
+`results.json`: **PASS**. Los logs L6/L7/L8 y el guion están en esa misma
+carpeta ignorada. Se conservó el primer intento en `local-final-20261105/`:
+error inicial del guion al incluir el prefijo impreso en la huella (corregido
+sin cambiar el prototipo) y, después, fallo real de nombres temporales.
+
+La fase local disponible queda completada con la limitación de pegado
+asistido ya documentada. Publicación automática en segundo plano y bajo
+demanda Linux siguen como limitaciones de implementación; no se añadió
+trabajo de producto. Transferencias Windows/Ubuntu pendientes de coordinación.
+
+## Validación local de escritorio — 5 de noviembre de 2026
+
+**Pegado asistido en Nautilus verificado por el usuario y por comparación de
+estructura, tamaños y SHA-256: 5 archivos, 5.551.150 bytes, sin diferencias.**
+Se conservan los fallos previos y la evidencia Windows. No se ha probado red.
+
+Base Git: `450cbb2e340a381bda01274eb86df0e05934e822`, rama
+`validation/ubuntu`, más las correcciones locales del adaptador GTK descritas
+abajo. Sin commit ni publicación. Ubuntu 26.04.1, GNOME Wayland, Nautilus
+`1:50.2.2-0ubuntu0.2`, GTK3 3.24.52; herramientas y dependencias de la
+compilación inicial que sigue. Se forzó `GDK_BACKEND=wayland` en las tres
+publicaciones: ninguna sustituye Wayland por X11.
+
+### Ejecuciones y correcciones necesarias
+
+| Caso | Resultado observado | Estado |
+| --- | --- | --- |
+| L4, primer intento sin ventana | El usuario no puede pegar; destino vacío. La traza muestra `set_selection(..., 0)` sin evento local. Parada dirigida con SIGTERM, salida 0 | Fallo real |
+| L4, segundo intento con botón local | La oferta se publica con serial 55210 y el compositor pide `x-special/gnome-copied-files`, pero Nautilus no pega. Parada dirigida, salida 0 | Fallo real de formato |
+| L4, tercer intento corregido | Usuario pulsa Publicar archivos y confirma carpeta `datos` pegada. Comparación completa con origen correcta. Cierra ventana con X; proceso termina con código 0 | Superado como pegado asistido |
+| L5, bajo demanda Linux | Error explícito: solo rutas `file://` locales; B requiere un backend GIO/GVfs o FUSE no implementado; salida 1 | Comportamiento esperado; limitación de esta entrega |
+
+Correcciones en `src/platform/linux/clipboard_linux.cpp`:
+
+1. El proceso GTK sin ventana enviaba una selección con serial 0. En Wayland
+   ahora abre una ventana mínima de prueba y publica tras el botón local
+   **Publicar archivos**, conservando el proceso hasta cerrar la ventana o
+   recibir SIGINT/SIGTERM. No se instalan hooks ni se captura entrada global.
+2. `x-special/gnome-copied-files` se enviaba como `copy\n` seguido de URIs con
+   CRLF y salto final. El parser de Nautilus 50 separa por LF y rechaza líneas
+   vacías: ahora se emite `copy` más `\nURI` por elemento, sin salto final.
+   `text/uri-list` conserva sus CRLF. Se usó como referencia el
+   [parser publicado por GNOME para Nautilus 50.2.2](https://raw.githubusercontent.com/GNOME/nautilus/50.2.2/src/nautilus-clipboard.c).
+
+La reconstrucción del adaptador con GTK/TLS terminó con código 0. El self-test
+posterior al cambio de formato dio **176 comprobaciones, 0 fallos**, sin
+inicializar GTK ni el portapapeles. La corrección posterior de la cabecera
+`<utility>` también se recompiló correctamente; no modifica ese comportamiento.
+
+### Comandos y evidencia
+
+Desde la raíz, cargar `source .local-state/ubuntu-validation/env.sh`:
+
+```bash
+./experiments/files/build/ubuntu/oneintwo-files --make-fixtures experiments/files/manual-output/ubuntu-01/datos
+./experiments/files/build/ubuntu/oneintwo-files --inspect experiments/files/manual-output/ubuntu-01/datos
+GDK_BACKEND=wayland ./experiments/files/build/ubuntu/oneintwo-files --publish-cache experiments/files/manual-output/ubuntu-01/datos
+./experiments/files/build/ubuntu/oneintwo-files --publish-ondemand --root experiments/files/manual-output/ubuntu-01/datos
+cmake --build experiments/files/build/ubuntu -j4
+```
+
+El destino `manual-output/ubuntu-01/pegado` se creó vacío y el usuario lo abrió
+en Nautilus antes de publicar. El agente no copió archivos al destino: después
+del pegado del usuario, comparó los árboles con Python (`Path.rglob`, tamaño y
+`hashlib.sha256`), incluidos el nombre `ñandú-日本語.txt`, `empty.dat` de 0 B,
+la carpeta vacía y los 5 MiB de `large-5mb.bin`. Origen conservado y destino
+idéntico. El manifiesto inspeccionado tiene 9 entradas incluyendo raíz y
+directorios; las referencias históricas a 6 elementos no son ese recuento total.
+
+Logs locales ignorados en `manual-output/ubuntu-01/`: `fixtures.log`,
+`inspect.log`, `publish-cache-01.log`, `wayland-publish-debug.log`,
+`publish-cache-02.log` (traza Wayland), `publish-cache-03.log`, `integrity.log`
+(tamaños y hashes de los cinco archivos), `ondemand-linux.log`, logs de
+reconstrucción y `self-test-gnome-format.log`. Las publicaciones se supervisaron
+con `timeout --signal=TERM --kill-after=3s` (180/240 s); la prueba de diagnóstico
+duró 3 s. Los tres publicadores de escritorio terminaron con código 0 tras las
+paradas indicadas. No quedó ninguno activo al pasar al experimento de entrada.
+
+### Límites y siguientes casos
+
+El éxito es **asistido por una acción local**: no se declara entrega automática
+en segundo plano en Wayland. Haría falta validar otra vía autorizada para ese
+contrato; no se integra el portal del otro experimento ni se amplía el producto.
+L6/L7/L8 con transporte TLS local y las transferencias Windows/Ubuntu continúan
+pendientes. No se generaron certificados ni se abrió una escucha. Los casos
+entre equipos requieren revisión común, identidad, roles, direcciones, puerto,
+observación y recuperación acordados previamente.
+
+## Compilación inicial Ubuntu nativa — 5 de noviembre de 2026
+
+**Resultado actual: prototipo nativo GTK3 + TLS compilado; 176 comprobaciones,
+0 fallos, salida 0.** La evidencia Windows posterior se conserva íntegra.
+Las afirmaciones históricas de «Ubuntu sin compilar» quedan actualizadas por
+esta ejecución, sin dar por validado el pegado en Nautilus.
+
+### Entorno, revisión y componentes
+
+- Base Git: `450cbb2e340a381bda01274eb86df0e05934e822`, rama
+  `validation/ubuntu`, directorio `/home/pholtergate/DEV/OneForTwo`.
+  Sin cambios de código en este experimento; el único parche de código local
+  del conjunto afecta a la cabecera del transporte de portapapeles.
+- Fecha: 2026-11-05 (`Europe/Madrid`). Ubuntu 26.04.1 LTS,
+  Linux 7.0.0-42-generic x86_64; sesión heredada Wayland, `ubuntu:GNOME`.
+- GNOME Shell `50.1-0ubuntu1.5`, Mutter `50.1-0ubuntu2.4`,
+  Nautilus `1:50.2.2-0ubuntu0.2`.
+- GCC/G++ `15.2.0-16ubuntu1`, CMake 4.2.3 extraído localmente,
+  Make 4.4.1, pkg-config 2.5.1; GTK3 3.24.52 (`3.24.52-0ubuntu1`),
+  OpenSSL 3.5.5 (`3.5.5-1ubuntu3.7`), GLib/GIO 2.88.0.
+- Paquetes de portales: xdg-desktop-portal `1.21.1+ds-1ubuntu3.1`,
+  GNOME `50.0-0ubuntu1`, GTK `1.15.3-2ubuntu1`. No se consultó el bus
+  ni se negociaron capacidades o permisos.
+
+Inventario mediante `git status --short --branch`, `git rev-parse HEAD`,
+`cat /etc/os-release`, `uname -srmo`, variables de sesión, `c++ --version`,
+`dpkg-query -W` y `pkg-config --modversion gtk+-3.0 openssl gio-2.0`.
+Dependencias trasladadas desde `/tmp` a `.local-state/ubuntu-validation/`,
+dentro del proyecto y excluidas de Git, sin instalación global ni `sudo`:
+[preparación y variables exactas](../clipboard/RESULTS.md#dependencias-locales-de-esta-validación).
+
+### Comandos y resultados observados
+
+Desde la raíz del repositorio:
+
+```bash
+source .local-state/ubuntu-validation/env.sh
+cmake --fresh -S experiments/files -B experiments/files/build/ubuntu \
+  -DCMAKE_BUILD_TYPE=Release -DO2F_ENABLE_GTK=ON -DO2F_ENABLE_TLS=ON \
+  -DOPENSSL_ROOT_DIR="$OIT_VALIDATION_DEPS/usr"
+cmake --build experiments/files/build/ubuntu -j4
+cd experiments/files
+./build/ubuntu/oneintwo-files --self-test
+```
+
+Configuración, compilación y self-test finales: salida 0. CMake informa
+`TLS: OpenSSL 3.5.5` y `Found gtk+-3.0, version 3.24.52`.
+Se compiló `src/platform/linux/clipboard_linux.cpp`, con
+`O2F_WITH_GTK=1` y `O2F_WITH_TLS=1`; el ejecutable enlaza
+`libgtk-3.so.0`, `libssl.so.3` y `libcrypto.so.3`. `ldd` no detecta
+bibliotecas ausentes. No es la variante `clipboard_unavailable`.
+Tras el traslado se regeneró la caché con `--fresh`, se reconstruyó con las
+rutas persistentes y se repitió el self-test: **176/0**.
+
+```text
+176 comprobaciones, 0 fallos
+self-test correcto (sin portapapeles ni red)
+```
+
+El temporal `.o2f-selftest-*` se creó dentro de `experiments/files` y se
+eliminó al terminar correctamente. No se inicializó GTK ni el portapapeles.
+
+El primer intento omitió GTK porque el entorno local de pkg-config excluía
+los metadatos ya instalados de `zlib`, `expat` y `shared-mime-info`.
+Ese binario también dio 176/0, pero **no se usó para cerrar la compilación
+nativa**. Se añadieron las rutas de metadatos del sistema a `PKG_CONFIG_LIBDIR`,
+se reconfiguró, compiló el adaptador GTK y repitió el self-test.
+El núcleo emitió un aviso `-Wunused-function` en `src/core/cache.cpp:21`;
+no impide compilar y no se realizó limpieza ajena a la validación.
+
+Logs locales ignorados en `build/ubuntu/`: `configure.log`, `build.log`,
+`self-test.log`, `libraries.log` y los intentos previos
+`configure-without-gtk.log`, `build-without-gtk.log`, `self-test-without-gtk.log`.
+La ejecución posterior al traslado queda en `configure-persistent.log`,
+`build-persistent.log`, `self-test-persistent.log` y `libraries-persistent.log`.
+
+### Pendientes y siguiente paso
+
+Por indicación del usuario se completó solo la etapa aislada: no se publicaron
+ofertas ni se abrió Nautilus. L1 Ubuntu queda superado; L4 pegado, L5 limitación
+bajo demanda, L6 colisiones/permisos con TLS, L7 cancelación y L8 caché/gc
+continúan pendientes de sus ejecuciones manuales. No se confunden los casos
+aislados del self-test con esas observaciones.
+
+Antes de L4: usuario presente, datos sintéticos del manual, destino nuevo,
+Ctrl+C preparado y comparación real de estructura/tamaños/SHA-256 tras pegar.
+Antes de T0/T1/T2/T3: acordar con Windows la revisión compartida, binarios,
+roles, IP y puerto 47654/TCP, certificados públicos y ambas huellas, carpetas,
+duración y parada; probar primero identidad rechazada/aceptada. No se ha
+iniciado red de prueba ni generado claves. La evidencia Windows no se ha
+repetido. No hay bloqueo pendiente de compilación GTK/TLS en esta máquina;
+el escritorio y la coordinación entre equipos siguen abiertos. Integración
+de la aplicación aplazada.
+
+## Evidencia histórica conservada — entrega y revisión anteriores
+
 Actualizado: 4 de noviembre de 2026.
 
 Revisión documental: 5 de noviembre de 2026. Se conserva la evidencia de la entrega corregida del agente; no se han repetido sus compilaciones o comprobaciones ni realizado pruebas de escritorio o red. El estado consolidado figura en [experiments/README.md](../README.md).
@@ -247,7 +518,7 @@ No se ha incorporado código de aplicaciones de compartición ni motores de terc
   nativos y su ciclo de vida; `files` posee ofertas, identificadores, bloques,
   integridad y caché. El adaptador no debe decidir la confianza ni el protocolo.
 
-## 9. Matriz manual (pendiente de ejecución del usuario)
+## 9. Matriz histórica de la entrega inicial (sustituida por el estado vigente)
 
 | Caso | Entorno exacto | Esperado | Observado | Resultado |
 | --- | --- | --- | --- | --- |

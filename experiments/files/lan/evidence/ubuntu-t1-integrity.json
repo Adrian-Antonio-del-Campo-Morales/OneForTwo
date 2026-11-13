@@ -1,0 +1,40 @@
+{
+  "root": ".local-state/lan-files/ubuntu/pegado/datos",
+  "root_exists": true,
+  "expected_files": 5,
+  "actual_files": 5,
+  "expected_bytes": 5551150,
+  "actual_bytes": 5551150,
+  "files_match": true,
+  "directories_match": true,
+  "unsupported": [],
+  "files": {
+    "file-small.txt": {
+      "bytes": 1024,
+      "sha256": "b8638d0eb481679f6c287abf07277e01386c6abfbb6ae58f73f76955ca8c6eaf"
+    },
+    "large-5mb.bin": {
+      "bytes": 5242880,
+      "sha256": "a008d603cb664712fe4082aaa216f65e82af6efddca18d109652098c4d6ecbfe"
+    },
+    "empty.dat": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ñandú-日本語.txt": {
+      "bytes": 46,
+      "sha256": "3765ed04b43ff88db84c4e368d8613a9bc5bef73daf8c8961df76a3b8e16f011"
+    },
+    "folder/nested/deep.bin": {
+      "bytes": 307200,
+      "sha256": "e1da77a24d796ffdc1df53179edd792c65b50a3a1d52daee4d51a619f2f85283"
+    }
+  },
+  "directories": [
+    ".",
+    "folder",
+    "folder/empty-subdir",
+    "folder/nested"
+  ],
+  "pass": true
+}

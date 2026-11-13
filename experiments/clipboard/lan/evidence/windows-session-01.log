@@ -1,0 +1,29 @@
+oneintwo-clipboard peer mode
+tls=OpenSSL OpenSSL 3.0.5 5 Jul 2022
+local_certificate_sha256=D9:C9:D4:92:28:FC:82:A3:DD:C3:11:28:DD:11:10:39:FB:ED:94:8D:02:8A:80:11:AD:AA:E7:25:68:74:40:06
+local_capabilities=read=yes write=yes watch=yes independent_of_input=yes backend=win32-clipboard
+local_limitation=Another process can hold the clipboard; after bounded retries the operation reports busy. Elevated (UIPI) applications are not covered.
+max_text_bytes=262144
+endpoint=eab4761cee6352f2
+listening=192.168.1.147:47831
+peer_certificate_sha256=1E:AF:59:DC:B2:48:92:96:C3:7A:C5:AA:75:5B:03:A7:06:37:F4:73:71:D4:BD:FA:0A:AB:D6:9E:36:68:5C:1E
+[+0ms] session ready: generation=808fb17411cd9893 peer=0b071db137a4d31f
+[+22ms] peer capabilities: read=yes write=yes watch=yes independent_of_input=no backend=remote
+[+23ms] local capabilities: read=yes write=yes watch=yes independent_of_input=yes backend=win32-clipboard
+[+23ms] local limitation: Another process can hold the clipboard; after bounded retries the operation reports busy. Elevated (UIPI) applications are not covered.
+[+129ms] received update origin=0b071db137a4d31f gen=808fb17411cd9893 logical=1 bytes=48
+[+130ms] remote update applied origin=0b071db137a4d31f logical=1 bytes=48
+[+130ms] echo suppressed: own clipboard write detected via marker
+[+145201ms] local copy captured bytes=147 logical=2 sent
+[+145302ms] received update origin=0b071db137a4d31f gen=808fb17411cd9893 logical=2 bytes=147
+[+145303ms] remote update rejected: stale (update is older than the current clipboard state)
+[+145304ms] peer applied origin=eab4761cee6352f2 logical=2 status=ok
+[+145478ms] local copy captured bytes=147 logical=3 sent
+[+145583ms] peer applied origin=eab4761cee6352f2 logical=3 status=ok
+[+184345ms] local copy captured bytes=145 logical=4 sent
+[+184346ms] received update origin=0b071db137a4d31f gen=808fb17411cd9893 logical=4 bytes=145
+[+184346ms] remote update rejected: stale (update is older than the current clipboard state)
+[+184460ms] peer applied origin=eab4761cee6352f2 logical=4 status=ok
+[+203392ms] connection ended: TLS read failed: error:0A000126:SSL routines::unexpected eof while reading
+[+203393ms] session ended: connection ended: TLS read failed: error:0A000126:SSL routines::unexpected eof while reading
+waiting for another connection...

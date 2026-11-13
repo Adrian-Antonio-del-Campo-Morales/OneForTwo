@@ -275,6 +275,9 @@ class FakePortal : public wl::PortalOps {
     bound = shortcutBound;
     return true;
   }
+  bool verifyEmergencyShortcut(const std::string&, std::string& error) override {
+    return record("verifyEmergencyShortcut", error);
+  }
   void closeShortcutSession(const std::string&) override {
     ++shortcutCloses;
     calls.push_back("closeShortcutSession");
@@ -1002,6 +1005,57 @@ void testInputCaptureFailures() {
 
 void testRemoteDesktopFlow() {
   std::string error;
+  // Probar la salida no crea RemoteDesktop, no conecta EIS ni exige geometría.
+  {
+    FakePortal portal;
+    wl::RemoteDesktopFlow flow(portal);
+    CHECK(flow.prepareExit(error));
+    CHECK(flow.stage() == wl::TargetStage::ExitReady);
+    CHECK(flow.grantedDevices() == 0);
+    CHECK((portal.calls == std::vector<std::string>{"createShortcutSession", "bindEmergencyShortcut"}));
+    flow.close();
+    CHECK(portal.remoteCloses == 0 && portal.eisCloses == 0);
+    CHECK(portal.shortcutCloses == 1);
+  }
+  // Sin pulsación real, ninguna solicitud de permisos de control ni descriptor.
+  {
+    FakePortal portal;
+    portal.failAt = "verifyEmergencyShortcut";
+    wl::RemoteDesktopFlow flow(portal);
+    int fd = 99;
+    CHECK(!flow.open(fd, error));
+    CHECK(fd == -1);
+    CHECK(flow.stage() == wl::TargetStage::Failed);
+    CHECK((portal.calls == std::vector<std::string>{"createShortcutSession", "bindEmergencyShortcut",
+                                                 "verifyEmergencyShortcut", "closeShortcutSession"}));
+    CHECK(portal.remoteCloses == 0 && portal.eisCloses == 0);
+    CHECK(portal.shortcutCloses == 1);
+  }
+  // Si el escritorio cierra el atajo preparado, tampoco se permite abrir control.
+  {
+    FakePortal portal;
+    wl::RemoteDesktopFlow flow(portal);
+    CHECK(flow.prepareExit(error));
+    flow.onClosed();
+    int fd = 99;
+    CHECK(!flow.open(fd, error));
+    CHECK(fd == -1);
+    CHECK(portal.calls.size() == 2);
+    flow.close();
+    CHECK(portal.shortcutCloses == 1 && portal.remoteCloses == 0);
+  }
+  // Cada fallo de preparación cierra lo adquirido y no publica un FD utilizable.
+  for (const char* step : {"createShortcutSession", "bindEmergencyShortcut", "createRemoteSession",
+                           "selectRemoteDevices", "startRemoteSession", "connectRemoteEis"}) {
+    FakePortal portal;
+    portal.failAt = step;
+    wl::RemoteDesktopFlow flow(portal);
+    int fd = 99;
+    CHECK(!flow.open(fd, error));
+    CHECK(fd == -1);
+    CHECK(!flow.shortcutBound());
+    CHECK(portal.eisCloses == 0);
+  }
   {
     FakePortal portal;
     wl::RemoteDesktopFlow flow(portal);
@@ -1013,8 +1067,9 @@ void testRemoteDesktopFlow() {
     CHECK(flow.shortcutBound());
     CHECK(portal.selectedTypes == 3);
     CHECK((portal.calls == std::vector<std::string>{
+               "createShortcutSession", "bindEmergencyShortcut", "verifyEmergencyShortcut",
                "createRemoteSession", "selectRemoteDevices", "startRemoteSession",
-               "connectRemoteEis", "createShortcutSession", "bindEmergencyShortcut"}));
+               "connectRemoteEis"}));
     flow.close();
     CHECK(flow.stage() == wl::TargetStage::Idle);
     CHECK(portal.remoteCloses == 1 && portal.shortcutCloses == 1);
@@ -1037,9 +1092,9 @@ void testRemoteDesktopFlow() {
     wl::RemoteDesktopFlow flow(portal);
     int fd = -1;
     CHECK(!flow.open(fd, error));
-    CHECK(error.find("Ctrl+Alt+F12") != std::string::npos);
-    CHECK(portal.eisCloses == 1);
-    CHECK(portal.remoteCloses == 1 && portal.shortcutCloses == 1);
+    CHECK(error.find("Ctrl+Shift+F12") != std::string::npos);
+    CHECK(portal.eisCloses == 0);
+    CHECK(portal.remoteCloses == 0 && portal.shortcutCloses == 1);
   }
 
   {

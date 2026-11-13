@@ -416,6 +416,11 @@ int cmdReceive(const Args& args) {
             }
             StagedFile stage(incoming, entry.relPath, entry.size);
             link->fetchFile(entry, stage, cancel, nullptr);
+            // El contenido ya está verificado; conservar su nombre definitivo
+            // dentro de incoming antes de publicar toda la oferta.
+            std::error_code renameError;
+            fs::rename(stage.partPath(), incoming / fs::u8path(entry.relPath), renameError);
+            if (renameError) throw Error("no se pudo finalizar el archivo verificado en la recepción");
             ++fileIndex;
             std::cout << "archivo " << fileIndex << '/' << fileTotal
                       << " verificado (" << entry.size << " bytes)\n";

@@ -92,6 +92,9 @@ if(OpenSSL_FOUND)
     target_link_libraries(clipboard_net PRIVATE ws2_32)
   endif()
   target_compile_definitions(clipboard_net PUBLIC OIT_HAVE_OPENSSL=1)
+  # Regresión aislada de PEM/DLL; no crea sockets ni inicializa el escritorio.
+  add_executable(clipboard_tls_certificate_test tests/tls_certificate_test.cpp)
+  target_link_libraries(clipboard_tls_certificate_test PRIVATE clipboard_net)
 else()
   message(WARNING
     "OpenSSL no encontrado: se compila sin el modo entre equipos. "

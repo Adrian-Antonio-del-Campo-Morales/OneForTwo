@@ -444,6 +444,16 @@ void test_portal_message_helpers() {
   CHECK(ok);
   CHECK(!detail.empty());
 }
+
+void test_portal_pipe_reads() {
+  std::string detail;
+  const bool ok = run_portal_pipe_isolated_checks(detail);
+  if (!ok) {
+    std::cerr << "  portal pipe detail: " << detail << "\n";
+  }
+  CHECK(ok);
+  CHECK(!detail.empty());
+}
 #endif
 
 void test_engine_session_isolation() {
@@ -492,6 +502,7 @@ int run_self_tests() {
            test_protocol_roundtrip_and_limits);
 #ifdef OIT_HAVE_PORTAL
   run_test("portal_message_helpers", test_portal_message_helpers);
+  run_test("portal_pipe_reads", test_portal_pipe_reads);
 #endif
   run_test("engine_local_capture", test_engine_local_capture);
   run_test("engine_remote_and_echo", test_engine_remote_and_echo);

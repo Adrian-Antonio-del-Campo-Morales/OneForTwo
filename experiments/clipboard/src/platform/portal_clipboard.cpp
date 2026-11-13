@@ -27,14 +27,17 @@
 #include <condition_variable>
 #include <cstring>
 #include <deque>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <random>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <fcntl.h>
+#include <poll.h>
 #include <unistd.h>
 
 #include "model.hpp"
@@ -523,6 +526,55 @@ bool write_all(int fd, const std::string& text) {
   return true;
 }
 
+// SelectionRead puede entregar un pipe no bloqueante antes de que el dueño
+// escriba. Esperar datos/EOF con un plazo total, sin tratar EAGAIN como fallo.
+Status read_selection_pipe(int fd, std::string& text, int timeout_ms) {
+  text.clear();
+  const auto deadline = std::chrono::steady_clock::now() +
+                        std::chrono::milliseconds(timeout_ms);
+  char buffer[8192];
+  for (;;) {
+    const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+        deadline - std::chrono::steady_clock::now()).count();
+    if (remaining <= 0) {
+      return {StatusCode::Busy, "portal selection pipe timed out"};
+    }
+    pollfd descriptor{fd, POLLIN, 0};
+    const int ready = ::poll(&descriptor, 1, static_cast<int>(remaining));
+    if (ready < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      return {StatusCode::IoError,
+              "cannot wait for portal selection pipe: " +
+                  std::string(std::strerror(errno))};
+    }
+    if (ready == 0) {
+      return {StatusCode::Busy, "portal selection pipe timed out"};
+    }
+    // POLLHUP puede acompañar datos pendientes; drenar antes de aceptar EOF.
+    const ssize_t count = ::read(fd, buffer, sizeof(buffer));
+    if (count < 0) {
+      if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
+        continue;
+      }
+      return {StatusCode::IoError,
+              "cannot read portal selection pipe: " +
+                  std::string(std::strerror(errno))};
+    }
+    if (count == 0) {
+      return text.empty()
+          ? Status{StatusCode::InvalidText, "portal selection is empty"}
+          : Status{StatusCode::Ok, ""};
+    }
+    text.append(buffer, static_cast<std::size_t>(count));
+    if (text.size() > kMaxTextBytes) {
+      return {StatusCode::TooLarge,
+              "portal selection exceeds the 256 KiB text limit"};
+    }
+  }
+}
+
 class PortalClipboardPort final : public ClipboardPort {
  public:
   PortalClipboardPort() = default;
@@ -817,6 +869,9 @@ Status PortalClipboardPort::start_session() {
                 "); refusing to continue because text sharing must not "
                 "depend on input control"};
   }
+  std::clog << "portal_start clipboard_enabled=true devices="
+            << (results.has_devices ? std::to_string(results.devices)
+                                    : "not-reported") << "\n";
   started_ = true;
   return {StatusCode::Ok, ""};
 }
@@ -891,39 +946,9 @@ Status PortalClipboardPort::read_selection_locked(const std::string& mime_type,
                              "SelectionRead returned no Unix file descriptor");
   }
 
-  std::string result;
-  char buffer[8192];
-  bool too_large = false;
-  for (;;) {
-    const ssize_t count = ::read(fd, buffer, sizeof(buffer));
-    if (count < 0) {
-      if (errno == EINTR) {
-        continue;
-      }
-      ::close(fd);
-      return {StatusCode::IoError,
-              "cannot read portal selection pipe: " +
-                  std::string(std::strerror(errno))};
-    }
-    if (count == 0) {
-      break;
-    }
-    result.append(buffer, static_cast<std::size_t>(count));
-    if (result.size() > kMaxTextBytes) {
-      too_large = true;
-      break;
-    }
-  }
+  status = read_selection_pipe(fd, text, kRequestTimeoutMs);
   ::close(fd);
-  text = std::move(result);
-  if (too_large) {
-    return {StatusCode::TooLarge,
-            "portal selection exceeds the 256 KiB text limit"};
-  }
-  if (text.empty()) {
-    return {StatusCode::InvalidText, "portal selection is empty"};
-  }
-  return {StatusCode::Ok, ""};
+  return status;
 }
 
 Status PortalClipboardPort::set_selection_locked(const std::string& text) {
@@ -1038,8 +1063,11 @@ void PortalClipboardPort::handle_selection_owner_changed(
   std::vector<std::string> mime_types;
   if (!parse_owner_options(message, session_path, owner, mime_types) ||
       session_path != session_handle_) {
+    std::clog << "portal_owner_change ignored: unexpected session or signature\n";
     return;
   }
+  std::clog << "portal_owner_change owner=" << (owner ? "self" : "other")
+            << " formats=" << mime_types.size() << "\n";
   session_owner_ = owner;
   mime_types_ = std::move(mime_types);
   if (owner) {
@@ -1048,11 +1076,14 @@ void PortalClipboardPort::handle_selection_owner_changed(
   cached_text_.clear();
   const std::string mime = choose_text_mime(mime_types_);
   if (mime.empty()) {
+    std::clog << "portal_owner_change: no supported text format\n";
     return;
   }
   std::string text;
   const Status status = read_selection_locked(mime, text);
   if (!status.ok() && status.code != StatusCode::TooLarge) {
+    std::clog << "portal_owner_change read failed: "
+              << status_name(status.code) << ": " << status.detail << "\n";
     return;
   }
   queue_change(std::move(text));
@@ -1281,6 +1312,55 @@ ClipboardCapabilities portal_clipboard_capabilities() {
       "by this prototype.",
   };
   return capabilities;
+}
+
+bool run_portal_pipe_isolated_checks(std::string& detail) {
+  auto fail = [&detail](const char* message) {
+    detail = message;
+    return false;
+  };
+  int descriptors[2];
+  if (::pipe(descriptors) != 0) {
+    return fail("cannot create synthetic selection pipe");
+  }
+  const int flags = ::fcntl(descriptors[0], F_GETFL);
+  if (flags < 0 || ::fcntl(descriptors[0], F_SETFL, flags | O_NONBLOCK) < 0) {
+    ::close(descriptors[0]);
+    ::close(descriptors[1]);
+    return fail("cannot make synthetic selection pipe nonblocking");
+  }
+  char byte;
+  const bool initially_empty = ::read(descriptors[0], &byte, 1) < 0 &&
+                              (errno == EAGAIN || errno == EWOULDBLOCK);
+  // Menos de PIPE_BUF: el escritor termina incluso si falla el lector.
+  const std::string expected = std::string(u8"Hola ñ 😀\n") +
+                               std::string(2048, 'x');
+  bool write_ok = false;
+  std::thread producer([&] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    write_ok = write_all(descriptors[1], expected);
+    ::close(descriptors[1]);
+  });
+  std::string received;
+  const Status delayed = read_selection_pipe(descriptors[0], received, 5000);
+  producer.join();
+  ::close(descriptors[0]);
+  if (!initially_empty || !write_ok || !delayed.ok() || received != expected) {
+    return fail("delayed nonblocking selection did not drain to EOF intact");
+  }
+
+  if (::pipe(descriptors) != 0) {
+    return fail("cannot create synthetic timeout pipe");
+  }
+  const Status timeout = read_selection_pipe(descriptors[0], received, 20);
+  ::close(descriptors[1]);
+  const Status empty = read_selection_pipe(descriptors[0], received, 1000);
+  ::close(descriptors[0]);
+  if (timeout.code != StatusCode::Busy || empty.code != StatusCode::InvalidText) {
+    return fail("stalled or empty selection reported success");
+  }
+  detail = "nonblocking delayed Unicode data, EOF, timeout and empty pipe pass";
+  return true;
 }
 
 bool run_portal_isolated_checks(std::string& detail) {

@@ -267,11 +267,31 @@ bool InputCaptureFlow::abort(const std::string& message) {
   return false;
 }
 
-bool RemoteDesktopFlow::open(int& eisFd, std::string& error) {
+bool RemoteDesktopFlow::prepareExit(std::string& error) {
   if (stage_ != TargetStage::Idle) {
-    error = "la sesión RemoteDesktop ya está abierta";
+    error = "la sesión de salida ya está abierta";
     return false;
   }
+  if (!ops_.createShortcutSession(shortcuts_, error)) return fail(error);
+  bool bound = false;
+  if (!ops_.bindEmergencyShortcut(shortcuts_, bound, error)) return fail(error);
+  if (!bound) {
+    error = "el escritorio no concedió Ctrl+Shift+F12; no se abre RemoteDesktop ni EIS";
+    return fail(error);
+  }
+  shortcutBound_ = true;
+  stage_ = TargetStage::ExitReady;
+  return true;
+}
+
+bool RemoteDesktopFlow::open(int& eisFd, std::string& error) {
+  eisFd = -1;
+  if (stage_ == TargetStage::Idle && !prepareExit(error)) return false;
+  if (stage_ != TargetStage::ExitReady) {
+    error = "la sesión RemoteDesktop ya está abierta o la salida no está preparada";
+    return false;
+  }
+  if (!ops_.verifyEmergencyShortcut(shortcuts_, error)) return fail(error);
   if (!ops_.createRemoteSession(remote_, error)) return fail(error);
   if (!ops_.selectRemoteDevices(remote_, kDeviceKeyboard | kDevicePointer, error)) {
     return fail(error);
@@ -285,28 +305,8 @@ bool RemoteDesktopFlow::open(int& eisFd, std::string& error) {
             "; se requieren teclado y puntero";
     return fail(error);
   }
-
   int fd = -1;
   if (!ops_.connectRemoteEis(remote_, fd, error)) return fail(error);
-
-  if (!ops_.createShortcutSession(shortcuts_, error)) {
-    ops_.closeEis(fd);
-    return fail(error);
-  }
-  bool bound = false;
-  if (!ops_.bindEmergencyShortcut(shortcuts_, bound, error)) {
-    ops_.closeEis(fd);
-    return fail(error);
-  }
-  if (!bound) {
-    error =
-        "el escritorio no concedió Ctrl+Alt+F12; no se habilita la inyección porque el "
-        "destino no tendría salida local";
-    ops_.closeEis(fd);
-    return fail(error);
-  }
-
-  shortcutBound_ = true;
   eisFd = fd;
   stage_ = TargetStage::Ready;
   return true;

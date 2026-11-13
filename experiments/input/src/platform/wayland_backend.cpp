@@ -1,6 +1,6 @@
 // Responsabilidad: adaptador Linux/Wayland. El origen autoriza InputCapture y
 // recibe la entrada por un contexto libei receptor; el destino autoriza
-// RemoteDesktop, inyecta con libei emisor y reserva Ctrl+Alt+F12 con
+// RemoteDesktop, inyecta con libei emisor y reserva Ctrl+Shift+F12 con
 // GlobalShortcuts. Solo se compila con gio-2.0 y libei-1.0.
 #include "core/keymap.hpp"
 #include "platform/backend.hpp"
@@ -69,6 +69,22 @@ uint16_t protocolButton(uint32_t evdev) {
 }
 
 // Señales de los portales que el backend traduce a su estado interno.
+// Recibe una referencia propia al diccionario y devuelve (a{sv}), como callRaw.
+GVariant* portalResponseTuple(GVariant* dictionary) {
+  GVariant* tuple = g_variant_ref_sink(g_variant_new_tuple(&dictionary, 1));
+  g_variant_unref(dictionary);
+  return tuple;
+}
+
+// RemoteDesktop conserva el tipo s por compatibilidad, aunque contiene una ruta.
+bool remoteSessionHandle(GVariant* dictionary, std::string& session) {
+  const gchar* handle = nullptr;
+  if (!g_variant_lookup(dictionary, "session_handle", "&s", &handle) ||
+      !g_variant_is_object_path(handle)) return false;
+  session = handle;
+  return true;
+}
+
 class PortalEvents {
  public:
   virtual ~PortalEvents() = default;
@@ -89,6 +105,8 @@ class PortalClient : public wl::PortalOps {
   bool connect(std::string& error);
   bool queryUint(const char* iface, const char* name, uint32_t& value);
   void pump();
+  static bool checkResponseDecoding();
+  static bool checkShortcutSignals();
 
   bool createInputSession(std::string& session, std::string& error) override;
   bool startInputSession(const std::string& session, std::string& error) override;
@@ -116,6 +134,7 @@ class PortalClient : public wl::PortalOps {
   bool createShortcutSession(std::string& session, std::string& error) override;
   bool bindEmergencyShortcut(const std::string& session, bool& bound,
                              std::string& error) override;
+  bool verifyEmergencyShortcut(const std::string& session, std::string& error) override;
   void closeShortcutSession(const std::string& session) override;
 
  private:
@@ -141,6 +160,8 @@ class PortalClient : public wl::PortalOps {
                              const gchar*, GVariant*, gpointer);
   static void onShortcutActivated(GDBusConnection*, const gchar*, const gchar*, const gchar*,
                                   const gchar*, GVariant*, gpointer);
+  static void onShortcutDeactivated(GDBusConnection*, const gchar*, const gchar*, const gchar*,
+                                    const gchar*, GVariant*, gpointer);
 
   std::string nextToken();
   std::string requestPath(const std::string& token) const;
@@ -166,6 +187,11 @@ class PortalClient : public wl::PortalOps {
   std::vector<guint> inputSubs_;
   std::vector<guint> remoteSubs_;
   std::vector<guint> shortcutSubs_;
+  std::string shortcutSession_;
+  bool checkingShortcut_ = false;
+  bool shortcutActivated_ = false;
+  bool shortcutReleased_ = false;
+  bool shortcutClosed_ = false;
 };
 
 PortalClient::~PortalClient() {
@@ -278,8 +304,13 @@ bool PortalClient::request(const char* iface, const char* method, GVariant* para
   }
   const std::string expected = requestPath(token);
   RequestWait wait;
-  guint subscription = subscribe(expected, "org.freedesktop.portal.Request", "Response",
-                                 onResponse);
+  const auto subscribeResponse = [&](const std::string& path) {
+    // onResponse recibe RequestWait, no PortalClient como las señales de sesión.
+    return g_dbus_connection_signal_subscribe(
+        bus_, kPortalService, "org.freedesktop.portal.Request", "Response",
+        path.c_str(), nullptr, G_DBUS_SIGNAL_FLAGS_NONE, onResponse, &wait, nullptr);
+  };
+  guint subscription = subscribeResponse(expected);
   GError* gerror = nullptr;
   GVariant* reply = g_dbus_connection_call_sync(
       bus_, kPortalService, kPortalPath, iface, method, parameters, G_VARIANT_TYPE("(o)"),
@@ -301,7 +332,7 @@ bool PortalClient::request(const char* iface, const char* method, GVariant* para
   }
   if (returned != expected) {
     if (subscription != 0) g_dbus_connection_signal_unsubscribe(bus_, subscription);
-    subscription = subscribe(returned, "org.freedesktop.portal.Request", "Response", onResponse);
+    subscription = subscribeResponse(returned);
   }
 
   const gint64 deadline = g_get_monotonic_time() + static_cast<gint64>(timeoutMs) * 1000;
@@ -321,10 +352,37 @@ bool PortalClient::request(const char* iface, const char* method, GVariant* para
                                : "el portal rechazó la solicitud";
     return false;
   }
-  *results = wait.results != nullptr
-                 ? wait.results
-                 : g_variant_ref_sink(g_variant_new_array(G_VARIANT_TYPE("{sv}"), nullptr, 0));
+  GVariant* dict = wait.results != nullptr
+      ? wait.results
+      : g_variant_ref_sink(g_variant_new_array(G_VARIANT_TYPE("{sv}"), nullptr, 0));
+  // Mantener el contrato (a{sv}) que consumen todas las operaciones request.
+  *results = portalResponseTuple(dict);
   return true;
+}
+
+bool PortalClient::checkResponseDecoding() {
+  RequestWait wait;
+  GVariantBuilder options;
+  g_variant_builder_init(&options, G_VARIANT_TYPE_VARDICT);
+  g_variant_builder_add(&options, "{sv}", "devices", g_variant_new_uint32(3));
+  g_variant_builder_add(&options, "{sv}", "session_handle",
+                        g_variant_new_string("/org/freedesktop/portal/desktop/session/test"));
+  GVariant* parameters = g_variant_ref_sink(
+      g_variant_new("(u@a{sv})", 0u, g_variant_builder_end(&options)));
+  onResponse(nullptr, nullptr, nullptr, nullptr, nullptr, parameters, &wait);
+  g_variant_unref(parameters);
+  if (!wait.done || wait.response != 0 || wait.results == nullptr) return false;
+  GVariant* tuple = portalResponseTuple(wait.results);
+  GVariant* dict = g_variant_get_child_value(tuple, 0);
+  guint32 devices = 0;
+  std::string session;
+  const bool ok = g_variant_is_of_type(tuple, G_VARIANT_TYPE("(a{sv})")) &&
+                  g_variant_lookup(dict, "devices", "u", &devices) && devices == 3 &&
+                  remoteSessionHandle(dict, session) &&
+                  session == "/org/freedesktop/portal/desktop/session/test";
+  g_variant_unref(dict);
+  g_variant_unref(tuple);
+  return ok;
 }
 
 guint PortalClient::subscribe(const std::string& path, const char* iface, const char* member,
@@ -363,8 +421,15 @@ void PortalClient::subscribeRemote(const std::string& session) {
 }
 
 void PortalClient::subscribeShortcuts(const std::string& session) {
-  shortcutSubs_.push_back(subscribe(session, "org.freedesktop.portal.GlobalShortcuts",
+  shortcutSession_ = session;
+  shortcutClosed_ = false;
+  // Activated se emite en el objeto del portal; su primer argumento es la sesión.
+  shortcutSubs_.push_back(subscribe(kPortalPath, "org.freedesktop.portal.GlobalShortcuts",
                                    "Activated", onShortcutActivated));
+  shortcutSubs_.push_back(subscribe(kPortalPath, "org.freedesktop.portal.GlobalShortcuts",
+                                   "Deactivated", onShortcutDeactivated));
+  shortcutSubs_.push_back(subscribe(session, "org.freedesktop.portal.Session",
+                                   "Closed", onRemoteClosed));
 }
 
 void PortalClient::onInputActivated(GDBusConnection*, const gchar*, const gchar*, const gchar*,
@@ -413,9 +478,10 @@ void PortalClient::onInputClosed(GDBusConnection*, const gchar*, const gchar*, c
   if (client->events_ != nullptr) client->events_->portalInputClosed();
 }
 
-void PortalClient::onRemoteClosed(GDBusConnection*, const gchar*, const gchar*, const gchar*,
+void PortalClient::onRemoteClosed(GDBusConnection*, const gchar*, const gchar* path, const gchar*,
                                   const gchar*, GVariant*, gpointer data) {
   auto* client = static_cast<PortalClient*>(data);
+  if (path != nullptr && client->shortcutSession_ == path) client->shortcutClosed_ = true;
   if (client->events_ != nullptr) client->events_->portalRemoteClosed();
 }
 
@@ -424,11 +490,81 @@ void PortalClient::onShortcutActivated(GDBusConnection*, const gchar*, const gch
                                        gpointer data) {
   auto* client = static_cast<PortalClient*>(data);
   if (client->events_ == nullptr || parameters == nullptr) return;
+  GVariant* session = g_variant_get_child_value(parameters, 0);
+  const bool ownSession = client->shortcutSession_ == g_variant_get_string(session, nullptr);
+  g_variant_unref(session);
+  if (!ownSession) return;
   GVariant* identifier = g_variant_get_child_value(parameters, 1);
   const gchar* text = g_variant_get_string(identifier, nullptr);
   const bool emergency = text != nullptr && std::strcmp(text, wl::kEmergencyShortcutId) == 0;
   g_variant_unref(identifier);
-  if (emergency) client->events_->portalShortcutActivated();
+  if (emergency) {
+    client->shortcutActivated_ = true;
+    client->shortcutReleased_ = false;
+    if (!client->checkingShortcut_) client->events_->portalShortcutActivated();
+  }
+}
+
+void PortalClient::onShortcutDeactivated(GDBusConnection*, const gchar*, const gchar*,
+                                         const gchar*, const gchar*, GVariant* parameters,
+                                         gpointer data) {
+  auto* client = static_cast<PortalClient*>(data);
+  const gchar* session = nullptr;
+  const gchar* identifier = nullptr;
+  guint64 timestamp = 0;
+  GVariant* options = nullptr;
+  g_variant_get(parameters, "(&o&st@a{sv})", &session, &identifier, &timestamp, &options);
+  if (client->shortcutSession_ == session &&
+      std::strcmp(identifier, wl::kEmergencyShortcutId) == 0 && client->shortcutActivated_) {
+    client->shortcutReleased_ = true;
+  }
+  g_variant_unref(options);
+}
+
+bool PortalClient::checkShortcutSignals() {
+  struct Events final : PortalEvents {
+    int emergencies = 0;
+    void portalInputActivated(uint32_t, double, double, uint32_t) override {}
+    void portalInputDeactivated(uint32_t) override {}
+    void portalInputDisabled() override {}
+    void portalInputZonesChanged() override {}
+    void portalInputClosed() override {}
+    void portalRemoteClosed() override {}
+    void portalShortcutActivated() override { ++emergencies; }
+  } events;
+  PortalClient client;  // Sin connect(): no abre el bus ni crea sesiones.
+  client.setEvents(&events);
+  client.shortcutSession_ = "/org/freedesktop/portal/desktop/session/test";
+  const auto signal = [&](bool activated, const char* session, const char* identifier) {
+    GVariant* parameters = g_variant_ref_sink(g_variant_new(
+        "(ost@a{sv})", session, identifier, guint64{1},
+        g_variant_new_array(G_VARIANT_TYPE("{sv}"), nullptr, 0)));
+    if (activated)
+      onShortcutActivated(nullptr, nullptr, nullptr, nullptr, nullptr, parameters, &client);
+    else
+      onShortcutDeactivated(nullptr, nullptr, nullptr, nullptr, nullptr, parameters, &client);
+    g_variant_unref(parameters);
+  };
+  const char* own = client.shortcutSession_.c_str();
+  const char* other = "/org/freedesktop/portal/desktop/session/other";
+  signal(true, other, wl::kEmergencyShortcutId);
+  signal(true, own, "oneintwo-emergency");  // Ignorar la concesión antigua.
+  if (events.emergencies != 0 || client.shortcutActivated_) return false;
+  signal(true, own, wl::kEmergencyShortcutId);
+  if (events.emergencies != 1 || !client.shortcutActivated_ || client.shortcutReleased_) return false;
+  signal(false, own, wl::kEmergencyShortcutId);
+  if (!client.shortcutReleased_) return false;
+  client.checkingShortcut_ = true;
+  client.shortcutActivated_ = false;
+  client.shortcutReleased_ = false;
+  signal(false, own, wl::kEmergencyShortcutId);
+  if (client.shortcutReleased_) return false;
+  signal(true, own, wl::kEmergencyShortcutId);
+  signal(false, other, wl::kEmergencyShortcutId);
+  if (client.shortcutReleased_ || events.emergencies != 1) return false;
+  signal(false, own, wl::kEmergencyShortcutId);
+  onRemoteClosed(nullptr, nullptr, own, nullptr, nullptr, nullptr, &client);
+  return client.shortcutActivated_ && client.shortcutReleased_ && client.shortcutClosed_;
 }
 
 void PortalClient::closeAt(const std::string& path) {
@@ -674,9 +810,7 @@ bool PortalClient::createRemoteSession(std::string& session, std::string& error)
     return false;
   }
   GVariant* dict = g_variant_get_child_value(results, 0);
-  const gchar* handle = nullptr;
-  const bool ok = g_variant_lookup(dict, "session_handle", "&o", &handle) != 0;
-  if (ok && handle != nullptr) session = handle;
+  const bool ok = remoteSessionHandle(dict, session);
   g_variant_unref(dict);
   g_variant_unref(results);
   if (!ok || session.empty()) {
@@ -802,6 +936,10 @@ bool PortalClient::bindEmergencyShortcut(const std::string& session, bool& bound
     while (g_variant_iter_next(&iter, "(&s@a{sv})", &identifier, &propertiesOut)) {
       if (identifier != nullptr && std::strcmp(identifier, wl::kEmergencyShortcutId) == 0) {
         bound = true;
+        const gchar* trigger = nullptr;
+        g_variant_lookup(propertiesOut, "trigger_description", "&s", &trigger);
+        std::fprintf(stderr, "Atajo de salida concedido por el portal: %s\n",
+                     trigger != nullptr ? trigger : "sin descripcion");
       }
       g_variant_unref(propertiesOut);
     }
@@ -814,7 +952,32 @@ bool PortalClient::bindEmergencyShortcut(const std::string& session, bool& bound
 
 void PortalClient::closeShortcutSession(const std::string& session) {
   unsubscribe(shortcutSubs_);
+  shortcutSession_.clear();
   closeAt(session);
+}
+
+bool PortalClient::verifyEmergencyShortcut(const std::string& session, std::string& error) {
+  if (session != shortcutSession_ || shortcutClosed_) {
+    error = "la sesión del atajo no está disponible";
+    return false;
+  }
+  checkingShortcut_ = true;
+  shortcutActivated_ = false;
+  shortcutReleased_ = false;
+  std::printf("Antes de abrir RemoteDesktop/EIS, pulse y suelte Ctrl+Shift+F12 (30 s).\n");
+  std::fflush(stdout);
+  const gint64 deadline = g_get_monotonic_time() + 30 * G_USEC_PER_SEC;
+  while (!shortcutClosed_ && !(shortcutActivated_ && shortcutReleased_) &&
+         g_get_monotonic_time() < deadline) {
+    pump();
+    g_usleep(1000);
+  }
+  checkingShortcut_ = false;
+  if (shortcutClosed_ || !shortcutActivated_ || !shortcutReleased_) {
+    error = "salida local no comprobada; no se abre RemoteDesktop ni EIS";
+    return false;
+  }
+  return true;
 }
 
 // === libei: receptor del origen ===
@@ -994,11 +1157,13 @@ class EiSender {
       return false;
     }
     ei_configure_name(ei_, "oneintwo-input-target");
+    if (std::getenv("ONEINTWO_EI_DEBUG") != nullptr) {
+      ei_log_set_priority(ei_, EI_LOG_PRIORITY_DEBUG);
+    }
     if (ei_setup_backend_fd(ei_, fd) != 0) {
       error = "libei rechazó el descriptor EIS de RemoteDesktop";
       ei_unref(ei_);
       ei_ = nullptr;
-      ::close(fd);
       return false;
     }
     // A partir de aquí libei es dueño del descriptor y lo cierra al liberarse.
@@ -1011,13 +1176,32 @@ class EiSender {
 
   void close() {
     if (ei_ != nullptr) {
+      // Liberar solo nuestros estados antes de cerrar la transacción y el FD.
+      if (contains(emulating_, keyboard_) && contains(resumed_, keyboard_)) {
+        for (uint32_t key : pressedKeys_) ei_device_keyboard_key(keyboard_, key, false);
+        if (!pressedKeys_.empty()) ei_device_frame(keyboard_, ei_now(ei_));
+      }
+      if (contains(emulating_, pointer_) && contains(resumed_, pointer_)) {
+        for (uint32_t button : pressedButtons_) ei_device_button_button(pointer_, button, false);
+        if (!pressedButtons_.empty()) ei_device_frame(pointer_, ei_now(ei_));
+      }
+      for (ei_device* device : emulating_) {
+        if (contains(resumed_, device)) ei_device_stop_emulating(device);
+      }
+      for (ei_device* device : devices_) ei_device_unref(device);
       ei_unref(ei_);
       ei_ = nullptr;
     }
+    devices_.clear();
+    resumed_.clear();
+    emulating_.clear();
+    pressedKeys_.clear();
+    pressedButtons_.clear();
     keyboard_ = nullptr;
     pointer_ = nullptr;
     absolute_ = nullptr;
     disconnected_ = false;
+    deviceLost_ = false;
     geo_ = Geo{};
   }
 
@@ -1031,15 +1215,15 @@ class EiSender {
       handle(event);
       ei_event_unref(event);
     }
-    if (disconnected_) {
-      error = "la conexión EIS del destino se cerró";
+    if (disconnected_ || deviceLost_) {
+      error = "EIS cerró, pausó o retiró un dispositivo del destino";
       return false;
     }
     return true;
   }
 
   bool injectMove(int x, int y, std::string& error) {
-    if (!ready(error)) return false;
+    if (!begin(absolute_, error)) return false;
     ei_device_pointer_motion_absolute(absolute_, x - geo_.x, y - geo_.y);
     ei_device_frame(absolute_, ei_now(ei_));
     return true;
@@ -1052,7 +1236,14 @@ class EiSender {
       error = "tecla sin conversión evdev";
       return false;
     }
+    if (!begin(keyboard_, error)) return false;
     ei_device_keyboard_key(keyboard_, code, pressed);
+    if (pressed) {
+      if (std::find(pressedKeys_.begin(), pressedKeys_.end(), code) == pressedKeys_.end())
+        pressedKeys_.push_back(code);
+    } else {
+      pressedKeys_.erase(std::remove(pressedKeys_.begin(), pressedKeys_.end(), code), pressedKeys_.end());
+    }
     ei_device_frame(keyboard_, ei_now(ei_));
     return true;
   }
@@ -1064,13 +1255,21 @@ class EiSender {
       error = "botón de ratón no soportado";
       return false;
     }
+    if (!begin(pointer_, error)) return false;
     ei_device_button_button(pointer_, code, pressed);
+    if (pressed) {
+      if (std::find(pressedButtons_.begin(), pressedButtons_.end(), code) == pressedButtons_.end())
+        pressedButtons_.push_back(code);
+    } else {
+      pressedButtons_.erase(std::remove(pressedButtons_.begin(), pressedButtons_.end(), code), pressedButtons_.end());
+    }
     ei_device_frame(pointer_, ei_now(ei_));
     return true;
   }
 
   bool injectWheel(int16_t dx, int16_t dy, std::string& error) {
     if (!ready(error)) return false;
+    if (!begin(pointer_, error)) return false;
     // EI usa evdev: el desplazamiento positivo es hacia abajo y la rueda
     // discreta se expresa en múltiplos de 120.
     ei_device_scroll_discrete(pointer_, static_cast<int32_t>(dx) * 120,
@@ -1080,13 +1279,32 @@ class EiSender {
   }
 
  private:
+  static bool contains(const std::vector<ei_device*>& list, ei_device* device) {
+    return device != nullptr && std::find(list.begin(), list.end(), device) != list.end();
+  }
+
+  bool begin(ei_device* device, std::string& error) {
+    if (!ready(error)) return false;
+    if (!contains(emulating_, device)) {
+      // No iniciar durante ADDED ni al preparar permisos: solo ante un evento real.
+      ei_device_start_emulating(device, ++sequence_);
+      emulating_.push_back(device);
+    }
+    return true;
+  }
+
+  bool devicesReady() const {
+    return contains(resumed_, keyboard_) && contains(resumed_, pointer_) &&
+           contains(resumed_, absolute_);
+  }
+
   bool ready(std::string& error) const {
     if (disconnected_) {
       error = "la conexión EIS del destino se cerró";
       return false;
     }
-    if (keyboard_ == nullptr || pointer_ == nullptr || absolute_ == nullptr) {
-      error = "el EIS del destino retiró los dispositivos necesarios";
+    if (deviceLost_ || !devicesReady()) {
+      error = "los dispositivos EIS no están reanudados o fueron retirados";
       return false;
     }
     return true;
@@ -1095,7 +1313,7 @@ class EiSender {
   bool waitForDevices(Geo& geo, std::string& error) {
     const gint64 deadline = g_get_monotonic_time() + 5000 * 1000;
     while (g_get_monotonic_time() < deadline) {
-      if (keyboard_ != nullptr && pointer_ != nullptr && absolute_ != nullptr) break;
+      if (devicesReady()) break;
       struct pollfd descriptor {
         ei_get_fd(ei_), POLLIN, 0
       };
@@ -1128,6 +1346,10 @@ class EiSender {
       return false;
     }
 
+    if (deviceLost_ || !devicesReady()) {
+      error = "EIS no reanudó los dispositivos antes del límite de preparación";
+      return false;
+    }
     ei_region* region = ei_device_get_region(absolute_, 0);
     if (region == nullptr) region = ei_device_get_region(pointer_, 0);
     if (region == nullptr) {
@@ -1159,26 +1381,49 @@ class EiSender {
         ei_seat* seat = ei_event_get_seat(event);
         if (seat != nullptr) {
           ei_seat_bind_capabilities(seat, EI_DEVICE_CAP_KEYBOARD, EI_DEVICE_CAP_POINTER,
-                                    EI_DEVICE_CAP_POINTER_ABSOLUTE, NULL);
+                                    EI_DEVICE_CAP_POINTER_ABSOLUTE, EI_DEVICE_CAP_BUTTON,
+                                    EI_DEVICE_CAP_SCROLL, NULL);
         }
         break;
       }
       case EI_EVENT_DEVICE_ADDED: {
         ei_device* device = ei_event_get_device(event);
         if (device == nullptr) break;
+        devices_.push_back(ei_device_ref(device));
         if (ei_device_has_capability(device, EI_DEVICE_CAP_KEYBOARD)) keyboard_ = device;
-        if (ei_device_has_capability(device, EI_DEVICE_CAP_POINTER)) pointer_ = device;
+        if (ei_device_has_capability(device, EI_DEVICE_CAP_BUTTON) &&
+            ei_device_has_capability(device, EI_DEVICE_CAP_SCROLL)) pointer_ = device;
         if (ei_device_has_capability(device, EI_DEVICE_CAP_POINTER_ABSOLUTE)) {
           absolute_ = device;
         }
-        ei_device_start_emulating(device, 0);
+        break;
+      }
+      case EI_EVENT_DEVICE_RESUMED: {
+        ei_device* device = ei_event_get_device(event);
+        if (!contains(resumed_, device)) resumed_.push_back(device);
+        break;
+      }
+      case EI_EVENT_DEVICE_PAUSED: {
+        ei_device* device = ei_event_get_device(event);
+        resumed_.erase(std::remove(resumed_.begin(), resumed_.end(), device), resumed_.end());
+        // Nunca reanudar silenciosamente una transacción tras perder dispositivos.
+        if (device == keyboard_ || device == pointer_ || device == absolute_) deviceLost_ = true;
         break;
       }
       case EI_EVENT_DEVICE_REMOVED: {
         ei_device* device = ei_event_get_device(event);
+        if (device == keyboard_ || device == pointer_ || device == absolute_) deviceLost_ = true;
         if (device == keyboard_) keyboard_ = nullptr;
         if (device == pointer_) pointer_ = nullptr;
         if (device == absolute_) absolute_ = nullptr;
+        if (contains(emulating_, device)) deviceLost_ = true;
+        resumed_.erase(std::remove(resumed_.begin(), resumed_.end(), device), resumed_.end());
+        emulating_.erase(std::remove(emulating_.begin(), emulating_.end(), device), emulating_.end());
+        auto it = std::find(devices_.begin(), devices_.end(), device);
+        if (it != devices_.end()) {
+          ei_device_unref(*it);
+          devices_.erase(it);
+        }
         break;
       }
       default:
@@ -1192,6 +1437,13 @@ class EiSender {
   ei_device* absolute_ = nullptr;
   Geo geo_;
   bool disconnected_ = false;
+  bool deviceLost_ = false;
+  uint32_t sequence_ = 0;
+  std::vector<ei_device*> devices_;
+  std::vector<ei_device*> resumed_;
+  std::vector<ei_device*> emulating_;
+  std::vector<uint32_t> pressedKeys_;
+  std::vector<uint32_t> pressedButtons_;
 };
 
 // === Backend ===
@@ -1208,6 +1460,8 @@ class WaylandBackend : public Backend, public PortalEvents {
 
   bool prepareSource(Edge edge, std::string& error) override;
   bool prepareTarget(std::string& error) override;
+  bool prepareTargetExit(std::string& error) override { return remote_.prepareExit(error); }
+  const char* targetExitShortcut() const override { return "Ctrl+Shift+F12"; }
   bool startSource(std::string& error) override;
   void stopSource() override;
   bool setCaptureActive(bool active, std::string& error) override;
@@ -1583,6 +1837,10 @@ bool WaylandBackend::cursorPosition(int& x, int& y) {
 
 std::unique_ptr<Backend> makeWaylandBackend() {
   return std::unique_ptr<Backend>(new WaylandBackend());
+}
+
+bool runWaylandPortalResponseChecks() {
+  return PortalClient::checkResponseDecoding() && PortalClient::checkShortcutSignals();
 }
 
 }  // namespace oit

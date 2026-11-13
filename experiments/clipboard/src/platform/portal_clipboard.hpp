@@ -23,4 +23,7 @@ PortCreation create_portal_clipboard_port();
 // sin abrir una conexión, un bus, una sesión de permisos ni el portapapeles.
 bool run_portal_isolated_checks(std::string& detail);
 
+// Pipes sintéticos: llegada diferida, EOF y timeout, sin portapapeles ni bus.
+bool run_portal_pipe_isolated_checks(std::string& detail);
+
 }  // namespace oit

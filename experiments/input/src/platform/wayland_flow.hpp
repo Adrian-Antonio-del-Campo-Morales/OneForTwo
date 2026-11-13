@@ -35,8 +35,9 @@ constexpr uint32_t kCapabilityPointer = 2;
 constexpr uint32_t kDeviceKeyboard = 1;
 constexpr uint32_t kDevicePointer = 2;
 
-constexpr const char* kEmergencyShortcutId = "oneintwo-emergency";
-constexpr const char* kEmergencyShortcutTrigger = "CTRL+ALT+F12";
+// Identificador nuevo: no reutilizar una concesión persistida de Ctrl+Alt+F12.
+constexpr const char* kEmergencyShortcutId = "oneintwo-emergency-v2";
+constexpr const char* kEmergencyShortcutTrigger = "CTRL+SHIFT+F12";
 
 // El alcance del experimento es un solo monitor: una única zona.
 bool zoneGeometry(const std::vector<Zone>& zones, Geo& geo, std::string& error);
@@ -85,6 +86,8 @@ class PortalOps {
   virtual bool createShortcutSession(std::string& session, std::string& error) = 0;
   virtual bool bindEmergencyShortcut(const std::string& session, bool& bound,
                                      std::string& error) = 0;
+  // Exige una activación y liberación reales antes de abrir RemoteDesktop/EIS.
+  virtual bool verifyEmergencyShortcut(const std::string& session, std::string& error) = 0;
   virtual void closeShortcutSession(const std::string& session) = 0;
 };
 
@@ -149,16 +152,15 @@ class InputCaptureFlow {
   std::string closeReason_;
 };
 
-enum class TargetStage { Idle, Ready, Closed, Failed };
+enum class TargetStage { Idle, ExitReady, Ready, Closed, Failed };
 
-// Secuencia del destino. El orden es CreateSession, SelectDevices, Start,
-// ConnectToEIS, CreateSession (GlobalShortcuts) y BindShortcuts. Si el
-// escritorio no concede Ctrl+Alt+F12 no se habilita la inyección: sin salida
-// local no hay forma de recuperar el control desde el destino.
+// Primero GlobalShortcuts y comprobación física; después RemoteDesktop/EIS.
+// prepareExit() permite probar solo el atajo, sin sesión de control ni EIS.
 class RemoteDesktopFlow {
  public:
   explicit RemoteDesktopFlow(PortalOps& ops) : ops_(ops) {}
 
+  bool prepareExit(std::string& error);
   bool open(int& eisFd, std::string& error);
   void close();
   void onClosed();
