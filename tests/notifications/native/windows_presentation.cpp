@@ -1,3 +1,9 @@
+// Mismo ajuste que el backend: C++/WinRT incluye <experimental/coroutine>
+// cuando se compila en C++17 con el SDK 26100.
+#if defined(_MSC_VER) && !defined(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+#define _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
+#endif
+
 #include "features/notifications.hpp"
 #include "integration/feature_contracts.hpp"
 #include "platform/desktop.hpp"
