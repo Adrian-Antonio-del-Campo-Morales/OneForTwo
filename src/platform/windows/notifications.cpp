@@ -1,3 +1,10 @@
+// C++/WinRT incluye <experimental/coroutine> al compilar en C++17. El SDK
+// 26100 con MSVC 14.51 convierte esa inclusión en un error salvo que se
+// silencie explícitamente; el paquete no usa corrutinas propias.
+#if defined(_MSC_VER) && !defined(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+#define _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
+#endif
+
 #include "features/notification_support/identity.hpp"
 #include "integration/feature_contracts.hpp"
 #include "platform/desktop.hpp"
@@ -10,6 +17,9 @@
 #include <shellapi.h>
 #include <shobjidl_core.h>
 
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.Data.Xml.Dom.h>
 #include <winrt/Windows.UI.Notifications.Management.h>
 #include <winrt/Windows.UI.Notifications.h>
@@ -286,11 +296,11 @@ std::vector<std::string> notification_text_lines(const wun::UserNotification& no
 }
 
 void handle_changed(const SharedPtr& shared, std::uint64_t identifier,
-                    const wunm::UserNotificationChangedEventArgs& args) {
+                    const wun::UserNotificationChangedEventArgs& args) {
     if (!shared->is_current(identifier)) {
         return;
     }
-    if (args.ChangeType() != wunm::UserNotificationChangedKind::Added) {
+    if (args.ChangeKind() != wun::UserNotificationChangedKind::Added) {
         return;
     }
 
@@ -378,7 +388,7 @@ void begin_listening(const SharedPtr& shared, std::uint64_t identifier) {
         shared->listening = true;
         shared->listener_token = listener.NotificationChanged(
             [shared, identifier](const wunm::UserNotificationListener&,
-                                 const wunm::UserNotificationChangedEventArgs& args) {
+                                 const wun::UserNotificationChangedEventArgs& args) {
                 handle_changed(shared, identifier, args);
             });
 
@@ -439,9 +449,10 @@ void request_access(const SharedPtr& shared, std::function<void(DesktopResult)> 
         auto listener = wunm::UserNotificationListener::Current();
         auto operation = listener.RequestAccessAsync();
         operation.Completed([shared, continuation = std::move(continuation)](
-                                const auto& async, winrt::AsyncStatus status) mutable {
+                                const auto& async,
+                                winrt::Windows::Foundation::AsyncStatus status) mutable {
             DesktopResult result = DesktopResult::error;
-            if (status == winrt::AsyncStatus::Completed) {
+            if (status == winrt::Windows::Foundation::AsyncStatus::Completed) {
                 try {
                     result = map_access(async.GetResults());
                 } catch (const winrt::hresult_error& error) {
@@ -449,7 +460,7 @@ void request_access(const SharedPtr& shared, std::function<void(DesktopResult)> 
                 } catch (...) {
                     result = DesktopResult::error;
                 }
-            } else if (status == winrt::AsyncStatus::Canceled) {
+            } else if (status == winrt::Windows::Foundation::AsyncStatus::Canceled) {
                 result = DesktopResult::cancelled;
             }
             shared->post([continuation = std::move(continuation), result] {
