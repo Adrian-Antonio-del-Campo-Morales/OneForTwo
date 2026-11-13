@@ -372,6 +372,28 @@ TEST_CASE(origin_share_stop_and_encoded_frames_cross_the_coordinator) {
     CHECK(!harness.button("stopButton")->isEnabled());
 }
 
+TEST_CASE(stale_messages_do_not_clear_a_newer_visual_operation) {
+    Harness harness;
+    harness.establish();
+    harness.setVisualPermissions(true, true);
+    harness.button("shareMonitorButton")->click();
+    harness.capture.completeSelection(DesktopResult::ready);
+    harness.drain();
+    CHECK(harness.coordinator->hasActiveVisual());
+
+    const VisualShareRef stale{7, VisualInitiator::local, 999};
+    harness.coordinator->receive(VisualDecisionMessage{stale, VisualDecision::rejected});
+    harness.coordinator->receive(
+        VisualStateMessage{stale, 1, VisualSourceState::closed});
+    harness.coordinator->receive(VisualStopMessage{stale});
+    CHECK(harness.coordinator->hasActiveVisual());
+    CHECK(harness.button("stopButton")->isEnabled());
+    CHECK(harness.session.sentOf<VisualStopMessage>().empty());
+
+    harness.button("stopButton")->click();
+    CHECK(!harness.coordinator->hasActiveVisual());
+}
+
 TEST_CASE(incoming_offer_is_presented_and_acceptance_opens_viewer) {
     Harness harness;
     harness.establish();

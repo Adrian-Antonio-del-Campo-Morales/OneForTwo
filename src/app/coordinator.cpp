@@ -118,10 +118,12 @@ struct Coordinator::Impl {
     }
 
     void onViewerClosed(VisualShareRef ref) {
-        active.reset();
-        dependencies.view.setVisualActive(false, "");
         if (visual) {
             visual->stop(ref);
+        }
+        if (active.has_value() && sameRef(*active, ref)) {
+            active.reset();
+            dependencies.view.setVisualActive(false, "");
         }
     }
 
@@ -168,8 +170,10 @@ struct Coordinator::Impl {
             visual->decideOffer(offer, decision);
         }
         if (decision != VisualDecision::accepted) {
-            active.reset();
-            dependencies.view.setVisualActive(false, "");
+            if (active.has_value() && sameRef(*active, offer)) {
+                active.reset();
+                dependencies.view.setVisualActive(false, "");
+            }
         } else {
             active = offer;
             dependencies.view.setVisualActive(true, "Recibiendo");
@@ -220,20 +224,22 @@ struct Coordinator::Impl {
             return;
         }
         if (auto* decision = std::get_if<VisualDecisionMessage>(&message)) {
+            const bool current = active.has_value() && sameRef(*active, decision->ref);
             if (visual) {
                 visual->receiveDecision(decision->ref, decision->decision);
             }
-            if (decision->decision != VisualDecision::accepted) {
+            if (current && decision->decision != VisualDecision::accepted) {
                 active.reset();
                 dependencies.view.setVisualActive(false, "");
             }
             return;
         }
         if (auto* state = std::get_if<VisualStateMessage>(&message)) {
+            const bool current = active.has_value() && sameRef(*active, state->ref);
             if (visual) {
                 visual->receiveSourceState(state->ref, state->revision, state->state);
             }
-            if (state->state == VisualSourceState::closed) {
+            if (current && state->state == VisualSourceState::closed) {
                 active.reset();
                 dependencies.view.setVisualActive(false, "");
             }
@@ -246,11 +252,14 @@ struct Coordinator::Impl {
             return;
         }
         if (auto* stop = std::get_if<VisualStopMessage>(&message)) {
+            const bool current = active.has_value() && sameRef(*active, stop->ref);
             if (visual) {
                 visual->receiveStop(stop->ref);
             }
-            active.reset();
-            dependencies.view.setVisualActive(false, "");
+            if (current) {
+                active.reset();
+                dependencies.view.setVisualActive(false, "");
+            }
             return;
         }
         if (auto* frame = std::get_if<VisualEncodedFrame>(&message)) {
