@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../integration/feature_contracts.hpp"
+#include "../net/tls_transport.hpp"
 #include "../net/transport.hpp"
 
 #include <functional>
@@ -10,14 +11,17 @@
 namespace oneintwo {
 
 // Configuración de producto que aporta el integrador. create_transport debe
-// devolver un transporte ya conectado y autenticado (por ejemplo TLS con la
-// huella fijada); sin él la UI arranca en modo sin sesión.
+// devolver un transporte ya conectado y autenticado; si se omite y hay
+// certificado/clave TLS, la aplicación inicia QtTlsTransport y espera su
+// handshake con la huella fijada antes de crear AuthenticatedSession. Sin
+// transporte la UI arranca en modo sin sesión.
 struct ApplicationOptions {
     std::string local_device_id;
     std::string peer_device_id;
     std::string peer_name = "Par";
     std::string peer_fingerprint;
     std::string storage_path;
+    TlsTransportConfig tls;
     std::function<std::unique_ptr<SessionTransport>()> create_transport;
 };
 

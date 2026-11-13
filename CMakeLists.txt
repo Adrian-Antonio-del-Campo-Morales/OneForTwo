@@ -17,6 +17,7 @@ endif()
 # Paquetes de sesión y visual. Cada uno conserva su proyecto independiente y
 # añade sus pruebas una sola vez cuando se configura desde la raíz.
 add_subdirectory(cmake/session)
+add_subdirectory(cmake/tls)
 add_subdirectory(cmake/visual)
 
 # Núcleo de composición disponible aunque los paquetes de captura y avisos
@@ -32,7 +33,7 @@ add_library(oneintwo_app_core STATIC
 add_library(OneInTwo::app_core ALIAS oneintwo_app_core)
 target_include_directories(oneintwo_app_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_features(oneintwo_app_core PUBLIC cxx_std_17)
-target_link_libraries(oneintwo_app_core PUBLIC oneintwo_visual Qt6::Widgets)
+target_link_libraries(oneintwo_app_core PUBLIC oneintwo_visual oneintwo_tls Qt6::Widgets)
 if(MSVC)
     target_compile_options(oneintwo_app_core PRIVATE /W4)
 else()
