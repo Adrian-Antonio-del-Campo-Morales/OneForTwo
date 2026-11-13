@@ -1,0 +1,26 @@
+[
+  {
+    "pass": true,
+    "tree": ".local-state/lan-files/windows/automatic-01/copied/datos",
+    "files": 5,
+    "directories": [
+      ".",
+      "folder",
+      "folder/empty-subdir",
+      "folder/nested"
+    ],
+    "bytes": 5551150.0
+  },
+  {
+    "pass": true,
+    "tree": ".local-state/lan-files/windows/automatic-01/copied/datos (1)",
+    "files": 5,
+    "directories": [
+      ".",
+      "folder",
+      "folder/empty-subdir",
+      "folder/nested"
+    ],
+    "bytes": 5551150.0
+  }
+]

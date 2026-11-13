@@ -6,7 +6,7 @@ Aplicación de escritorio de implementación propia para compartir portapapeles,
 
 Actualizado: **5 de noviembre de 2026**. El repositorio contiene la arquitectura del producto y tres prototipos independientes implementados en `experiments/`: portapapeles, archivos y teclado/ratón.
 
-La aplicación integrada todavía no está implementada: `src/` conserva descripciones de responsabilidades, el CMake raíz es una reserva comentada y no hay instaladores. Cada experimento tiene su propio código, CMake, dependencias, pruebas aisladas, manual e informe de resultados.
+La aplicación integrada todavía no está implementada: `src/` conserva descripciones de responsabilidades y contratos de diseño en C++, el CMake raíz es una reserva comentada y no hay instaladores. Cada experimento tiene su propio código, CMake, dependencias, pruebas aisladas, manual e informe de resultados.
 
 Los prototipos usan C++17 y bibliotecas generales documentadas en sus informes. La biblioteca gráfica de la aplicación, las versiones mínimas verificadas y la licencia siguen pendientes. El código experimental no se ha integrado automáticamente en el producto.
 
@@ -22,6 +22,7 @@ La fase local disponible en Ubuntu tiene resultados observados y limitaciones re
 
 - [Estudio preliminar](ESTUDIO_PRELIMINAR.md): requisitos, viabilidad y restricciones.
 - [Arquitectura propuesta](ARQUITECTURA.md): componentes, relaciones, flujos y estructura.
+- [Funciones propuestas](FUNCIONALIDADES.md) reúne los envíos, los perfiles y los diseños de pantalla, ventana y notificaciones.
 - [Pruebas previstas](tests/README.md): comprobaciones de comportamiento.
 - [Experimentos de viabilidad](experiments/README.md): estado de los prototipos y orden de validación manual.
 - [Pendientes](TODO.md): problemas y verificaciones todavía abiertos.

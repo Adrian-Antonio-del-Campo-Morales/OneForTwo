@@ -1,8 +1,9 @@
+> Estado actualizado: T1 superado; T2 recepción CLI, TLS negativo, corte/reintento y casos Windows automatizados superados. Pegado Explorer y bajo demanda pendientes. Véase RESULTS.md; los esperados de este guion no son resultados.
+
 # Manual de ejecución — experimento de archivos
 
 Estado: prototipo implementado y compilado en Windows; self-tests aislados
-ejecutados. **El pegado real en Explorer/Nautilus, el TLS mutuo y la transferencia
-entre dos equipos no se han ejecutado**: este documento es el guion para hacerlo
+ejecutados. **Este manual conserva el guion de ejecución; el estado vigente está en RESULTS.md**: este documento es el guion para hacerlo
 y la matriz para registrar los resultados. Nada de lo que aparece como «esperado»
 está validado todavía.
 

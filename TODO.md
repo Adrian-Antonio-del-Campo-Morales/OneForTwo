@@ -1,18 +1,14 @@
 # Problemas pendientes
 
-## EXP-FILES-LAN-01 — Transferencia y pegado Windows → Ubuntu
+## EXP-FILES-LAN-01 — Completar pegado Explorer y bajo demanda
 
-Estado: preparación de la primera sesión; arranque pendiente de acuerdo. Fuente Windows sintética preparada:
-cinco archivos, 5.551.150 bytes. Manifiesto y pasos en
-`experiments/files/lan/README.md`. Puerto 47654, servidor Windows y receptor
-Ubuntu con publicación GTK asistida. Identidad dedicada Windows preparada y
-certificado público compartido; huella dedicada Ubuntu recibida. La regla
-temporal anticipada se ha retirado. No hay servidor de archivos ni de texto
-activo. Falta acordar revisión/comandos y después abrir la regla, ejecutar,
-observar el pegado y verificar el destino.
-
-La recepción se hará sin `--to`; el destino de Nautilus debe llenarse mediante
-el pegado del usuario. No dar por probado el pegado solo por verificar la caché.
+Estado: T1 completo; T2 recepción/copia CLI e integridad completas. TLS negativo
+ambos sentidos de autenticación, corte/reintento, colisiones, permisos y GC
+Windows superados. Servidores cerrados; sin nuevas reglas. Evidencia y límites
+en experiments/files/RESULTS.md. Pendientes pegado real Explorer (T2/L2),
+bajo demanda Windows (T3/L3) y comportamiento de Explorer ante corte.
+Control de escritorio bloqueado por fallo de arranque del helper; no se pidió
+interacción humana ni se sustituyó pegado por copia CLI. Texto suspendido.
 
 ## EXP-CLIP-LAN-02 — Contrastar ecos y selección inicial entre equipos
 

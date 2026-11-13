@@ -1,8 +1,8 @@
 # OneInTwo — Arquitectura inicial propuesta
 
-Diseño inicial: 4 de noviembre de 2026. Revisión: 5 de noviembre de 2026. Versión documental: 0.2.
+Diseño inicial: 4 de noviembre de 2026. Revisión: 13 de noviembre de 2026. Versión documental: 0.4.
 
-Este documento desarrolla el [estudio preliminar](ESTUDIO_PRELIMINAR.md) y propone la arquitectura de la aplicación integrada. Su `src/` y CMake raíz siguen siendo una estructura documental. En paralelo, `experiments/` ya contiene tres prototipos con código, compilación independiente, manuales e informes. Sus implementaciones no constituyen todavía módulos integrados del producto.
+Este documento desarrolla el [estudio preliminar](ESTUDIO_PRELIMINAR.md) y propone la arquitectura de la aplicación integrada. Su `src/` contiene responsabilidades y los primeros contratos declarados en C++. El CMake raíz sigue siendo una reserva documental. En paralelo, `experiments/` ya contiene tres prototipos con código, compilación independiente, manuales e informes. Sus implementaciones no constituyen todavía módulos integrados del producto.
 
 ## 1. Decisiones de esta propuesta
 
@@ -34,7 +34,7 @@ flowchart LR
     subgraph A["Windows o Ubuntu — proceso OneInTwo"]
         UA["Ventana de configuración"] --- AA["Coordinador"]
         AA --- SA["Sesión y permisos"]
-        AA --- MA["Portapapeles / Archivos / Entrada"]
+        AA --- MA["Módulos funcionales"]
         MA --- DA["Adaptador del escritorio"]
         SA --- NA["Transporte cifrado"]
     end
@@ -43,7 +43,7 @@ flowchart LR
         NB["Transporte cifrado"] --- SB["Sesión y permisos"]
         SB --- AB["Coordinador"]
         AB --- UB["Ventana de configuración"]
-        AB --- MB["Portapapeles / Archivos / Entrada"]
+        AB --- MB["Módulos funcionales"]
         MB --- DB["Adaptador del escritorio"]
     end
 ```
@@ -61,8 +61,12 @@ La captura y reproducción de entrada ocurren en la sesión gráfica del usuario
 | Transporte | Conexiones cifradas, colas, límites y errores de E/S | Canales y buffers acotados |
 | Protocolo | Representación y validación estructural de mensajes | Parser y mensajes en curso |
 | Portapapeles | Sincronización de texto y prevención de eco | Última operación válida y orden lógico |
-| Archivos | Ofertas, transferencias, integridad y publicación | Archivos autorizados, temporales y progreso |
+| Archivos | Ofertas desde el portapapeles o la ventana, transferencias, integridad y publicación | Archivos autorizados, temporales y progreso |
 | Entrada | Cambio de destino, secuencia y recuperación | Foco remoto y teclas/botones activos |
+| Enlaces | Envío y confirmación local de una URL | Oferta pendiente y su vencimiento |
+| Visual | Compartir un monitor o una ventana y coordinar su visor | Invitación, fuente y operación en directo |
+| Notificaciones | Enviar, filtrar y presentar avisos manuales o reenviados | Observación local, avisos pendientes y deduplicación |
+| Perfiles | Definir las capacidades que permite cada perfil | Conjunto de capacidades por perfil |
 | Escritorio | Operaciones nativas y permisos del sistema | Recursos nativos y capacidades observadas |
 | Almacenamiento | Preferencias y confianza persistente | Estado guardado, nunca la autorización activa por sí solo |
 | Interfaz | Configuración, estado y acciones del usuario | Presentación; sin estado paralelo de autorización |
@@ -92,8 +96,11 @@ Familias previstas:
 | Establecimiento | Compatibilidad, identidad, vinculación y negociación de capacidades |
 | Control de sesión | Permisos, cierre, comprobación de conexión y errores |
 | Portapapeles | Oferta o actualización de texto e identificación de origen |
-| Archivos | Oferta, aceptación, petición de contenido, bloques, finalización y cancelación |
+| Archivos | Oferta con modalidad de entrega, aceptación, petición de contenido, bloques, finalización y cancelación |
+| Enlaces | Oferta de URL con identificador y generación de sesión |
 | Entrada | Preparación del destino, activación, eventos, liberación y retorno |
+| Visual | Invitación, decisión, estado de fuente, actividad y cierre por el canal interactivo. Vídeo por el canal de datos. |
+| Notificaciones | Avisos manuales y reenviados, acotados por modalidad, por el canal interactivo. |
 
 Los datos recibidos atraviesan estas comprobaciones: límite de bytes → formato válido → canal/sesión autorizados → permiso funcional → validación específica del módulo.
 
@@ -101,7 +108,7 @@ Una conexión desconocida solo podrá participar en el flujo limitado de vincula
 
 ### 4.2 Contrato del escritorio
 
-`src/platform/desktop.hpp` delimita capacidades y operaciones, todavía sin firmas de C++ definitivas. Debe distinguir, al menos:
+`src/platform/desktop.hpp` contiene los primeros contratos de captura visual y notificaciones. El escritorio distingue estas operaciones:
 
 - Observar y publicar texto.
 - Interpretar una copia de archivos y ofrecer archivos al explorador local.
@@ -109,6 +116,9 @@ Una conexión desconocida solo podrá participar en el flujo limitado de vincula
 - Inyectar entrada en destino.
 - Obtener geometría de pantallas y recibir cambios.
 - Observar bloqueo, cierre y retirada de permisos.
+- Solicitar apertura local de una URL validada cuando el destinatario la confirme.
+- Seleccionar y capturar una única fuente visual local del tipo solicitado y comunicar suspensión o cierre.
+- Presentar avisos propios y, cuando el escritorio lo permita, observar avisos de otras aplicaciones.
 
 Las operaciones devolverán éxito o un estado explícito: pendiente de autorización, denegado, no disponible o error. Las que necesiten interacción con el usuario o acceso al contenido serán asíncronas y cancelables.
 
@@ -181,8 +191,10 @@ La posición de salida del escritorio remoto, la correspondencia de coordenadas 
 | Control de entrada | Local → transición → remoto → recuperación → local |
 | Transferencia | Ofrecida → aceptada → transfiriendo → verificando → completada; cancelación/error desde estados activos |
 | Capacidad del escritorio | No disponible / pendiente de permiso / disponible / revocada |
+| Visual | Selección → invitación → aceptación → en directo → cierre. La suspensión de la fuente vacía el visor. |
+| Avisos | En cola → enviado o presentado. La caducidad y la revocación descartan los pendientes. |
 
-Cerrar una ventana no cambia el estado de red. Desactivar entrada no cancela por sí solo una transferencia. La pérdida de sesión sí invalida el control y las operaciones vinculadas a esa generación.
+Cerrar la ventana principal conserva la sesión de red. Cerrar un visor termina su operación visual. Desactivar entrada no cancela por sí solo una transferencia. La pérdida de sesión sí invalida el control y las operaciones vinculadas a esa generación.
 
 ### Concurrencia inicial
 
@@ -194,7 +206,7 @@ Los adaptadores podrán necesitar hilos nativos específicos. Sus detalles queda
 
 ### Canales de red
 
-Propuesta inicial: canal interactivo fiable para control, entrada y anuncios pequeños, y canal de datos fiable separado para archivos y contenidos voluminosos. Ambos cifrados, asociados a la misma identidad y generación, con tamaños máximos, colas acotadas y cancelación.
+Se propone un canal interactivo fiable para control, entrada y avisos, y un canal de datos fiable para archivos y vídeo. Los bloques de archivos y los fragmentos de vídeo se intercalan con colas acotadas. Ambos cifrados, asociados a la misma identidad y generación, con tamaños máximos, colas acotadas y cancelación.
 
 Un canal secundario que llegue antes de estar autorizado se rechazará. La separación no evita la saturación física de la red; el módulo de transferencia debe admitir control de caudal. No se presupone que TCP por sí solo garantice la latencia objetivo.
 
@@ -202,7 +214,7 @@ Un canal secundario que llegue antes de estar autorizado se rechazará. La separ
 
 El receptor de entrada tendrá un temporizador independiente para liberar teclas si desaparece el emisor. El origen conservará una salida local de la captura que no dependa de recibir una respuesta remota.
 
-El apagado seguirá este orden lógico: impedir nuevas operaciones → recuperar entrada y liberar estados → cancelar transferencias → retirar ofertas nativas → cerrar canales y sesiones del escritorio → guardar preferencias válidas y liberar recursos. La limpieza de archivos no eliminará recursos aún consumidos por el explorador.
+El apagado seguirá este orden lógico: impedir nuevas operaciones → recuperar entrada y liberar estados → cancelar transferencias y vídeo → retirar ofertas y avisos nativos → cerrar canales y sesiones del escritorio → guardar preferencias válidas y liberar recursos. La limpieza de archivos no eliminará recursos aún consumidos por el explorador.
 
 ## 7. Adaptaciones por sistema operativo
 
@@ -228,10 +240,11 @@ La configuración se guardará fuera del repositorio, en ubicaciones propias del
 
 | Dato | Tratamiento |
 | --- | --- |
-| Preferencias y disposición | Persistentes y versionadas |
+| Preferencias y disposición | Persistentes y versionadas, incluido el perfil local de cada par |
 | Identidades vinculadas y permisos | Persistentes, validadas al cargar |
 | Claves privadas | Protección específica del sistema; separadas de preferencias legibles |
-| Portapapeles y entrada | Transitorios; sin historial ni registro de contenido |
+| Portapapeles, entrada, enlaces, vídeo y notificaciones | Contenido transitorio sin historial propio ni registro de contenido |
+| Notificaciones reenviadas | Lista local persistente de aplicaciones autorizadas |
 | Archivos incompletos | Temporales privados, cuota y limpieza documentadas |
 | Diagnóstico | Eventos y errores sin secretos, pulsaciones ni contenido del portapapeles |
 
@@ -244,6 +257,11 @@ OneInTwo/
 ├── README.md
 ├── ESTUDIO_PRELIMINAR.md
 ├── ARQUITECTURA.md
+├── FUNCIONALIDADES.md
+├── docs/
+│   ├── COMPARTIR_PANTALLA.md
+│   ├── COMPARTIR_VENTANA.md
+│   └── NOTIFICACIONES.md
 ├── AGENTS.md
 ├── TODO.md
 ├── CMakeLists.txt
@@ -253,7 +271,8 @@ OneInTwo/
 │   ├── app/
 │   │   └── application.cpp
 │   ├── core/
-│   │   └── session.cpp
+│   │   ├── session.cpp
+│   │   └── session.hpp
 │   ├── net/
 │   │   ├── discovery.cpp
 │   │   ├── transport.cpp
@@ -262,24 +281,38 @@ OneInTwo/
 │   ├── features/
 │   │   ├── clipboard.cpp
 │   │   ├── files.cpp
-│   │   └── input.cpp
+│   │   ├── files.hpp
+│   │   ├── input.cpp
+│   │   ├── links.cpp
+│   │   ├── links.hpp
+│   │   ├── notifications.cpp
+│   │   ├── notifications.hpp
+│   │   ├── profiles.cpp
+│   │   ├── profiles.hpp
+│   │   ├── visual_share.cpp
+│   │   └── visual_share.hpp
 │   ├── platform/
 │   │   ├── desktop.hpp
 │   │   ├── windows/
 │   │   │   ├── desktop.cpp
 │   │   │   ├── clipboard.cpp
 │   │   │   ├── file_clipboard.cpp
-│   │   │   └── input.cpp
+│   │   │   ├── input.cpp
+│   │   │   ├── notifications.cpp
+│   │   │   └── visual_capture.cpp
 │   │   └── linux/
 │   │       ├── desktop.cpp
 │   │       ├── portal_session.cpp
 │   │       ├── clipboard.cpp
 │   │       ├── file_clipboard.cpp
-│   │       └── input.cpp
+│   │       ├── input.cpp
+│   │       ├── notifications.cpp
+│   │       └── visual_capture.cpp
 │   ├── storage/
 │   │   └── local_store.cpp
 │   └── ui/
-│       └── main_window.cpp
+│       ├── main_window.cpp
+│       └── visual_viewer.cpp
 ├── tests/
 │   └── README.md
 ├── experiments/
@@ -295,7 +328,7 @@ OneInTwo/
         └── README.md
 ```
 
-Los `.cpp` y `.hpp` de `src/` del producto contienen descripciones de responsabilidades. Los prototipos bajo `experiments/` sí contienen implementaciones y pruebas. El árbol resume su ubicación; cada README experimental detalla sus archivos. Los contratos definitivos de la aplicación se concretarán con los resultados de viabilidad.
+Los `.cpp` y `.hpp` de `src/` del producto contienen descripciones de responsabilidades y declaraciones de diseño. Los prototipos bajo `experiments/` sí contienen implementaciones y pruebas. El árbol resume su ubicación; cada README experimental detalla sus archivos. Los contratos definitivos de la aplicación se concretarán con los resultados de viabilidad.
 
 `CMakeLists.txt` es una reserva comentada para la compilación futura, sin proyecto ni objetivos. No se debe presentar una configuración de CMake como prueba de compilación. `.gitignore` excluye salidas y ubicaciones privadas de desarrollo propuestas; no configura las rutas de producción.
 
@@ -336,3 +369,21 @@ Los tres prototipos mantienen transportes, protocolos y dependencias separados p
 
 Las elecciones de libdbus en portapapeles y GDBus/libei en entrada pertenecen a los prototipos; no fijan dos implementaciones paralelas de sesiones en el producto. La revisión arquitectónica posterior a las pruebas decidirá qué se conserva. El estado actualizado se centraliza en [experiments/README.md](experiments/README.md) y los [pendientes](TODO.md).
 
+## 13. Funciones adicionales
+
+El [diseño de las funciones adicionales](FUNCIONALIDADES.md) define el envío directo de archivos, el envío de enlaces y los perfiles de uso. El envío directo y el pegado comparten el módulo de archivos y el canal de datos, con permisos propios para cada modalidad. Los enlaces viajan como ofertas por el canal interactivo. Los perfiles limitan las capacidades efectivas desde la sesión y reutilizan el intercambio de permisos. Los contratos de C++ dejan previstas las entradas de cada módulo. Su implementación empieza con la sesión común del producto.
+
+| Diseño | Integración en el producto |
+| --- | --- |
+| [Compartir pantalla](docs/COMPARTIR_PANTALLA.md) | El coordinador conecta [captura local](src/platform/desktop.hpp), [módulo visual](src/features/visual_share.hpp) y [visor](src/ui/visual_viewer.cpp). El permiso autoriza exclusivamente el modo monitor. |
+| [Compartir una ventana](docs/COMPARTIR_VENTANA.md) | Usa el mismo módulo visual con una fuente nativa de ventana y permiso propio. El visor y el transporte son comunes. |
+| [Notificaciones](docs/NOTIFICACIONES.md) | El coordinador conecta el [módulo de avisos](src/features/notifications.hpp) con el formulario y el adaptador nativo. El envío manual y la observación de otras aplicaciones tienen permisos separados. |
+
+Para implementar el vídeo, comprobar primero los dos tipos de fuente en cada escritorio y validar el ciclo local del visor. Después integrar invitación, cancelación y vídeo en la sesión de producto. Para avisos, empezar por el envío manual y la presentación en ambos equipos. La observación automática depende del adaptador y de su autorización local.
+
+
+## 14. Coordinación de la implementación de vídeo y avisos
+
+La [base de implementación paralela](docs/IMPLEMENTACION_PARALELA.md) asigna tres ramas con propiedad disjunta de archivos y fija las firmas, fábricas, dependencias, formato de mensajes, límites y pruebas. Es la referencia de compatibilidad para esta entrega.
+
+El [contrato C++ común](src/integration/feature_contracts.hpp) conecta los módulos con captura, visor, notificaciones, reloj y sesión. Las implementaciones privadas quedan a cargo de cada rama. El integrador conserva la propiedad de las cabeceras compartidas y reúne las tres entregas.

@@ -1,3 +1,5 @@
+> Archivos, estado vigente: T1 completo; T2 recepción CLI e integridad, negativos TLS, corte/reintento y casos Windows superados. Pegado Explorer/bajo demanda pendientes por helper de escritorio. Consulte files/RESULTS.md.
+
 # Experimentos de viabilidad
 
 Actualizado: **5 de noviembre de 2026**. Los tres prototipos están compilados en Ubuntu/Wayland con sus dependencias y TLS. Fase local disponible de portapapeles y archivos completada, con limitaciones registradas. En entrada pasaron atajo, demostración EIS, R2 y R9 locales con un monitor, salida 0 y escritorio operativo confirmado. Se conserva el incidente anterior que requirió reinicio (EXP-INPUT-02). Las pruebas entre equipos no se han iniciado.

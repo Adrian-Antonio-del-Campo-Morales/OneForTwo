@@ -1,5 +1,34 @@
 # Resultados — Archivos
 
+## Estado vigente — pruebas LAN del 5 de noviembre de 2026
+
+Revisión de código común: `698a9a51e0de008d0bcdf9fa3fad9683d296e5de`.
+Sin cambios de código ni nuevas baterías. Este estado sustituye las afirmaciones
+históricas de pendiente que aparecen más abajo.
+
+| Caso | Resultado observado |
+| --- | --- |
+| T1 Windows → Ubuntu | Superado: TLS mutuo, cinco archivos/5.551.150 bytes, pegado humano en Nautilus sin `--to`, rutas/tamaños/SHA-256/directorios exactos. Receptor salida 0, servidor Windows cerrado y regla temporal retirada |
+| T2 Ubuntu → Windows | Recepción y copia CLI `--to` superadas: cinco archivos/5.551.150 bytes y estructura/hash exactos. Pegado Explorer pendiente; no se publicó portapapeles |
+| T0 pin servidor incorrecto | Salida 1, huella no coincide; sin descarga/caché |
+| T0 pin cliente incorrecto | Salida 1 en cliente (fallo lectura TLS); servidor registra certificado de cliente no autorizado; sin descarga/caché |
+| Colisión Windows | Segunda copia crea `datos (1)`; ambos árboles exactos e intactos |
+| Permisos Windows | ACL Write Deny solo en destino desechable; salida 1, destino vacío. ACL original restaurada en finally |
+| Corte LAN y reintento Windows | Relay TCP opaco local interrumpe tras 400.000 bytes cifrados. Salida 1; incoming/offers vacíos y cero .o2f-part. Reintento directo salida 0; cinco tamaños/SHA-256 coinciden |
+| Caché Windows | GC de caché propia elimina dos ofertas; lista posterior vacía. Copias de destino conservadas |
+| T3 bajo demanda / L2-L3 Explorer | No ejecutados: helper Computer Use falla antes de acceder al escritorio, incluso tras reset (setup refresh had errors / trusted Node process exited unexpectedly) |
+
+Fuentes T1: `lan/evidence/ubuntu-t1-receiver.log` y
+`lan/evidence/ubuntu-t1-integrity.json`. Evidencia nueva Windows:
+`lan/evidence/windows-auto-*`; originales en
+`.local-state/lan-files/windows/automatic-01/` (datos sintéticos conservados).
+Servidor Ubuntu inicial PID 200354 cerrado con SIGINT; supervisores posteriores
+200657 y 200867 cerrados con SIGINT a su grupo tras verificar cmdline.
+Consulta final `ss -ltnp sport = :47654`: ninguna escucha. No se creó regla nueva
+ni se alteró el cortafuegos Ubuntu. Windows no inició servidor en esta ronda.
+Texto suspendido. T2 no acredita pegado Explorer; T3 sigue sin evidencia.
+
+
 ## Reconstrucción Windows de la entrega Ubuntu — 5 de noviembre de 2026
 
 Fuentes verificadas: `2ae444df56689dbaebe9b796daca26a55bd02917`, recibido
@@ -489,7 +518,7 @@ No se ha incorporado código de aplicaciones de compartición ni motores de terc
   nativos y su ciclo de vida; `files` posee ofertas, identificadores, bloques,
   integridad y caché. El adaptador no debe decidir la confianza ni el protocolo.
 
-## 9. Matriz manual (pendiente de ejecución del usuario)
+## 9. Matriz histórica de la entrega inicial (sustituida por el estado vigente)
 
 | Caso | Entorno exacto | Esperado | Observado | Resultado |
 | --- | --- | --- | --- | --- |

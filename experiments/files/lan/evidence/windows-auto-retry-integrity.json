@@ -1,0 +1,22 @@
+[
+  {
+    "pass": true,
+    "path": "empty.dat"
+  },
+  {
+    "pass": true,
+    "path": "file-small.txt"
+  },
+  {
+    "pass": true,
+    "path": "large-5mb.bin"
+  },
+  {
+    "pass": true,
+    "path": "ñandú-日本語.txt"
+  },
+  {
+    "pass": true,
+    "path": "folder/nested/deep.bin"
+  }
+]
