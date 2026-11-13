@@ -6,6 +6,7 @@
 
 #include "../features/notifications.hpp"
 #include "../net/session_link.hpp"
+#include "../net/tls_transport.hpp"
 #include "../storage/local_store.hpp"
 
 #include <QStandardPaths>
@@ -19,15 +20,50 @@
 namespace oneintwo {
 namespace {
 
-class InactiveSessionPort final : public SessionPort {
+// El coordinador se construye antes de que termine el handshake TLS. Este
+// proxy conserva perfil/permisos y los reenvía cuando aparece la sesión.
+class SessionPortProxy final : public SessionPort {
 public:
-    SendResult send(FeatureMessage) override { return SendResult::disconnected; }
-    void applyProfileLimits(FeatureSet) override {}
-    void setGrantedFeatures(FeatureSet, FeatureSet) override {}
-    FeatureSet effectiveSendFeatures() const override { return {}; }
-    FeatureSet effectiveReceiveFeatures() const override { return {}; }
-    SessionGeneration generation() const override { return 0; }
-    bool established() const override { return false; }
+    void setDelegate(SessionPort* delegate) {
+        delegate_ = delegate;
+        if (delegate_ != nullptr) {
+            delegate_->applyProfileLimits(limits_);
+            delegate_->setGrantedFeatures(granted_send_, granted_receive_);
+        }
+    }
+
+    SendResult send(FeatureMessage message) override {
+        return delegate_ ? delegate_->send(std::move(message)) : SendResult::disconnected;
+    }
+    void applyProfileLimits(FeatureSet limits) override {
+        limits_ = limits;
+        if (delegate_) {
+            delegate_->applyProfileLimits(limits);
+        }
+    }
+    void setGrantedFeatures(FeatureSet send, FeatureSet receive) override {
+        granted_send_ = send;
+        granted_receive_ = receive;
+        if (delegate_) {
+            delegate_->setGrantedFeatures(send, receive);
+        }
+    }
+    FeatureSet effectiveSendFeatures() const override {
+        return delegate_ ? delegate_->effectiveSendFeatures() : FeatureSet{};
+    }
+    FeatureSet effectiveReceiveFeatures() const override {
+        return delegate_ ? delegate_->effectiveReceiveFeatures() : FeatureSet{};
+    }
+    SessionGeneration generation() const override {
+        return delegate_ ? delegate_->generation() : 0;
+    }
+    bool established() const override { return delegate_ && delegate_->established(); }
+
+private:
+    SessionPort* delegate_ = nullptr;
+    FeatureSet limits_{true, true, true, true, true, true, true, true, true};
+    FeatureSet granted_send_{};
+    FeatureSet granted_receive_{};
 };
 
 class AuthenticatedSessionPort final : public SessionPort {
@@ -159,8 +195,7 @@ struct Application::Impl {
                 runtime,
                 *desktop_notifications,
                 [this](FeatureMessage message) {
-                    return session_port ? session_port->send(std::move(message))
-                                        : SendResult::disconnected;
+                    return session_proxy.send(std::move(message));
                 },
                 [this] { return options.peer_name; },
                 [this](std::string error) { window->setError(std::move(error)); },
@@ -183,22 +218,58 @@ struct Application::Impl {
     }
 
     void buildSession() {
-        if (!options.create_transport) {
+        if (options.create_transport) {
+            transport = options.create_transport();
+            if (!transport) {
+                window->setError("No se pudo crear el transporte de sesión");
+                return;
+            }
+            if (options.peer_fingerprint.empty()) {
+                window->setError("Falta la huella autenticada del par");
+                return;
+            }
+            createSession(*transport, options.peer_fingerprint);
             return;
         }
-        transport = options.create_transport();
-        if (!transport) {
-            window->setError("No se pudo crear el transporte de sesión");
+        if (options.tls.certificate_pem.empty() && options.tls.private_key_pem.empty()) {
             return;
         }
-        if (options.peer_fingerprint.empty()) {
+        TlsTransportConfig config = options.tls;
+        if (config.peer_fingerprint.empty()) {
+            config.peer_fingerprint = options.peer_fingerprint;
+        }
+        if (config.peer_fingerprint.empty()) {
             window->setError("Falta la huella autenticada del par");
             return;
         }
+        const std::string peer_pin = config.peer_fingerprint;
+        tls_transport = std::make_unique<QtTlsTransport>(std::move(config));
+        tls_transport->setReadyHandler([this, peer_pin] {
+            if (session) {
+                return;
+            }
+            createSession(*tls_transport, peer_pin);
+            if (session) {
+                session->start();
+            }
+        });
+        tls_transport->setFailureHandler([this](std::string detail) {
+            if (window) {
+                window->setError(std::move(detail));
+            }
+        });
+        std::string error;
+        if (!tls_transport->start(&error)) {
+            window->setError(error.empty() ? "No se pudo iniciar el transporte TLS" : error);
+            tls_transport.reset();
+        }
+    }
+
+    void createSession(SessionTransport& active_transport, const std::string& peer_pin) {
         SessionLinkOptions link;
         link.local_device_id = options.local_device_id;
         link.peer_device_id = options.peer_device_id;
-        link.peer_fingerprint = options.peer_fingerprint;
+        link.peer_fingerprint = peer_pin;
         SessionLinkHandlers handlers;
         handlers.established = [this](SessionGeneration local, SessionGeneration) {
             if (coordinator) {
@@ -224,23 +295,19 @@ struct Application::Impl {
                 coordinator->receive(std::move(message));
             }
         };
-        session = std::make_unique<AuthenticatedSession>(std::move(link), *transport, runtime,
-                                                         std::move(handlers));
+        session = std::make_unique<AuthenticatedSession>(std::move(link), active_transport,
+                                                         runtime, std::move(handlers));
         session_adapter = std::make_unique<AuthenticatedSessionPort>(*session);
-        session_port = session_adapter.get();
+        session_proxy.setDelegate(session_adapter.get());
     }
 
     void buildCoordinator() {
-        InactiveSessionPort& inactive = inactive_session;
-        if (session_port == nullptr) {
-            session_port = &inactive;
-        }
         if (notifications_port == nullptr) {
             notifications_port = std::make_unique<InactiveNotificationPort>();
         }
         CoordinatorDependencies dependencies{
             runtime,
-            *session_port,
+            session_proxy,
             *capture,
             *notifications_port,
             *window,
@@ -295,9 +362,14 @@ struct Application::Impl {
         }
         coordinator.reset();
         notifications_port.reset();
+        session_proxy.setDelegate(nullptr);
         session_adapter.reset();
         session.reset();
         transport.reset();
+        if (tls_transport) {
+            tls_transport->close();
+            tls_transport.reset();
+        }
         notifications.reset();
         desktop_notifications.reset();
         capture.reset();
@@ -313,10 +385,10 @@ struct Application::Impl {
     std::unique_ptr<SharedNotifications> notifications;
     std::unique_ptr<NotificationPort> notifications_port;
     std::unique_ptr<SessionTransport> transport;
+    std::unique_ptr<QtTlsTransport> tls_transport;
     std::unique_ptr<AuthenticatedSession> session;
     std::unique_ptr<AuthenticatedSessionPort> session_adapter;
-    InactiveSessionPort inactive_session;
-    SessionPort* session_port = nullptr;
+    SessionPortProxy session_proxy;
     std::unique_ptr<Coordinator> coordinator;
     QTimer* timer = nullptr;
 };
