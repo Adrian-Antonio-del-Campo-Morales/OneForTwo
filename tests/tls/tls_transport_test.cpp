@@ -192,6 +192,36 @@ TEST_CASE(wrong_pinned_fingerprint_is_rejected_before_session_handshake) {
     CHECK(!server.established);
 }
 
+TEST_CASE(wrong_pinned_fingerprint_is_rejected_on_server_side) {
+    const std::string pin_b = pinFor(oneintwo_test::certificate_b);
+    const std::string wrong_pin(64, '0');
+
+    Endpoint server;
+    server.transport = std::make_unique<QtTlsTransport>(
+        serverConfig(oneintwo_test::certificate_b, oneintwo_test::private_key_b, wrong_pin));
+    server.bindSession(optionsFor("B", "A", wrong_pin, 20));
+    server.armReady();
+    std::string error;
+    CHECK(server.transport->start(&error));
+
+    Endpoint client;
+    client.transport = std::make_unique<QtTlsTransport>(clientConfig(
+        oneintwo_test::certificate_a, oneintwo_test::private_key_a, pin_b,
+        server.transport->listeningPort()));
+    client.bindSession(optionsFor("A", "B", pin_b, 10));
+    client.armReady();
+    CHECK(client.transport->start(&error));
+
+    CHECK(waitUntil([&] { return server.failed || server.ready; }));
+    CHECK(server.failed);
+    CHECK(!server.ready);
+    CHECK(!server.established);
+    CHECK(server.failure.find("huella") != std::string::npos);
+    CHECK(server.transport->authenticated_peer_fingerprint().empty());
+    CHECK(!server.transport->encrypted());
+    CHECK(!client.established);
+}
+
 int main(int argc, char** argv) {
     QCoreApplication application(argc, argv);
     return oneintwo_test::run();
