@@ -30,9 +30,11 @@ jobs:
         include:
           # El mínimo declarado por el backend.
           - sdk: "10.0.19041.0"
+            platform: "x64,version=10.0.19041.0"
             label: minimum
-          # SDK actual de la imagen windows-2022.
-          - sdk: "10.0.26100.0"
+          # SDK por defecto de la imagen; seguirá al SDK actual cuando se actualice.
+          - sdk: "default"
+            platform: "x64"
             label: current
 
     steps:
@@ -42,7 +44,7 @@ jobs:
         shell: pwsh
         run: >
           cmake -S cmake/capture_windows -B build/windows-msvc-${{ matrix.sdk }}
-          -G "Visual Studio 17 2022" -A "x64,version=${{ matrix.sdk }}"
+          -G "Visual Studio 17 2022" -A "${{ matrix.platform }}"
           -DONEINTWO_BUILD_TESTS=ON
           -DONEINTWO_CAPTURE_QT=OFF
           -DONEINTWO_REQUIRE_WGC=ON
