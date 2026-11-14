@@ -1,3 +1,4 @@
+#include "net/device_identity.hpp"
 #include "net/session_link.hpp"
 #include "net/tls_transport.hpp"
 #include "storage/pairing_store.hpp"
@@ -27,6 +28,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -103,6 +105,63 @@ T* field(PairingDialog& dialog, const char* name) {
     T* value = dialog.findChild<T*>(QString::fromLatin1(name));
     CHECK(value != nullptr);
     return value;
+}
+
+struct DialogPairing {
+    std::optional<PairingResult> listener;
+    std::optional<PairingResult> connector;
+};
+
+bool pairDialogs(DeviceIdentity listener_identity, PairingStore& listener_store,
+                 DeviceIdentity connector_identity,
+                 PairingStore& connector_store, DialogPairing* pairing) {
+    PairingDialog listener(std::move(listener_identity), listener_store);
+    PairingDialog connector(std::move(connector_identity), connector_store);
+
+    field<QLineEdit>(listener, "pairingName")
+        ->setText(QStringLiteral("Equipo A"));
+    auto* listener_port = field<QSpinBox>(listener, "pairingPort");
+    listener_port->setValue(0);
+    field<QPushButton>(listener, "pairingStart")->click();
+    if (!waitUntil([&] { return listener_port->value() != 0; })) {
+        return false;
+    }
+    const int port = listener_port->value();
+    if (port <= 0 || port > 65535) {
+        return false;
+    }
+
+    field<QComboBox>(connector, "pairingMode")->setCurrentIndex(1);
+    field<QLineEdit>(connector, "pairingName")
+        ->setText(QStringLiteral("Equipo B"));
+    field<QLineEdit>(connector, "pairingHost")
+        ->setText(QStringLiteral("127.0.0.1"));
+    field<QSpinBox>(connector, "pairingPort")->setValue(port);
+    field<QPushButton>(connector, "pairingStart")->click();
+
+    auto* listener_sas = field<QLabel>(listener, "pairingSas");
+    auto* connector_sas = field<QLabel>(connector, "pairingSas");
+    if (!waitUntil([&] {
+            return listener_sas->text() != QStringLiteral("—") &&
+                   connector_sas->text() != QStringLiteral("—");
+        }) ||
+        listener_sas->text().isEmpty() ||
+        listener_sas->text() != connector_sas->text()) {
+        return false;
+    }
+
+    field<QPushButton>(listener, "pairingConfirm")->click();
+    field<QPushButton>(connector, "pairingConfirm")->click();
+    if (!waitUntil([&] {
+            return listener.result() == QDialog::Accepted &&
+                   connector.result() == QDialog::Accepted;
+        })) {
+        return false;
+    }
+
+    pairing->listener = listener.takeResult();
+    pairing->connector = connector.takeResult();
+    return pairing->listener.has_value() && pairing->connector.has_value();
 }
 
 }  // namespace
@@ -250,6 +309,123 @@ TEST_CASE(pairing_dialog_pairs_loopback_and_adopts_authenticated_session) {
     session_b.session->close();
     result_a->transport->close();
     result_b->transport->close();
+}
+
+TEST_CASE(re_pairing_after_rotation_keeps_previous_pin_as_secondary) {
+    QTemporaryDir directory;
+    CHECK(directory.isValid());
+    const std::string identity_path = pathUnder(directory, "identity-a");
+    DeviceIdentityStore identity_store(identity_path);
+    std::string error;
+    auto original = identity_store.loadOrCreate(&error);
+    CHECK(original.has_value());
+    auto rotation = identity_store.rotate(&error);
+    CHECK(rotation.has_value());
+    if (!original.has_value() || !rotation.has_value()) {
+        return;
+    }
+
+    const std::string old_pin = original->fingerprint;
+    DeviceIdentity rotated_a = rotation->identity;
+    rotated_a.device_id = "device-a";
+    const std::string new_pin = rotated_a.fingerprint;
+    const DeviceIdentity b = identityFor(
+        "device-b", oneintwo_test::certificate_b, oneintwo_test::private_key_b);
+    const std::string pin_b = b.fingerprint;
+    CHECK(old_pin != new_pin);
+    CHECK(!old_pin.empty());
+    CHECK(!new_pin.empty());
+    CHECK(!pin_b.empty());
+
+    const std::string store_a_path = pathUnder(directory, "a.tsv");
+    const std::string store_b_path = pathUnder(directory, "b.tsv");
+    PairingStore store_a(store_a_path);
+    PairingStore store_b(store_b_path);
+    CHECK(store_a.lastError().empty());
+    CHECK(store_b.lastError().empty());
+
+    TrustedDevice old_a;
+    old_a.device_id = "device-a";
+    old_a.name = "Equipo A";
+    old_a.host = "127.0.0.1";
+    old_a.port = 45454;
+    old_a.pins = {old_pin};
+    CHECK(store_b.save(old_a));
+
+    TrustedDevice old_b;
+    old_b.device_id = "device-b";
+    old_b.name = "Equipo B";
+    old_b.host = "127.0.0.1";
+    old_b.port = 45454;
+    old_b.pins = {pin_b};
+    CHECK(store_a.save(old_b));
+
+    DialogPairing paired;
+    CHECK(pairDialogs(rotated_a, store_a, b, store_b, &paired));
+    CHECK(paired.listener.has_value());
+    CHECK(paired.connector.has_value());
+    if (!paired.listener.has_value() || !paired.connector.has_value()) {
+        return;
+    }
+
+    PairingStore persisted_a(store_a_path);
+    PairingStore persisted_b(store_b_path);
+    CHECK(persisted_a.lastError().empty());
+    CHECK(persisted_b.lastError().empty());
+    const auto peer_a_in_b = persisted_b.find("device-a");
+    const auto peer_b_in_a = persisted_a.find("device-b");
+    CHECK(peer_a_in_b.has_value());
+    CHECK(peer_b_in_a.has_value());
+    if (!peer_a_in_b.has_value() || !peer_b_in_a.has_value()) {
+        return;
+    }
+    CHECK_EQ(peer_a_in_b->pins.size(), static_cast<std::size_t>(2));
+    CHECK_EQ(peer_a_in_b->pins.front(), new_pin);
+    CHECK_EQ(peer_a_in_b->pins.back(), old_pin);
+    CHECK(peer_a_in_b->trusts(new_pin));
+    CHECK(peer_a_in_b->trusts(old_pin));
+    CHECK_EQ(peer_b_in_a->pins.front(), pin_b);
+    CHECK_EQ(paired.listener->peer.device_id, std::string("device-b"));
+    CHECK_EQ(paired.listener->peer.pins.front(), pin_b);
+    CHECK_EQ(paired.connector->peer.device_id, std::string("device-a"));
+    CHECK_EQ(paired.connector->peer.pins.front(), new_pin);
+
+    paired.listener->transport->close();
+    paired.connector->transport->close();
+
+    // El pin nuevo, y no el anterior, debe abrir una conexión TLS normal.
+    TlsTransportConfig server_config;
+    server_config.mode = TlsTransportMode::listen;
+    server_config.certificate_pem = b.certificate_pem;
+    server_config.private_key_pem = b.private_key_pem;
+    server_config.peer_fingerprint = peer_a_in_b->pins.front();
+    server_config.bind_address = "127.0.0.1";
+    server_config.listen_port = 0;
+    QtTlsTransport server(std::move(server_config));
+    bool server_ready = false;
+    server.setReadyHandler([&] { server_ready = true; });
+    error.clear();
+    CHECK(server.start(&error));
+
+    TlsTransportConfig client_config;
+    client_config.mode = TlsTransportMode::connect;
+    client_config.certificate_pem = rotated_a.certificate_pem;
+    client_config.private_key_pem = rotated_a.private_key_pem;
+    client_config.peer_fingerprint = peer_b_in_a->pins.front();
+    client_config.peer_host = "127.0.0.1";
+    client_config.peer_port = server.listeningPort();
+    QtTlsTransport client(std::move(client_config));
+    bool client_ready = false;
+    client.setReadyHandler([&] { client_ready = true; });
+    CHECK(client.start(&error));
+
+    CHECK(waitUntil([&] { return server_ready && client_ready; }));
+    CHECK(server.encrypted());
+    CHECK(client.encrypted());
+    CHECK_EQ(server.authenticated_peer_fingerprint(), new_pin);
+    CHECK_EQ(client.authenticated_peer_fingerprint(), pin_b);
+    client.close();
+    server.close();
 }
 
 int main(int argc, char** argv) {
