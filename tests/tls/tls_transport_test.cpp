@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 using namespace oneintwo;
 
@@ -69,6 +70,7 @@ struct Endpoint {
     bool established = false;
     bool failed = false;
     std::string failure;
+    std::vector<FeatureMessage> messages;
 
     void bindSession(SessionLinkOptions options) {
         SessionLinkHandlers handlers;
@@ -78,6 +80,9 @@ struct Endpoint {
         handlers.failed = [this](SessionLinkError, std::string detail) {
             failed = true;
             failure = std::move(detail);
+        };
+        handlers.message = [this](FeatureMessage message) {
+            messages.push_back(std::move(message));
         };
         session = std::make_unique<AuthenticatedSession>(
             std::move(options), *transport, directRuntime(), std::move(handlers));
@@ -157,6 +162,52 @@ TEST_CASE(loopback_tls_handshake_establishes_two_pinned_sessions) {
     CHECK_EQ(server.transport->authenticated_peer_fingerprint(), pin_a);
     CHECK_EQ(client.session->phase(), SessionLinkPhase::established);
     CHECK_EQ(server.session->phase(), SessionLinkPhase::established);
+
+    client.session->close();
+    server.session->close();
+}
+
+TEST_CASE(feature_message_is_delivered_over_authenticated_tls_session) {
+    const std::string pin_a = pinFor(oneintwo_test::certificate_a);
+    const std::string pin_b = pinFor(oneintwo_test::certificate_b);
+
+    Endpoint server;
+    server.transport = std::make_unique<QtTlsTransport>(
+        serverConfig(oneintwo_test::certificate_b, oneintwo_test::private_key_b, pin_a));
+    server.bindSession(optionsFor("B", "A", pin_a, 20));
+    server.armReady();
+    std::string error;
+    CHECK(server.transport->start(&error));
+    CHECK(error.empty());
+
+    Endpoint client;
+    client.transport = std::make_unique<QtTlsTransport>(clientConfig(
+        oneintwo_test::certificate_a, oneintwo_test::private_key_a, pin_b,
+        server.transport->listeningPort()));
+    client.bindSession(optionsFor("A", "B", pin_b, 10));
+    client.armReady();
+    CHECK(client.transport->start(&error));
+    CHECK(error.empty());
+
+    CHECK(waitUntil([&] { return client.established && server.established; }));
+
+    RemoteNotification notice;
+    notice.ref = NotificationRef{client.session->generation(), 42};
+    notice.mode = NotificationMode::manual;
+    notice.content = NotificationContent{"Hola TLS", "Mensaje de función"};
+    CHECK_EQ(client.session->send(FeatureMessage{notice}), SendResult::queued);
+
+    CHECK(waitUntil([&] { return !server.messages.empty(); }));
+    CHECK_EQ(server.messages.size(), static_cast<std::size_t>(1));
+    const auto* received = std::get_if<RemoteNotification>(&server.messages.front());
+    CHECK(received != nullptr);
+    if (received != nullptr) {
+        CHECK_EQ(received->ref.generation, server.session->generation());
+        CHECK_EQ(received->ref.notice_id, static_cast<std::uint64_t>(42));
+        CHECK_EQ(received->mode, NotificationMode::manual);
+        CHECK_EQ(received->content.title, std::string("Hola TLS"));
+        CHECK_EQ(received->content.body, std::string("Mensaje de función"));
+    }
 
     client.session->close();
     server.session->close();
