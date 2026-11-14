@@ -11,6 +11,10 @@
 #endif
 #endif
 
+#if defined(_WIN32) && defined(ONEINTWO_REQUIRE_WGC) && !defined(ONEINTWO_HAS_WGC)
+#error "ONEINTWO_REQUIRE_WGC=ON requiere winrt/Windows.Graphics.Capture.h, windows.graphics.capture.interop.h y windows.graphics.directx.direct3d11.interop.h"
+#endif
+
 #include <utility>
 
 namespace oneintwo::windows {

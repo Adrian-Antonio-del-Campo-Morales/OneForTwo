@@ -10,6 +10,11 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     set(ONEINTWO_CAPTURE_STANDALONE ON)
 endif()
 
+# En CI se activa para que la falta de cabeceras WGC falle en compilación y
+# para construir un ejecutable que compruebe el enlace de los import libs.
+option(ONEINTWO_REQUIRE_WGC
+    "Exigir cabeceras WGC y comprobar el enlace del backend" OFF)
+
 # Modelo portable: selección, identidad de la fuente, orden de callbacks y
 # contrato BGRA. Se prueba sin Windows con un puerto falso.
 add_library(oneintwo_capture_windows_model STATIC
@@ -58,6 +63,16 @@ if(WIN32)
     if(ONEINTWO_CAPTURE_PARENT_LIBRARIES)
         target_link_libraries(oneintwo_capture_windows PRIVATE
             ${ONEINTWO_CAPTURE_PARENT_LIBRARIES})
+    endif()
+    if(ONEINTWO_REQUIRE_WGC)
+        target_compile_definitions(oneintwo_capture_windows PRIVATE
+            ONEINTWO_REQUIRE_WGC=1)
+        target_compile_definitions(oneintwo_capture_windows_model PRIVATE
+            ONEINTWO_REQUIRE_WGC=1)
+        add_executable(oneintwo_capture_windows_link_check
+            ${CMAKE_CURRENT_LIST_DIR}/../../tests/capture_windows/wgc_link_check.cpp)
+        target_link_libraries(oneintwo_capture_windows_link_check
+            PRIVATE oneintwo_capture_windows)
     endif()
     if(MSVC)
         target_compile_options(oneintwo_capture_windows PRIVATE /W4 /permissive-)

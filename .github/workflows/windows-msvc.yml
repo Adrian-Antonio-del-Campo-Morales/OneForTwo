@@ -1,0 +1,33 @@
+name: Windows MSVC
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: WGC (MSVC x64)
+    runs-on: windows-2022
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        shell: pwsh
+        run: >
+          cmake -S cmake/capture_windows -B build/windows-msvc
+          -G "Visual Studio 17 2022" -A x64
+          -DONEINTWO_BUILD_TESTS=OFF
+          -DONEINTWO_CAPTURE_QT=OFF
+          -DONEINTWO_REQUIRE_WGC=ON
+
+      - name: Build WGC backend and link check
+        shell: pwsh
+        run: >
+          cmake --build build/windows-msvc --config Release
+          --target oneintwo_capture_windows oneintwo_capture_windows_link_check
