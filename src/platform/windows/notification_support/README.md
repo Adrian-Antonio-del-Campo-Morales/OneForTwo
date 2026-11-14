@@ -95,8 +95,11 @@ el artefacto `oneintwo-notifications-msix` con:
 
 El script comprueba antes de firmar que el manifiesto declara
 `userNotificationListener` en `uap3`, `runFullTrust` en `rescap`, la aplicación
-full-trust, el ejecutable y los recursos; después empaqueta, firma, verifica la
-firma y vuelve a descomprimir el MSIX. El `.pfx` privado no se publica.
+full-trust, el ejecutable y los recursos; después empaqueta con `MakeAppx`,
+firma con `signtool` y comprueba el contenedor MSIX: manifiesto empaquetado,
+ejecutable, recursos y `AppxSignature.p7x`. La verificación criptográfica y la
+instalación se completan en el equipo Windows de comprobación. El `.pfx` privado
+no se publica.
 
 El paquete usa la identidad `OneInTwo.Notifications.NativeCheck` y el
 `Application Id` `NativeCheck`. No es el paquete de producto ni sustituye al
