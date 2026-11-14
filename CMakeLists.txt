@@ -42,6 +42,10 @@ else()
     target_compile_options(oneintwo_app_core PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
+if(ONEINTWO_BUILD_TESTS)
+    add_subdirectory(tests/pairing_ui)
+endif()
+
 # Captura nativa por plataforma. Los paquetes V pueden no estar presentes en
 # esta rama; en ese caso no se inventa un backend ni se enlaza un doble.
 set(ONEINTWO_CAPTURE_TARGET "")
