@@ -21,6 +21,9 @@ struct ApplicationOptions {
     std::string peer_name = "Par";
     std::string peer_fingerprint;
     std::string storage_path;
+    // Si se dejan vacíos se usan AppData/identity y AppData/paired-devices.tsv.
+    std::string identity_directory;
+    std::string pairing_store_path;
     TlsTransportConfig tls;
     std::function<std::unique_ptr<SessionTransport>()> create_transport;
 };

@@ -28,7 +28,9 @@ add_library(oneintwo_app_core STATIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/main_window.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/qt_runtime.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/storage/local_store.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/storage/pairing_store.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/main_window.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/pairing_dialog.cpp"
 )
 add_library(OneInTwo::app_core ALIAS oneintwo_app_core)
 target_include_directories(oneintwo_app_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")

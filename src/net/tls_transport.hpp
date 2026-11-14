@@ -23,6 +23,9 @@ struct TlsTransportConfig {
     std::string certificate_pem;
     std::string private_key_pem;
     std::string peer_fingerprint;
+    // Solo para el canal temporal de emparejamiento: permite el handshake y
+    // expone la huella observada, pero no autentica hasta confirmar la SAS.
+    bool allow_unverified = false;
     std::string bind_address = "127.0.0.1";
     std::uint16_t listen_port = 0;
     std::string peer_host = "127.0.0.1";

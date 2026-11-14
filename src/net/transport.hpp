@@ -24,6 +24,8 @@ using TransportClosed = std::function<void()>;
 // Transporte ya conectado y autenticado. La implementación TLS (u otro canal
 // seguro mantenido) verifica el certificado del par antes de exponerlo aquí;
 // authenticated_peer_fingerprint devuelve vacío mientras no exista esa prueba.
+// Solo el canal temporal de emparejamiento (allow_unverified) expone la huella
+// observada antes de que la SAS la autentique.
 class SessionTransport {
 public:
     virtual ~SessionTransport() = default;

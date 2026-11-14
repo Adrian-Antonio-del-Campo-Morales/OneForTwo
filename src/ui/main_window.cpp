@@ -80,7 +80,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     peer_label_->setObjectName(QStringLiteral("peerLabel"));
     status_label_ = new QLabel(QStringLiteral("Sin sesión"), central);
     status_label_->setObjectName(QStringLiteral("statusLabel"));
+    pair_button_ = new QPushButton(QStringLiteral("Emparejar dispositivo…"), central);
+    pair_button_->setObjectName(QStringLiteral("pairButton"));
     header->addWidget(peer_label_);
+    header->addWidget(pair_button_);
     header->addStretch(1);
     header->addWidget(status_label_);
     layout->addLayout(header);
@@ -266,6 +269,11 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     });
     connect(app_list_, &QListWidget::itemChanged, this,
             [this](QListWidgetItem*) { emitAllowedApplications(); });
+    connect(pair_button_, &QPushButton::clicked, this, [this] {
+        if (pairing_handler_) {
+            pairing_handler_();
+        }
+    });
     connect(quit, &QPushButton::clicked, this, [] { QCoreApplication::quit(); });
 
     for (QCheckBox* box : {send_monitor_, receive_monitor_, send_window_, receive_window_,
@@ -325,6 +333,10 @@ void MainWindow::setError(const std::string& error) {
 
 void MainWindow::setPeerName(const std::string& peer_name) {
     peer_label_->setText(QStringLiteral("Par: %1").arg(QString::fromStdString(peer_name)));
+}
+
+void MainWindow::setPairingHandler(std::function<void()> handler) {
+    pairing_handler_ = std::move(handler);
 }
 
 void MainWindow::setProfileSelection(ProfileId profile) {

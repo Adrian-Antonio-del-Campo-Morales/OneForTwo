@@ -4,6 +4,7 @@
 
 #include <QMainWindow>
 
+#include <functional>
 #include <optional>
 #include <set>
 #include <string>
@@ -34,6 +35,7 @@ public:
     void setError(const std::string& error) override;
 
     void setPeerName(const std::string& peer_name);
+    void setPairingHandler(std::function<void()> handler);
     void setProfileSelection(ProfileId profile);
     void setAllowedApplications(const std::set<std::string>& app_ids);
     void setPermissionChecks(FeatureSet send, FeatureSet receive);
@@ -59,6 +61,8 @@ private:
     QPushButton* share_monitor_ = nullptr;
     QPushButton* share_window_ = nullptr;
     QPushButton* stop_button_ = nullptr;
+    QPushButton* pair_button_ = nullptr;
+    std::function<void()> pairing_handler_;
     QWidget* offer_panel_ = nullptr;
     QLabel* offer_label_ = nullptr;
     QCheckBox* send_monitor_ = nullptr;

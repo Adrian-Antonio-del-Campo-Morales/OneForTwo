@@ -137,9 +137,14 @@ struct QtTlsTransport::Impl final : QObject {
             setError(error, QStringLiteral("faltan el certificado o la clave TLS"));
             return false;
         }
-        expected_pin = normalizePin(QString::fromStdString(config.peer_fingerprint));
-        if (expected_pin.isEmpty()) {
-            setError(error, QStringLiteral("la huella TLS fijada no es un SHA-256 válido"));
+        if (!config.peer_fingerprint.empty()) {
+            expected_pin = normalizePin(QString::fromStdString(config.peer_fingerprint));
+            if (expected_pin.isEmpty()) {
+                setError(error, QStringLiteral("la huella TLS fijada no es un SHA-256 válido"));
+                return false;
+            }
+        } else if (!config.allow_unverified) {
+            setError(error, QStringLiteral("falta la huella TLS fijada"));
             return false;
         }
         const QList<QSslCertificate> certificates =
@@ -237,6 +242,10 @@ struct QtTlsTransport::Impl final : QObject {
             return;
         }
         const QString actual = certificatePin(socket_with_errors->peerCertificate());
+        if (config.allow_unverified && expected_pin.isEmpty() && !actual.isEmpty()) {
+            socket_with_errors->ignoreSslErrors(errors);
+            return;
+        }
         if (!actual.isEmpty() && actual == expected_pin) {
             socket_with_errors->ignoreSslErrors(errors);
             return;
@@ -250,7 +259,8 @@ struct QtTlsTransport::Impl final : QObject {
             return;
         }
         const QString actual = certificatePin(socket_ready->peerCertificate());
-        if (actual.isEmpty() || actual != expected_pin) {
+        if (actual.isEmpty() ||
+            (!expected_pin.isEmpty() && actual != expected_pin)) {
             fail(QStringLiteral("huella TLS del par no coincide con la fijada"));
             return;
         }

@@ -17,6 +17,8 @@ endif()
 if(NOT TARGET oneintwo_tls)
     add_library(oneintwo_tls STATIC
         "${ONEINTWO_ROOT}/src/net/tls_transport.cpp"
+        "${ONEINTWO_ROOT}/src/net/device_identity.cpp"
+        "${ONEINTWO_ROOT}/src/net/pairing_session.cpp"
     )
     add_library(OneInTwo::tls ALIAS oneintwo_tls)
     target_include_directories(oneintwo_tls PUBLIC "${ONEINTWO_ROOT}/src")

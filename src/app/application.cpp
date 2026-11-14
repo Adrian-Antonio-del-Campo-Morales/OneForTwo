@@ -5,9 +5,12 @@
 #include "qt_runtime.hpp"
 
 #include "../features/notifications.hpp"
+#include "../net/device_identity.hpp"
 #include "../net/session_link.hpp"
 #include "../net/tls_transport.hpp"
 #include "../storage/local_store.hpp"
+#include "../storage/pairing_store.hpp"
+#include "../ui/pairing_dialog.hpp"
 
 #include <QStandardPaths>
 #include <QString>
@@ -15,6 +18,7 @@
 #include <QWidget>
 #include <QtGlobal>
 
+#include <optional>
 #include <utility>
 
 namespace oneintwo {
@@ -143,12 +147,34 @@ std::string defaultStoragePath() {
     return (base + QStringLiteral("/preferences.txt")).toStdString();
 }
 
+std::string defaultIdentityDirectory() {
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (base.isEmpty()) {
+        return "oneintwo-identity";
+    }
+    return (base + QStringLiteral("/identity")).toStdString();
+}
+
+std::string defaultPairingStorePath() {
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (base.isEmpty()) {
+        return "oneintwo-paired-devices.tsv";
+    }
+    return (base + QStringLiteral("/paired-devices.tsv")).toStdString();
+}
+
 } // namespace
 
 struct Application::Impl {
     explicit Impl(ApplicationOptions options_in) : options(std::move(options_in)) {
         if (options.storage_path.empty()) {
             options.storage_path = defaultStoragePath();
+        }
+        if (options.identity_directory.empty()) {
+            options.identity_directory = defaultIdentityDirectory();
+        }
+        if (options.pairing_store_path.empty()) {
+            options.pairing_store_path = defaultPairingStorePath();
         }
         store = std::make_unique<LocalStore>(options.storage_path);
         runtime = makeQtModuleRuntime();
@@ -165,6 +191,8 @@ struct Application::Impl {
 
         window = std::make_unique<MainWindow>();
         window->setPeerName(options.peer_name);
+        window->setPairingHandler([this] { beginPairing(); });
+        loadIdentity();
 
         PlatformContext platform{runtime, window.get(), DesktopEvents{}};
         platform.events.locked = [this](bool locked) {
@@ -217,6 +245,89 @@ struct Application::Impl {
         window->raise();
     }
 
+    void loadIdentity() {
+        identity_store = std::make_unique<DeviceIdentityStore>(
+            options.identity_directory);
+        pairing_store = std::make_unique<PairingStore>(options.pairing_store_path);
+        if (!pairing_store->lastError().empty()) {
+            window->setError(pairing_store->lastError());
+            pairing_store.reset();
+        }
+        std::string error;
+        identity = identity_store->loadOrCreate(&error);
+        if (!identity.has_value()) {
+            window->setError(error.empty()
+                                 ? std::string("No se pudo cargar la identidad TLS")
+                                 : error);
+        }
+    }
+
+    void beginPairing() {
+        if (!identity.has_value() || pairing_store == nullptr) {
+            window->setError(
+                "El emparejamiento no está disponible: falta la identidad TLS o el "
+                "almacén de equipos");
+            return;
+        }
+        PairingDialog dialog(*identity, *pairing_store, window.get());
+        dialog.setRotationHandler([this]() -> std::optional<DeviceIdentity> {
+            std::string error;
+            auto rotation = identity_store->rotate(&error);
+            if (!rotation.has_value()) {
+                window->setError(error);
+                return std::nullopt;
+            }
+            identity = rotation->identity;
+            return identity;
+        });
+        dialog.exec();
+        auto result = dialog.takeResult();
+        if (result.has_value()) {
+            adoptPairing(std::move(*result));
+        }
+    }
+
+    void adoptPairing(PairingResult result) {
+        if (!result.transport || result.peer.pins.empty()) {
+            window->setError("El emparejamiento no entregó un canal utilizable");
+            return;
+        }
+        if (session) {
+            session->close();
+        }
+        session.reset();
+        session_adapter.reset();
+        session_proxy.setDelegate(nullptr);
+        if (tls_transport) {
+            tls_transport->close();
+            tls_transport.reset();
+        }
+        transport.reset();
+
+        options.local_device_id = identity->device_id;
+        options.peer_device_id = result.peer.device_id;
+        options.peer_name = result.peer.name;
+        options.peer_fingerprint = result.peer.pins.front();
+        window->setPeerName(options.peer_name);
+        window->setError({});
+
+        tls_transport = std::move(result.transport);
+        tls_transport->setFailureHandler([this](std::string detail) {
+            if (window) {
+                window->setError(std::move(detail));
+            }
+            if (coordinator) {
+                coordinator->sessionClosed();
+            }
+        });
+        createSession(*tls_transport, options.peer_fingerprint);
+        wirePreferences();
+        if (session) {
+            session->start();
+        }
+        window->setStatus(QStringLiteral("Emparejado; estableciendo sesión…").toStdString());
+    }
+
     void buildSession() {
         if (options.create_transport) {
             transport = options.create_transport();
@@ -230,6 +341,33 @@ struct Application::Impl {
             }
             createSession(*transport, options.peer_fingerprint);
             return;
+        }
+        // En un arranque posterior, reutiliza el último equipo emparejado: su
+        // huella ya está autenticada y no hace falta volver a editar opciones.
+        if (options.tls.certificate_pem.empty() &&
+            options.tls.private_key_pem.empty() &&
+            options.peer_fingerprint.empty() && identity.has_value() &&
+            pairing_store != nullptr && !pairing_store->devices().empty()) {
+            const TrustedDevice& peer = pairing_store->devices().back();
+            if (!peer.pins.empty()) {
+                options.local_device_id = identity->device_id;
+                options.peer_device_id = peer.device_id;
+                options.peer_name = peer.name.empty() ? "Par" : peer.name;
+                options.peer_fingerprint = peer.pins.front();
+                options.tls.certificate_pem = identity->certificate_pem;
+                options.tls.private_key_pem = identity->private_key_pem;
+                options.tls.peer_fingerprint = options.peer_fingerprint;
+                if (peer.host.empty()) {
+                    options.tls.mode = TlsTransportMode::listen;
+                    options.tls.bind_address = "0.0.0.0";
+                    options.tls.listen_port = peer.port;
+                } else {
+                    options.tls.mode = TlsTransportMode::connect;
+                    options.tls.peer_host = peer.host;
+                    options.tls.peer_port = peer.port;
+                }
+                window->setPeerName(options.peer_name);
+            }
         }
         if (options.tls.certificate_pem.empty() && options.tls.private_key_pem.empty()) {
             return;
@@ -379,6 +517,9 @@ struct Application::Impl {
     ApplicationOptions options;
     ModuleRuntime runtime;
     std::unique_ptr<LocalStore> store;
+    std::unique_ptr<DeviceIdentityStore> identity_store;
+    std::optional<DeviceIdentity> identity;
+    std::unique_ptr<PairingStore> pairing_store;
     std::unique_ptr<MainWindow> window;
     std::unique_ptr<DesktopVisualCapture> capture;
     std::unique_ptr<DesktopNotifications> desktop_notifications;
