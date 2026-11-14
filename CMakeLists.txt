@@ -8,14 +8,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(ONEINTWO_BUILD_TESTS "Build the package test suites" ON)
 
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets)
 
 if(ONEINTWO_BUILD_TESTS)
     enable_testing()
 endif()
 
-# Paquetes de sesión y visual. Cada uno conserva su proyecto independiente y
-# añade sus pruebas una sola vez cuando se configura desde la raíz.
+# Paquetes de sesión, TLS y visual. Cada uno conserva su proyecto independiente
+# y añade sus pruebas una sola vez cuando se configura desde la raíz.
 add_subdirectory(cmake/session)
 add_subdirectory(cmake/tls)
 add_subdirectory(cmake/visual)

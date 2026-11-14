@@ -4,7 +4,7 @@ endif()
 
 get_filename_component(ONEINTWO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets)
 enable_testing()
 
 add_executable(oneintwo_visual_share_tests visual_share_test.cpp)

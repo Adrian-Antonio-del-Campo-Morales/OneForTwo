@@ -7,7 +7,7 @@ endif()
 get_filename_component(ONEINTWO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 option(ONEINTWO_BUILD_TESTS "Build OneInTwo package tests" OFF)
 
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets)
 
 if(NOT TARGET oneintwo_session)
     add_subdirectory("${ONEINTWO_ROOT}/cmake/session" "${CMAKE_CURRENT_BINARY_DIR}/session")
