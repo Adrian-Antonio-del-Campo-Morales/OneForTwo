@@ -9,6 +9,17 @@ permissions:
   contents: read
 
 jobs:
+  cmake-guards:
+    name: CMake SDK/API guards
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run negative CMake checks
+        shell: pwsh
+        run: ./tests/capture_windows/test_cmake_guards.ps1
+
   build:
     name: WGC (MSVC x64, SDK ${{ matrix.sdk }})
     runs-on: windows-2022
