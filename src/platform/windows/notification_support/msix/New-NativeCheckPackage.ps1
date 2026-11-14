@@ -192,7 +192,7 @@ try {
         Write-Output "msix: firma verificada"
     } else {
         try { $verifyProcess.Kill() } catch { }
-        $verifyProcess.WaitForExit()
+        [void]$verifyProcess.WaitForExit(5000)
         Write-Warning "signtool verify no terminó en 45 s; se continúa con la validación estructural."
         Write-Output "msix: firma aplicada (verificación acotada por timeout)"
     }
