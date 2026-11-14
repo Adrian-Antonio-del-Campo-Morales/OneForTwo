@@ -1,0 +1,14 @@
+MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
+
+  1>Checking Build System
+  Building Custom Rule D:/a/OneForTwo/OneForTwo/cmake/notifications/CMakeLists.txt
+  notifications.cpp
+  identity.cpp
+  text_validation.cpp
+  toast_text.cpp
+  Generating Code...
+  notifications.cpp
+  oneintwo_notifications.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications-msix\Release\oneintwo_notifications.lib
+  Building Custom Rule D:/a/OneForTwo/OneForTwo/tests/notifications/CMakeLists.txt
+  windows_presentation.cpp
+  oneintwo_notifications_native_windows.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications-msix\tests\notifications\Release\oneintwo_notifications_native_windows.exe

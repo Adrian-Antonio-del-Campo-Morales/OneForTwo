@@ -1,0 +1,3 @@
+configure=success
+build=success
+package=failure
