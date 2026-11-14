@@ -117,6 +117,7 @@ TEST_CASE(malformed_utf8_is_rejected_in_both_directions) {
 }
 
 TEST_CASE(send_rate_is_three_per_monotonic_second) {
+    CHECK_EQUAL(notification_rate_per_second, 3u);
     Fixture fixture;
     for (int index = 0; index < 4; ++index) {
         fixture.send_manual("aviso " + std::to_string(index));

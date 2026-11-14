@@ -93,6 +93,7 @@ inline constexpr auto visual_activity_interval = std::chrono::seconds{1};
 inline constexpr auto visual_activity_timeout = std::chrono::seconds{5};
 inline constexpr std::size_t visual_fragment_bytes = 64 * 1024;
 inline constexpr std::size_t notification_queue_capacity = 16;
-inline constexpr unsigned notification_rate_per_second = 5;
+// Límite del canal interactivo y de la política local: tres por segundo.
+inline constexpr unsigned notification_rate_per_second = 3;
 
 } // namespace oneintwo
