@@ -15,7 +15,7 @@ struct DeviceIdentity {
 };
 
 // Crea/lee identity.id, identity.crt e identity.key en un directorio privado.
-// La generación usa el binario `openssl`; Qt sigue siendo el único runtime TLS.
+// La generación usa libcrypto enlazado; no depende de un binario externo.
 class DeviceIdentityStore {
 public:
     struct Rotation {
@@ -23,8 +23,7 @@ public:
         std::string previous_fingerprint;
     };
 
-    explicit DeviceIdentityStore(std::string directory,
-                                 std::string openssl_program = "openssl");
+    explicit DeviceIdentityStore(std::string directory);
 
     const std::string& directory() const { return directory_; }
 
@@ -41,7 +40,6 @@ private:
                                            std::string* error) const;
 
     std::string directory_;
-    std::string openssl_program_;
 };
 
 }  // namespace oneintwo

@@ -135,6 +135,21 @@ TEST_CASE(identity_is_persisted_and_can_be_rotated) {
     CHECK_EQ(identity->fingerprint.size(), static_cast<std::size_t>(64));
     CHECK(!identity->certificate_pem.empty());
     CHECK(!identity->private_key_pem.empty());
+#ifndef _WIN32
+    const auto identity_directory =
+        std::filesystem::path(tempPath(directory, "identity"));
+    CHECK((std::filesystem::status(identity_directory).permissions() &
+           std::filesystem::perms::group_all) ==
+          std::filesystem::perms::none);
+    CHECK((std::filesystem::status(identity_directory / "identity.key")
+               .permissions() &
+           std::filesystem::perms::group_all) ==
+          std::filesystem::perms::none);
+    CHECK((std::filesystem::status(identity_directory / "identity.key")
+               .permissions() &
+           std::filesystem::perms::others_all) ==
+          std::filesystem::perms::none);
+#endif
 
     DeviceIdentityStore reopened(tempPath(directory, "identity"));
     auto loaded = reopened.load(&error);
@@ -157,6 +172,55 @@ TEST_CASE(identity_is_persisted_and_can_be_rotated) {
     auto reloaded = after.load(&error);
     CHECK(reloaded.has_value());
     CHECK_EQ(reloaded->fingerprint, rotation->identity.fingerprint);
+}
+
+TEST_CASE(libcrypto_generated_identity_opens_pinned_tls) {
+    QTemporaryDir directory_a;
+    QTemporaryDir directory_b;
+    CHECK(directory_a.isValid());
+    CHECK(directory_b.isValid());
+    DeviceIdentityStore store_a(tempPath(directory_a, "identity"));
+    DeviceIdentityStore store_b(tempPath(directory_b, "identity"));
+    std::string error;
+    auto identity_a = store_a.loadOrCreate(&error);
+    auto identity_b = store_b.loadOrCreate(&error);
+    CHECK(identity_a.has_value());
+    CHECK(identity_b.has_value());
+    if (!identity_a.has_value() || !identity_b.has_value()) {
+        return;
+    }
+
+    TlsTransportConfig server_config;
+    server_config.mode = TlsTransportMode::listen;
+    server_config.certificate_pem = identity_b->certificate_pem;
+    server_config.private_key_pem = identity_b->private_key_pem;
+    server_config.peer_fingerprint = identity_a->fingerprint;
+    server_config.bind_address = "127.0.0.1";
+    server_config.listen_port = 0;
+    QtTlsTransport server(std::move(server_config));
+    bool server_ready = false;
+    server.setReadyHandler([&] { server_ready = true; });
+    CHECK(server.start(&error));
+
+    TlsTransportConfig client_config;
+    client_config.mode = TlsTransportMode::connect;
+    client_config.certificate_pem = identity_a->certificate_pem;
+    client_config.private_key_pem = identity_a->private_key_pem;
+    client_config.peer_fingerprint = identity_b->fingerprint;
+    client_config.peer_host = "127.0.0.1";
+    client_config.peer_port = server.listeningPort();
+    QtTlsTransport client(std::move(client_config));
+    bool client_ready = false;
+    client.setReadyHandler([&] { client_ready = true; });
+    CHECK(client.start(&error));
+
+    CHECK(waitUntil([&] { return server_ready && client_ready; }));
+    CHECK(server.encrypted());
+    CHECK(client.encrypted());
+    CHECK_EQ(server.authenticated_peer_fingerprint(), identity_a->fingerprint);
+    CHECK_EQ(client.authenticated_peer_fingerprint(), identity_b->fingerprint);
+    client.close();
+    server.close();
 }
 
 TEST_CASE(trust_store_keeps_one_pin_per_device_and_rotates_it) {

@@ -9,6 +9,8 @@ option(ONEINTWO_BUILD_TESTS "Build OneInTwo package tests" OFF)
 
 # QSslServer se incorporó en Qt 6.4; la interfaz TLS usa el backend SSL de Qt.
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Network)
+# libcrypto genera la identidad local sin invocar un binario openssl externo.
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 if(NOT TARGET oneintwo_session)
     add_subdirectory("${ONEINTWO_ROOT}/cmake/session" "${CMAKE_CURRENT_BINARY_DIR}/session")
@@ -23,7 +25,7 @@ if(NOT TARGET oneintwo_tls)
     add_library(OneInTwo::tls ALIAS oneintwo_tls)
     target_include_directories(oneintwo_tls PUBLIC "${ONEINTWO_ROOT}/src")
     target_compile_features(oneintwo_tls PUBLIC cxx_std_17)
-    target_link_libraries(oneintwo_tls PUBLIC oneintwo_session Qt6::Core Qt6::Network)
+    target_link_libraries(oneintwo_tls PUBLIC oneintwo_session Qt6::Core Qt6::Network OpenSSL::Crypto)
     if(MSVC)
         target_compile_options(oneintwo_tls PRIVATE /W4)
     else()
