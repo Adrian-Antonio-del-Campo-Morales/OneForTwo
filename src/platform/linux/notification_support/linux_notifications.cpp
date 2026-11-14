@@ -14,6 +14,7 @@
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 /*
  * Presentación nativa en Ubuntu mediante org.freedesktop.Notifications.
@@ -73,6 +74,14 @@ public:
 
     void requestObservationPermission(std::function<void(DesktopResult)> complete) override {
         deliver(std::move(complete), DesktopResult::unavailable);
+    }
+
+    void discoverApplications(
+        std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete)
+        override {
+        // La especificación de notificaciones de escritorio no permite leer las
+        // aplicaciones que publican avisos ajenos.
+        deliverApplications(std::move(complete), DesktopResult::unavailable, {});
     }
 
     void startObserving(std::function<void(ObservedNotification)> observed,
@@ -174,6 +183,22 @@ private:
                 return;
             }
             complete(result);
+        });
+    }
+
+    void deliverApplications(
+        std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete,
+        DesktopResult result, std::vector<NotificationApplication> applications) const {
+        if (!complete) {
+            return;
+        }
+        const std::shared_ptr<Lifetime> token = lifetime_;
+        post([token, complete = std::move(complete), result,
+              applications = std::move(applications)]() mutable {
+            if (!token->alive.load(std::memory_order_acquire)) {
+                return;
+            }
+            complete(result, std::move(applications));
         });
     }
 

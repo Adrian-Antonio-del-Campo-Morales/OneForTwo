@@ -414,6 +414,72 @@ void begin_listening(const SharedPtr& shared, std::uint64_t identifier) {
     }
 }
 
+void discover_applications_worker(
+    const SharedPtr& shared,
+    std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete) {
+    DesktopResult result = DesktopResult::error;
+    std::vector<NotificationApplication> applications;
+
+    if (shared->alive.load(std::memory_order_acquire)) {
+        try {
+            auto listener = wunm::UserNotificationListener::Current();
+            if (listener.GetAccessStatus() !=
+                wunm::UserNotificationListenerAccessStatus::Allowed) {
+                result = DesktopResult::denied;
+            } else {
+                const auto existing =
+                    listener.GetNotificationsAsync(wun::NotificationKinds::Toast).get();
+                std::map<std::string, std::string> found;
+                for (const auto& notification : existing) {
+                    try {
+                        const std::string app_id =
+                            winrt::to_string(notification.AppInfo().AppUserModelId());
+                        if (app_id.empty() ||
+                            notification_support::is_product_application(app_id)) {
+                            continue;
+                        }
+                        std::string app_name;
+                        try {
+                            app_name = winrt::to_string(
+                                notification.AppInfo().DisplayInfo().DisplayName());
+                        } catch (...) {
+                            continue;
+                        }
+                        if (app_name.empty()) {
+                            continue;
+                        }
+                        found.emplace(app_id, std::move(app_name));
+                    } catch (...) {
+                        // Una notificación retirada durante la lectura no impide
+                        // enumerar el resto.
+                    }
+                }
+                applications.reserve(found.size());
+                for (auto& entry : found) {
+                    applications.push_back(
+                        NotificationApplication{std::move(entry.first),
+                                                std::move(entry.second)});
+                }
+                result = DesktopResult::ready;
+            }
+        } catch (const winrt::hresult_error& error) {
+            result = map_hresult(error.code());
+        } catch (...) {
+            result = DesktopResult::error;
+        }
+    }
+
+    if (!complete) {
+        return;
+    }
+    shared->post([shared, complete = std::move(complete), result,
+                  applications = std::move(applications)]() mutable {
+        if (shared->alive.load(std::memory_order_acquire)) {
+            complete(result, std::move(applications));
+        }
+    });
+}
+
 void poll_access(const SharedPtr& shared) {
     if (!shared->listening || !shared->listener) {
         return;
@@ -552,6 +618,33 @@ public:
                 if (complete) {
                     complete(result);
                 }
+            });
+        });
+    }
+
+    void discoverApplications(
+        std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete)
+        override {
+        if (!complete) {
+            return;
+        }
+        const SharedPtr shared = shared_;
+        shared->post([shared, complete = std::move(complete)]() mutable {
+            if (!shared->alive.load(std::memory_order_acquire)) {
+                return;
+            }
+            request_access(shared, [shared, complete = std::move(complete)](
+                                       DesktopResult access) mutable {
+                if (!shared->alive.load(std::memory_order_acquire)) {
+                    return;
+                }
+                if (access != DesktopResult::ready) {
+                    complete(access, {});
+                    return;
+                }
+                shared->enqueue([shared, complete = std::move(complete)]() mutable {
+                    discover_applications_worker(shared, std::move(complete));
+                });
             });
         });
     }
