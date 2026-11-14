@@ -11,8 +11,8 @@ MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
   oneintwo_notifications.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\Debug\oneintwo_notifications.lib
   Building Custom Rule D:/a/OneForTwo/OneForTwo/tests/notifications/CMakeLists.txt
   Building Custom Rule D:/a/OneForTwo/OneForTwo/tests/notifications/CMakeLists.txt
-  test_main.cpp
   windows_presentation.cpp
+  test_main.cpp
   test_notifications.cpp
   test_support_helpers.cpp
   test_windows_helpers.cpp
