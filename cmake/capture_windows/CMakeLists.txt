@@ -47,6 +47,8 @@ if(WIN32)
         $<BUILD_INTERFACE:${ONEINTWO_REPO_ROOT}/src>)
     target_compile_features(oneintwo_capture_windows PUBLIC cxx_std_17)
     # WGC exige el SDK 10.0.18362: IGraphicsCaptureItemInterop no existe antes.
+    # IsCursorCaptureEnabled se usa si el SDK es 19041+; en runtime se comprueba
+    # que Windows 10 2004 o posterior lo soporte.
     target_compile_definitions(oneintwo_capture_windows PRIVATE
         UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX
         _WIN32_WINNT=0x0A00 WINVER=0x0A00)
