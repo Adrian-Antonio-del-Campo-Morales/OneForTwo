@@ -42,7 +42,13 @@ jobs:
         run: >
           cmake --build build/windows-msvc-${{ matrix.sdk }} --config Release
           --target oneintwo_capture_windows oneintwo_capture_windows_link_check
-          oneintwo_capture_windows_tests oneintwo_wgc_capture_tests
+          oneintwo_capture_windows_tests oneintwo_wgc_capture_tests oneintwo_wgc_probe
+
+      - name: Probe WGC runtime dependencies (${{ matrix.label }})
+        shell: pwsh
+        run: |
+          & "build/windows-msvc-${{ matrix.sdk }}/Release/oneintwo_wgc_probe.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run capture tests (${{ matrix.label }})
         shell: pwsh

@@ -127,6 +127,13 @@ if(WIN32)
             ${CMAKE_CURRENT_LIST_DIR}/../../tests/capture_windows/wgc_link_check.cpp)
         target_link_libraries(oneintwo_capture_windows_link_check
             PRIVATE oneintwo_capture_windows)
+        add_executable(oneintwo_wgc_probe
+            ${CMAKE_CURRENT_LIST_DIR}/../../tests/capture_windows/wgc_runtime_probe.cpp)
+        target_link_libraries(oneintwo_wgc_probe
+            PRIVATE oneintwo_capture_windows)
+        target_compile_definitions(oneintwo_wgc_probe PRIVATE
+            UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX
+            _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     endif()
     if(MSVC)
         target_compile_options(oneintwo_capture_windows PRIVATE /W4 /permissive-)
