@@ -44,6 +44,7 @@ endif()
 
 if(ONEINTWO_BUILD_TESTS)
     add_subdirectory(tests/pairing_ui)
+    add_subdirectory(tests/application)
 endif()
 
 # Captura nativa por plataforma. Los paquetes V pueden no estar presentes en
