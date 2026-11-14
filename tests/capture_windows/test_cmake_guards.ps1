@@ -51,7 +51,7 @@ Invoke-ExpectedFailure -Name 'sdk-old' -CMakeArguments $oldSdkArgs `
     -ExpectedText 'OneInTwo requiere Windows SDK 10.0.19041 o posterior'
 
 $missingApiArgs = $common + @(
-    '-A', 'x64,version=10.0.26100.0',
+    '-A', 'x64',
     '-B', (Join-Path $buildRoot 'api-missing'),
     "-DCMAKE_CXX_FLAGS=/I$fakeInclude",
     '-DONEINTWO_REQUIRE_WGC=ON'
