@@ -10,29 +10,42 @@ permissions:
 
 jobs:
   build:
-    name: WGC (MSVC x64)
+    name: WGC (MSVC x64, SDK ${{ matrix.sdk }})
     runs-on: windows-2022
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # El mínimo declarado por el backend.
+          - sdk: "10.0.19041.0"
+            label: minimum
+          # SDK actual de la imagen windows-2022.
+          - sdk: "10.0.26100.0"
+            label: current
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure
+      - name: Configure (${{ matrix.label }})
         shell: pwsh
         run: >
-          cmake -S cmake/capture_windows -B build/windows-msvc
+          cmake -S cmake/capture_windows -B build/windows-msvc-${{ matrix.sdk }}
           -G "Visual Studio 17 2022" -A x64
+          -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=${{ matrix.sdk }}
           -DONEINTWO_BUILD_TESTS=ON
           -DONEINTWO_CAPTURE_QT=OFF
           -DONEINTWO_REQUIRE_WGC=ON
 
-      - name: Build backend, link check and tests
+      - name: Build backend, link check and tests (${{ matrix.label }})
         shell: pwsh
         run: >
-          cmake --build build/windows-msvc --config Release
+          cmake --build build/windows-msvc-${{ matrix.sdk }} --config Release
           --target oneintwo_capture_windows oneintwo_capture_windows_link_check
           oneintwo_capture_windows_tests oneintwo_wgc_capture_tests
 
-      - name: Run capture tests
+      - name: Run capture tests (${{ matrix.label }})
         shell: pwsh
-        run: ctest --test-dir build/windows-msvc -C Release --output-on-failure
+        run: >
+          ctest --test-dir build/windows-msvc-${{ matrix.sdk }} -C Release
+          --output-on-failure
