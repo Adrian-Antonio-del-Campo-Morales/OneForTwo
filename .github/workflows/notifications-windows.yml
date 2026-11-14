@@ -74,3 +74,98 @@ jobs:
         with:
           name: notifications-windows-logs
           path: ci-logs
+
+  msix:
+    needs: msvc
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure static package build
+        id: configure_msix
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ci-logs/msix | Out-Null
+          cmake -S cmake/notifications -B build/notifications-msix -A x64 `
+                -DONEINTWO_BUILD_TESTS=ON `
+                -DONEINTWO_BUILD_NATIVE_NOTIFICATION_TESTS=ON `
+                -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded 2>&1 |
+            Tee-Object ci-logs/msix/configure.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build native package payload
+        id: build_msix
+        shell: pwsh
+        run: |
+          $exe = "build/notifications-msix/tests/notifications/Release/oneintwo_notifications_native_windows.exe"
+          cmake --build build/notifications-msix --config Release `
+                --target oneintwo_notifications_native_windows -- /m 2>&1 |
+            Tee-Object ci-logs/msix/build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path $exe)) {
+            Write-Error "No se generó $exe"
+            exit 1
+          }
+
+      - name: Validate, pack and sign MSIX
+        id: package_msix
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          & ".\src\platform\windows\notification_support\msix\New-NativeCheckPackage.ps1" `
+              -Executable "build\notifications-msix\tests\notifications\Release\oneintwo_notifications_native_windows.exe" `
+              -OutputDirectory "artifacts\msix" 2>&1 |
+            Tee-Object -FilePath "ci-logs\msix\package.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload MSIX artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oneintwo-notifications-msix
+          path: |
+            artifacts/msix/OneInTwo-NativeCheck.msix
+            artifacts/msix/OneInTwo-NativeCheck.cer
+            artifacts/msix/install.txt
+            artifacts/msix/validation.txt
+            artifacts/msix/*.log
+          if-no-files-found: warn
+
+      - name: Publish MSIX logs to the branch
+        if: always()
+        shell: pwsh
+        run: |
+          git config user.name "oneintwo-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git fetch origin "refs/heads/${{ github.ref_name }}:refs/remotes/origin/${{ github.ref_name }}"
+          git reset --hard "origin/${{ github.ref_name }}"
+          if (Test-Path artifacts/msix/validation.txt) {
+            Copy-Item artifacts/msix/validation.txt ci-logs/msix/validation.txt -Force
+          }
+          if (Test-Path artifacts/msix/install.txt) {
+            Copy-Item artifacts/msix/install.txt ci-logs/msix/install.txt -Force
+          }
+          $status = @(
+            "configure=${{ steps.configure_msix.outcome }}"
+            "build=${{ steps.build_msix.outcome }}"
+            "package=${{ steps.package_msix.outcome }}"
+          )
+          $status | Set-Content ci-logs/msix/status.txt
+          git add ci-logs/msix
+          if (-not (git status --porcelain ci-logs/msix)) {
+            Write-Host "Sin cambios en ci-logs/msix"
+            exit 0
+          }
+          git commit -m "ci: windows msix logs [skip ci]"
+          git push origin "HEAD:refs/heads/${{ github.ref_name }}"
+
+      - name: Write MSIX summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path artifacts/msix/validation.txt) {
+            Get-Content artifacts/msix/validation.txt |
+              Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          }
