@@ -70,6 +70,45 @@ bool parsePort(const std::string& text, std::uint16_t* port) {
     return true;
 }
 
+bool cleanDevice(const TrustedDevice& device, TrustedDevice* cleaned,
+                 std::string* error) {
+    if (!safeId(device.device_id)) {
+        if (error != nullptr) {
+            *error = "el identificador del dispositivo no es válido";
+        }
+        return false;
+    }
+    TrustedDevice result;
+    result.device_id = device.device_id;
+    result.name = sanitize(device.name);
+    if (result.name.empty()) {
+        result.name = result.device_id;
+    }
+    result.host = sanitize(device.host);
+    result.port = device.port;
+    for (const std::string& pin : device.pins) {
+        const std::string normalized = PairingStore::normalizePin(pin);
+        if (normalized.empty()) {
+            if (error != nullptr) {
+                *error = "la huella del dispositivo no es un SHA-256 válido";
+            }
+            return false;
+        }
+        if (std::find(result.pins.begin(), result.pins.end(), normalized) ==
+            result.pins.end()) {
+            result.pins.push_back(normalized);
+        }
+    }
+    if (result.pins.empty() || result.pins.size() > 2) {
+        if (error != nullptr) {
+            *error = "un par debe tener una o dos huellas como máximo";
+        }
+        return false;
+    }
+    *cleaned = std::move(result);
+    return true;
+}
+
 }  // namespace
 
 bool TrustedDevice::trusts(const std::string& fingerprint) const {
@@ -208,37 +247,8 @@ bool PairingStore::reload(std::string* error) {
 }
 
 bool PairingStore::save(const TrustedDevice& device, std::string* error) {
-    if (!safeId(device.device_id)) {
-        if (error != nullptr) {
-            *error = "el identificador del dispositivo no es válido";
-        }
-        return false;
-    }
     TrustedDevice cleaned;
-    cleaned.device_id = device.device_id;
-    cleaned.name = sanitize(device.name);
-    if (cleaned.name.empty()) {
-        cleaned.name = cleaned.device_id;
-    }
-    cleaned.host = sanitize(device.host);
-    cleaned.port = device.port;
-    for (const std::string& pin : device.pins) {
-        const std::string normalized = normalizePin(pin);
-        if (normalized.empty()) {
-            if (error != nullptr) {
-                *error = "la huella del dispositivo no es un SHA-256 válido";
-            }
-            return false;
-        }
-        if (std::find(cleaned.pins.begin(), cleaned.pins.end(), normalized) ==
-            cleaned.pins.end()) {
-            cleaned.pins.push_back(normalized);
-        }
-    }
-    if (cleaned.pins.empty() || cleaned.pins.size() > 2) {
-        if (error != nullptr) {
-            *error = "un par debe tener una o dos huellas como máximo";
-        }
+    if (!cleanDevice(device, &cleaned, error)) {
         return false;
     }
 
@@ -277,28 +287,72 @@ bool PairingStore::pinTrusted(const std::string& device_id,
 bool PairingStore::rotatePin(const std::string& device_id,
                              const std::string& new_fingerprint,
                              std::string* error) {
-    auto device = find(device_id);
-    if (!device.has_value()) {
+    auto current = find(device_id);
+    if (!current.has_value()) {
         if (error != nullptr) {
             *error = "el dispositivo no está emparejado";
         }
         return false;
     }
-    const std::string normalized = normalizePin(new_fingerprint);
-    if (normalized.empty()) {
+    current->pins = {new_fingerprint};
+    return rotatePin(*current, error).has_value();
+}
+
+std::optional<TrustedDevice> PairingStore::rotatePin(
+    const TrustedDevice& device, std::string* error) {
+    const auto existing = find(device.device_id);
+    if (!existing.has_value()) {
+        if (error != nullptr) {
+            *error = "el dispositivo no está emparejado";
+        }
+        return std::nullopt;
+    }
+    if (device.pins.empty()) {
         if (error != nullptr) {
             *error = "la huella nueva no es un SHA-256 válido";
         }
-        return false;
+        return std::nullopt;
     }
-    device->pins.erase(
-        std::remove(device->pins.begin(), device->pins.end(), normalized),
-        device->pins.end());
-    device->pins.insert(device->pins.begin(), normalized);
-    if (device->pins.size() > 2) {
-        device->pins.resize(2);
+    const std::string new_pin = normalizePin(device.pins.front());
+    if (new_pin.empty()) {
+        if (error != nullptr) {
+            *error = "la huella nueva no es un SHA-256 válido";
+        }
+        return std::nullopt;
     }
-    return save(*device, error);
+
+    TrustedDevice candidate = device;
+    candidate.pins.clear();
+    candidate.pins.push_back(new_pin);
+    for (const std::string& pin : existing->pins) {
+        const std::string normalized = normalizePin(pin);
+        if (!normalized.empty() && normalized != new_pin &&
+            std::find(candidate.pins.begin(), candidate.pins.end(),
+                      normalized) == candidate.pins.end()) {
+            candidate.pins.push_back(normalized);
+        }
+    }
+    if (candidate.pins.size() > 2) {
+        candidate.pins.resize(2);
+    }
+
+    TrustedDevice cleaned;
+    if (!cleanDevice(candidate, &cleaned, error)) {
+        return std::nullopt;
+    }
+
+    const auto iterator =
+        std::find_if(devices_.begin(), devices_.end(),
+                     [&cleaned](const TrustedDevice& candidate_device) {
+                         return candidate_device.device_id == cleaned.device_id;
+                     });
+    TrustedDevice previous = *iterator;
+    *iterator = cleaned;
+    if (!writeFile(error)) {
+        *iterator = std::move(previous);
+        return std::nullopt;
+    }
+    return cleaned;
 }
 
 bool PairingStore::writeFile(std::string* error) const {

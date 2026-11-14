@@ -43,6 +43,12 @@ public:
                    const std::string& new_fingerprint,
                    std::string* error = nullptr);
 
+    // Variante para un reemparejamiento: actualiza también nombre, host y
+    // puerto. `device.pins.front()` es la huella nueva; conserva las anteriores
+    // como secundarias y escribe el almacén una sola vez.
+    std::optional<TrustedDevice> rotatePin(const TrustedDevice& device,
+                                           std::string* error = nullptr);
+
     static std::string normalizePin(const std::string& fingerprint);
     static bool isValidPin(const std::string& fingerprint);
 

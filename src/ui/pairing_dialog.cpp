@@ -335,33 +335,17 @@ void PairingDialog::complete(PairingPeer peer) {
     std::string error;
     const bool re_pairing = store_.find(device.device_id).has_value();
     if (re_pairing) {
-        // Si el certificado del peer cambió, conserva el pin anterior como
-        // respaldo temporal y deja el observado ahora como huella principal.
-        if (!store_.rotatePin(device.device_id, device.pins.front(), &error)) {
+        // Una sola escritura conserva el pin anterior como secundario y
+        // actualiza el nombre, el host y el puerto del par.
+        auto rotated = store_.rotatePin(device, &error);
+        if (!rotated.has_value()) {
             fail(QString::fromStdString(
                 error.empty()
                     ? std::string("No se pudo rotar el pin del equipo emparejado")
                     : error));
             return;
         }
-        auto updated = store_.find(device.device_id);
-        if (!updated.has_value()) {
-            fail(QStringLiteral("No se pudo leer el equipo reemparejado"));
-            return;
-        }
-        // rotatePin conserva el pin anterior; save actualiza el resto de los
-        // datos sin perder el orden nuevo/antiguo.
-        updated->name = device.name;
-        updated->host = device.host;
-        updated->port = device.port;
-        if (!store_.save(*updated, &error)) {
-            fail(QString::fromStdString(
-                error.empty()
-                    ? std::string("No se pudo actualizar el equipo reemparejado")
-                    : error));
-            return;
-        }
-        device = std::move(*updated);
+        device = std::move(*rotated);
     } else if (!store_.save(device, &error)) {
         fail(QString::fromStdString(
             error.empty() ? std::string("No se pudo guardar el equipo emparejado")
