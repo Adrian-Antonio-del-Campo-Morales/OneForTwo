@@ -180,4 +180,16 @@ if(ONEINTWO_BUILD_TESTS)
     set_tests_properties(capture_windows_wgc PROPERTIES
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         TIMEOUT 120)
+
+    add_executable(oneintwo_wgc_probe_tests
+        ${CMAKE_CURRENT_LIST_DIR}/../../tests/capture_windows/test_wgc_probe.cpp
+    )
+    target_include_directories(oneintwo_wgc_probe_tests PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/../../tests/capture_windows
+        ${ONEINTWO_REPO_ROOT}/src)
+    target_compile_features(oneintwo_wgc_probe_tests PRIVATE cxx_std_17)
+    add_test(NAME capture_windows_wgc_probe COMMAND oneintwo_wgc_probe_tests)
+    set_tests_properties(capture_windows_wgc_probe PROPERTIES
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        TIMEOUT 120)
 endif()
