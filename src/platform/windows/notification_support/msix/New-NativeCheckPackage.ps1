@@ -174,10 +174,28 @@ try {
         Tee-Object -FilePath (Join-Path $output "certutil-root.log")
     Assert-Condition ($LASTEXITCODE -eq 0) "No se pudo confiar en el certificado (Root)."
     Write-Output "msix: certificado de prueba confiado en el runner"
-    & $signtool verify /pa /v $msixPath 2>&1 |
-        Tee-Object -FilePath (Join-Path $output "signtool-verify.log")
-    Assert-Condition ($LASTEXITCODE -eq 0) "signtool verify falló con código $LASTEXITCODE."
-    Write-Output "msix: firma verificada"
+    # signtool verify puede quedarse esperando una comprobación de red en un
+    # runner sin acceso al material de revocación; se acota y no bloquea el
+    # empaquetado. La firma aplicada y el contenido se validan igualmente.
+    $verifyOut = Join-Path $output "signtool-verify.log"
+    $verifyErr = Join-Path $output "signtool-verify.err.log"
+    $verifyProcess = Start-Process -FilePath $signtool `
+        -ArgumentList @("verify", "/pa", "/v", $msixPath) `
+        -NoNewWindow -PassThru `
+        -RedirectStandardOutput $verifyOut `
+        -RedirectStandardError $verifyErr
+    $signatureStatus = "applied;verification=timeout"
+    if ($verifyProcess.WaitForExit(45000)) {
+        Assert-Condition ($verifyProcess.ExitCode -eq 0) `
+            "signtool verify falló con código $($verifyProcess.ExitCode)."
+        $signatureStatus = "applied;verification=verified"
+        Write-Output "msix: firma verificada"
+    } else {
+        try { $verifyProcess.Kill() } catch { }
+        $verifyProcess.WaitForExit()
+        Write-Warning "signtool verify no terminó en 45 s; se continúa con la validación estructural."
+        Write-Output "msix: firma aplicada (verificación acotada por timeout)"
+    }
 
     $unpacked = Join-Path $output "unpacked"
     & $makeappx unpack /p $msixPath /d $unpacked /o 2>&1 |
@@ -202,7 +220,7 @@ try {
         "msix=$([System.IO.Path]::GetFileName($msixPath))"
         "msix_sha256=$hash"
         "certificate_thumbprint=$($certificate.Thumbprint)"
-        "signature=verified"
+        "signature=$signatureStatus"
         "unpacked=ok"
         "result=ok"
     )
@@ -215,8 +233,9 @@ OneInTwo Native Notifications Check
 Paquete MSIX de comprobación, no de distribución. El certificado es autofirmado
 y solo sirve para probar esta compilación.
 
-1. Confiar en el certificado (sin elevación, tienda del usuario actual):
-   Import-Certificate -FilePath OneInTwo-NativeCheck.cer -CertStoreLocation Cert:\CurrentUser\TrustedPeople
+1. En una consola elevada, confiar en el certificado de prueba en la tienda
+   de máquina que usa App Installer (no en la del usuario):
+   Import-Certificate -FilePath OneInTwo-NativeCheck.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
 
 2. Instalar el paquete:
    Add-AppxPackage -Path OneInTwo-NativeCheck.msix
