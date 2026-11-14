@@ -31,18 +31,6 @@
 #include <thread>
 #include <utility>
 
-// IGraphicsCaptureSession2 (IsCursorCaptureEnabled) se añadió en el SDK
-// 10.0.19041. sdkddkver.h define NTDDI_WIN10_VB a partir de esa versión; con
-// un SDK anterior no se compila la llamada y la captura sigue funcionando.
-#if defined(__has_include)
-#if __has_include(<sdkddkver.h>)
-#include <sdkddkver.h>
-#endif
-#endif
-#if defined(NTDDI_WIN10_VB)
-#define ONEINTWO_WGC_HAS_CURSOR_CONTROL 1
-#endif
-
 namespace oneintwo::windows {
 namespace {
 
@@ -117,18 +105,16 @@ public:
                 item_.Size());
             pool_size_ = size_;
             session_ = pool_.CreateCaptureSession(item_);
-#if defined(ONEINTWO_WGC_HAS_CURSOR_CONTROL)
-            // La propiedad exige Windows 10 2004. El QI mantiene 1903/1909
+            // SDK 10.0.19041+ (exigido por CMake). El QI mantiene 1903/1909
             // operativos aunque se compile con un SDK más nuevo.
             try {
-                if (const auto session2 = session_.try_as<
+                if (session_.try_as<
                         ABI::Windows::Graphics::Capture::IGraphicsCaptureSession2>()) {
-                    winrt::check_hresult(session2->put_IsCursorCaptureEnabled(false));
+                    session_.IsCursorCaptureEnabled(false);
                 }
             } catch (...) {
                 // Ocultar el cursor es cosmético: no abortar la captura.
             }
-#endif
             // El borde usa el comportamiento del sistema: IsBorderRequired
             // exige SDK 10.0.20348 y consentimiento explícito del usuario.
             session_.StartCapture();

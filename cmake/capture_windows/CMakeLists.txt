@@ -42,6 +42,50 @@ if(ONEINTWO_CAPTURE_QT)
 endif()
 
 if(WIN32)
+    # IsCursorCaptureEnabled llegó con el SDK 10.0.19041. El backend lo usa
+    # siempre; el QI de runtime conserva Windows 1903/1909. Fallar aquí evita
+    # una build que compile el fallback silenciosamente.
+    set(ONEINTWO_WINDOWS_SDK_MIN "10.0.19041")
+    set(_oneintwo_sdk_version "${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
+    if(NOT _oneintwo_sdk_version AND DEFINED ENV{WindowsSDKVersion})
+        string(REGEX REPLACE "[\\\\/]+$" "" _oneintwo_sdk_version "$ENV{WindowsSDKVersion}")
+    endif()
+    if(_oneintwo_sdk_version AND _oneintwo_sdk_version VERSION_LESS ONEINTWO_WINDOWS_SDK_MIN)
+        message(FATAL_ERROR
+            "OneInTwo requiere Windows SDK ${ONEINTWO_WINDOWS_SDK_MIN} o posterior "
+            "para IsCursorCaptureEnabled; el SDK seleccionado es '${_oneintwo_sdk_version}'.")
+    endif()
+
+    include(CheckCXXSourceCompiles)
+    set(_oneintwo_try_compile_type "${CMAKE_TRY_COMPILE_TARGET_TYPE}")
+    set(_oneintwo_required_flags "${CMAKE_REQUIRED_FLAGS}")
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+    if(MSVC)
+        string(APPEND CMAKE_REQUIRED_FLAGS
+            " /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /DNOMINMAX /D_WIN32_WINNT=0x0A00 /DWINVER=0x0A00")
+    else()
+        string(APPEND CMAKE_REQUIRED_FLAGS
+            " -DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -DNOMINMAX -D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00")
+    endif()
+    unset(ONEINTWO_HAS_WGC_CURSOR_API CACHE)
+    check_cxx_source_compiles([=[
+        #include <windows.h>
+        #include <windows.graphics.capture.h>
+        void checkCursor(ABI::Windows::Graphics::Capture::IGraphicsCaptureSession2& session)
+        {
+            session.put_IsCursorCaptureEnabled(false);
+        }
+        int main() { return 0; }
+    ]=] ONEINTWO_HAS_WGC_CURSOR_API)
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE "${_oneintwo_try_compile_type}")
+    set(CMAKE_REQUIRED_FLAGS "${_oneintwo_required_flags}")
+    if(NOT ONEINTWO_HAS_WGC_CURSOR_API)
+        message(FATAL_ERROR
+            "OneInTwo requiere Windows SDK ${ONEINTWO_WINDOWS_SDK_MIN} o posterior "
+            "(IGraphicsCaptureSession2/IsCursorCaptureEnabled); no se encontró la API "
+            "en las cabeceras seleccionadas.")
+    endif()
+
     add_library(oneintwo_capture_windows STATIC
         ${ONEINTWO_REPO_ROOT}/src/platform/windows/visual_capture.cpp
         ${ONEINTWO_REPO_ROOT}/src/platform/windows/visual/win32_selector.cpp
@@ -51,9 +95,8 @@ if(WIN32)
     target_include_directories(oneintwo_capture_windows PUBLIC
         $<BUILD_INTERFACE:${ONEINTWO_REPO_ROOT}/src>)
     target_compile_features(oneintwo_capture_windows PUBLIC cxx_std_17)
-    # WGC exige el SDK 10.0.18362: IGraphicsCaptureItemInterop no existe antes.
-    # IsCursorCaptureEnabled se usa si el SDK es 19041+; en runtime se comprueba
-    # que Windows 10 2004 o posterior lo soporte.
+    # IsCursorCaptureEnabled exige el SDK 10.0.19041; el QI de runtime conserva
+    # Windows 1903/1909 sin intentar llamar a la propiedad.
     target_compile_definitions(oneintwo_capture_windows PRIVATE
         UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX
         _WIN32_WINNT=0x0A00 WINVER=0x0A00)
