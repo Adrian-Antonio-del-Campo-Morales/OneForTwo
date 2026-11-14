@@ -81,6 +81,27 @@ aplicación empaquetada expone su identidad como
 - No registrar activadores de toast ni acciones: el receptor presenta texto
   plano y no permite respuestas remotas.
 
+## Paquete MSIX de comprobación (CI)
+
+El job `msix` del workflow de validación compila el recorrido nativo con CRT
+estático, lo empaqueta con [`msix/AppxManifest.xml`](msix/AppxManifest.xml) y
+[`msix/New-NativeCheckPackage.ps1`](msix/New-NativeCheckPackage.ps1), y publica
+el artefacto `oneintwo-notifications-msix` con:
+
+- `OneInTwo-NativeCheck.msix` firmado con un certificado efímero de prueba.
+- `OneInTwo-NativeCheck.cer` para confiar en él solo durante la comprobación.
+- `install.txt` con los pasos de instalación y arranque.
+- `validation.txt` y los logs de `MakeAppx`/`signtool`.
+
+El script comprueba antes de firmar que el manifiesto declara
+`userNotificationListener` en `uap3`, `runFullTrust` en `rescap`, la aplicación
+full-trust, el ejecutable y los recursos; después empaqueta, firma, verifica la
+firma y vuelve a descomprimir el MSIX. El `.pfx` privado no se publica.
+
+El paquete usa la identidad `OneInTwo.Notifications.NativeCheck` y el
+`Application Id` `NativeCheck`. No es el paquete de producto ni sustituye al
+manifiesto del integrador.
+
 ## Comprobación nativa pendiente
 
 En un equipo Windows con MSVC y Windows SDK 10.0.17763 o posterior:
@@ -95,7 +116,10 @@ build/notifications/tests/notifications/Release/oneintwo_notifications_native_wi
 
 El recorrido imprime las capacidades, presenta un aviso manual atribuido a
 `EQUIPO-DE-PRUEBA`, inicia la observación si está disponible y espera un aviso
-nuevo. Debe verificarse visualmente:
+nuevo. Para la variante empaquetada, descargar el artefacto
+`oneintwo-notifications-msix` y seguir `install.txt`; así el ejecutable tiene
+identidad de paquete y puede solicitar la observación. Debe verificarse
+visualmente:
 
 - [ ] El aviso muestra el título y el cuerpo Unicode y la línea `De EQUIPO-DE-PRUEBA`.
 - [ ] No aparecen botones, enlaces ni acciones.
