@@ -120,6 +120,7 @@ try {
     Assert-Condition ($null -ne $family) "Falta TargetDeviceFamily."
     Assert-Condition ($family.GetAttribute("Name") -eq "Windows.Desktop") `
         "TargetDeviceFamily debe ser Windows.Desktop."
+    Write-Output "msix: manifiesto validado"
 
     $sdkRoot = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
     Assert-Condition (Test-Path -LiteralPath $sdkRoot) "No se encontró el SDK de Windows."
@@ -139,6 +140,7 @@ try {
     & $makeappx pack /d $layout /p $msixPath /o 2>&1 |
         Tee-Object -FilePath (Join-Path $output "makeappx-pack.log")
     Assert-Condition ($LASTEXITCODE -eq 0) "MakeAppx pack falló con código $LASTEXITCODE."
+    Write-Output "msix: paquete creado"
 
     $password = [Guid]::NewGuid().ToString("N")
     $securePassword = ConvertTo-SecureString -String $password -Force -AsPlainText
@@ -156,17 +158,26 @@ try {
     $pfxPath = Join-Path $output "OneInTwo-NativeCheck.pfx"
     Export-PfxCertificate -Cert $certificate -FilePath $pfxPath -Password $securePassword | Out-Null
     Export-Certificate -Cert $certificate -FilePath $cerPath | Out-Null
+    Write-Output "msix: certificado creado"
 
     & $signtool sign /fd SHA256 /f $pfxPath /p $password $msixPath 2>&1 |
         Tee-Object -FilePath (Join-Path $output "signtool-sign.log")
     Assert-Condition ($LASTEXITCODE -eq 0) "signtool sign falló con código $LASTEXITCODE."
+    Write-Output "msix: firma aplicada"
 
     # El certificado es efímero de comprobación; se confía solo en este runner.
-    Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\TrustedPeople" | Out-Null
-    Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
+    # certutil evita cualquier diálogo interactivo al escribir en las tiendas.
+    & certutil -user -addstore -f TrustedPeople $cerPath 2>&1 |
+        Tee-Object -FilePath (Join-Path $output "certutil-trustedpeople.log")
+    Assert-Condition ($LASTEXITCODE -eq 0) "No se pudo confiar en el certificado (TrustedPeople)."
+    & certutil -user -addstore -f Root $cerPath 2>&1 |
+        Tee-Object -FilePath (Join-Path $output "certutil-root.log")
+    Assert-Condition ($LASTEXITCODE -eq 0) "No se pudo confiar en el certificado (Root)."
+    Write-Output "msix: certificado de prueba confiado en el runner"
     & $signtool verify /pa /v $msixPath 2>&1 |
         Tee-Object -FilePath (Join-Path $output "signtool-verify.log")
     Assert-Condition ($LASTEXITCODE -eq 0) "signtool verify falló con código $LASTEXITCODE."
+    Write-Output "msix: firma verificada"
 
     $unpacked = Join-Path $output "unpacked"
     & $makeappx unpack /p $msixPath /d $unpacked /o 2>&1 |
@@ -176,6 +187,7 @@ try {
         "El MSIX no contiene AppxManifest.xml."
     Assert-Condition (Test-Path -LiteralPath (Join-Path $unpacked $exeName)) `
         "El MSIX no contiene $exeName."
+    Write-Output "msix: paquete descomprimido y comprobado"
 
     $hash = (Get-FileHash -LiteralPath $msixPath -Algorithm SHA256).Hash
     $validation = @(
