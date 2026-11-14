@@ -84,10 +84,9 @@ Semántica que el coordinador debe respetar:
 ## Decisiones y límites de contrato
 
 - **Frecuencia:** `docs/IMPLEMENTACION_PARALELA.md` fija tres avisos por ventana
-  de un segundo monotónico; `feature_contracts.hpp` declara
-  `notification_rate_per_second = 5`. La implementación aplica tres y deja una
-  comprobación estática de que no supera la cota del canal. El integrador debe
-  decidir si corrige el documento o la constante pública.
+  de un segundo monotónico. `feature_contracts.hpp` declara esa misma cifra
+  (`notification_rate_per_second = 3`) y la política local la usa como única
+  fuente. Las pruebas comprueban el límite efectivo en envío y recepción.
 - **Descubrimiento de aplicaciones:** resuelto con
   `SharedNotifications::discoverApplications` y
   `DesktopNotifications::discoverApplications`. Devuelve
