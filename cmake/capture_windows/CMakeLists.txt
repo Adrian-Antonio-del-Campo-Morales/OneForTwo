@@ -27,6 +27,16 @@ target_include_directories(oneintwo_capture_windows_model PUBLIC
 target_compile_features(oneintwo_capture_windows_model PUBLIC cxx_std_17)
 set_target_properties(oneintwo_capture_windows_model PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# Núcleo nativo portable: sesión, frame pool y frames se inyectan, de modo que
+# el ciclo de vida WGC puede probarse con dobles sin WinRT ni GPU.
+add_library(oneintwo_wgc_capture_core STATIC
+    ${ONEINTWO_REPO_ROOT}/src/platform/windows/visual/wgc_capture_core.cpp
+)
+target_include_directories(oneintwo_wgc_capture_core PUBLIC
+    $<BUILD_INTERFACE:${ONEINTWO_REPO_ROOT}/src>)
+target_compile_features(oneintwo_wgc_capture_core PUBLIC cxx_std_17)
+set_target_properties(oneintwo_wgc_capture_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 set(ONEINTWO_CAPTURE_PARENT_SOURCES
     ${ONEINTWO_REPO_ROOT}/src/platform/windows/visual/win32_parent_default.cpp)
 set(ONEINTWO_CAPTURE_PARENT_LIBRARIES "")
@@ -102,7 +112,8 @@ if(WIN32)
         _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(oneintwo_capture_windows
         PUBLIC oneintwo_capture_windows_model
-        PRIVATE d3d11 dxgi dwmapi user32 gdi32 ole32 runtimeobject windowsapp)
+        PRIVATE oneintwo_wgc_capture_core d3d11 dxgi dwmapi user32 gdi32 ole32 runtimeobject
+                windowsapp)
     if(ONEINTWO_CAPTURE_PARENT_LIBRARIES)
         target_link_libraries(oneintwo_capture_windows PRIVATE
             ${ONEINTWO_CAPTURE_PARENT_LIBRARIES})
@@ -148,6 +159,18 @@ if(ONEINTWO_BUILD_TESTS)
     endif()
     add_test(NAME capture_windows COMMAND oneintwo_capture_windows_tests)
     set_tests_properties(capture_windows PROPERTIES
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        TIMEOUT 120)
+
+    add_executable(oneintwo_wgc_capture_tests
+        ${CMAKE_CURRENT_LIST_DIR}/../../tests/capture_windows/test_wgc_capture.cpp
+    )
+    target_include_directories(oneintwo_wgc_capture_tests PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/../../tests/capture_windows)
+    target_link_libraries(oneintwo_wgc_capture_tests
+        PRIVATE oneintwo_wgc_capture_core)
+    add_test(NAME capture_windows_wgc COMMAND oneintwo_wgc_capture_tests)
+    set_tests_properties(capture_windows_wgc PROPERTIES
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         TIMEOUT 120)
 endif()

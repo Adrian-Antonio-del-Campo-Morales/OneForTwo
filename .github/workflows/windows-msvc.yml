@@ -31,7 +31,7 @@ jobs:
         run: >
           cmake --build build/windows-msvc --config Release
           --target oneintwo_capture_windows oneintwo_capture_windows_link_check
-          oneintwo_capture_windows_tests
+          oneintwo_capture_windows_tests oneintwo_wgc_capture_tests
 
       - name: Run capture tests
         shell: pwsh

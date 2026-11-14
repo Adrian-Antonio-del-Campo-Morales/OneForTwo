@@ -8,6 +8,7 @@
 
 #if defined(ONEINTWO_WGC_AVAILABLE)
 
+#include "wgc_capture_core.hpp"
 #include "win32_port.hpp"
 
 #include <d3d11.h>
@@ -23,27 +24,14 @@
 #include <winrt/base.h>
 
 #include <algorithm>
-#include <atomic>
-#include <chrono>
+#include <cstdint>
 #include <cstring>
-#include <optional>
+#include <memory>
 #include <string>
-#include <thread>
 #include <utility>
 
 namespace oneintwo::windows {
 namespace {
-
-constexpr std::uint32_t kMaxDimension = 16384;
-constexpr std::uint64_t kMaxPixels = 64ull * 1024ull * 1024ull;
-
-bool saneSize(std::uint32_t width, std::uint32_t height)
-{
-    if (width == 0 || height == 0 || width > kMaxDimension || height > kMaxDimension) {
-        return false;
-    }
-    return static_cast<std::uint64_t>(width) * height <= kMaxPixels;
-}
 
 void makeOpaque(VisualFrame& frame)
 {
@@ -63,222 +51,68 @@ bool initialiseApartment()
     return true;
 }
 
-class WgcCapture final : public NativeCapture {
+winrt::Windows::Graphics::SizeInt32 toSizeInt32(VisualSize size)
+{
+    return {static_cast<std::int32_t>(size.width), static_cast<std::int32_t>(size.height)};
+}
+
+class WinRtFrameCopier {
 public:
-    WgcCapture(winrt::Windows::Graphics::Capture::GraphicsCaptureItem item,
-               winrt::com_ptr<ID3D11Device> device, winrt::com_ptr<ID3D11DeviceContext> context,
-               winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice render_device,
-               VisualSourceKind kind, std::uint64_t native_handle, DWORD process_id,
-               std::wstring monitor_name, VisualSize size)
-        : item_(std::move(item))
-        , device_(std::move(device))
+    WinRtFrameCopier(winrt::com_ptr<ID3D11Device> device,
+                     winrt::com_ptr<ID3D11DeviceContext> context)
+        : device_(std::move(device))
         , context_(std::move(context))
-        , render_device_(std::move(render_device))
-        , kind_(kind)
-        , native_handle_(native_handle)
-        , process_id_(process_id)
-        , monitor_name_(std::move(monitor_name))
-        , size_(size)
     {
     }
 
-    ~WgcCapture() override { stop(); }
-
-    void start(Sink sink) override
+    bool copy(ID3D11Texture2D* texture, VisualSize content, VisualFrame& out)
     {
-        if (thread_.joinable() || !item_) {
-            if (sink.state) {
-                sink.state(VisualSourceState::closed);
-            }
-            return;
-        }
-        sink_ = std::move(sink);
-        stop_.store(false);
-        suspended_.store(false);
-        last_state_.reset();
-        initialiseApartment();
-
         try {
-            pool_ = winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool::CreateFreeThreaded(
-                render_device_,
-                winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized, 2,
-                item_.Size());
-            pool_size_ = size_;
-            session_ = pool_.CreateCaptureSession(item_);
-            // SDK 10.0.19041+ (exigido por CMake). El QI mantiene 1903/1909
-            // operativos aunque se compile con un SDK más nuevo.
-            try {
-                if (session_.try_as<
-                        ABI::Windows::Graphics::Capture::IGraphicsCaptureSession2>()) {
-                    session_.IsCursorCaptureEnabled(false);
-                }
-            } catch (...) {
-                // Ocultar el cursor es cosmético: no abortar la captura.
+            if (!texture) {
+                return false;
             }
-            // El borde usa el comportamiento del sistema: IsBorderRequired
-            // exige SDK 10.0.20348 y consentimiento explícito del usuario.
-            session_.StartCapture();
+            D3D11_TEXTURE2D_DESC description{};
+            texture->GetDesc(&description);
+            if (description.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
+                return false; // El contrato exige BGRA; no se entrega otro formato.
+            }
+            const std::uint32_t copy_width = std::min(content.width, description.Width);
+            const std::uint32_t copy_height = std::min(content.height, description.Height);
+            if (!detail::saneSize({copy_width, copy_height})
+                || !ensureStaging(copy_width, copy_height, description.Format)) {
+                return false;
+            }
+
+            D3D11_BOX box{};
+            box.left = 0;
+            box.top = 0;
+            box.front = 0;
+            box.right = copy_width;
+            box.bottom = copy_height;
+            box.back = 1;
+            context_->CopySubresourceRegion(staging_.get(), 0, 0, 0, 0, texture, 0, &box);
+
+            D3D11_MAPPED_SUBRESOURCE mapped{};
+            if (FAILED(context_->Map(staging_.get(), 0, D3D11_MAP_READ, 0, &mapped))) {
+                return false;
+            }
+            out.size = {copy_width, copy_height};
+            out.bgra.resize(static_cast<std::size_t>(copy_width) * copy_height * 4ull);
+            const auto* source = static_cast<const std::uint8_t*>(mapped.pData);
+            for (std::uint32_t row = 0; row < copy_height; ++row) {
+                std::memcpy(out.bgra.data() + static_cast<std::size_t>(row) * copy_width * 4ull,
+                            source + static_cast<std::size_t>(row) * mapped.RowPitch,
+                            static_cast<std::size_t>(copy_width) * 4ull);
+            }
+            context_->Unmap(staging_.get(), 0);
+            makeOpaque(out);
+            return true;
         } catch (...) {
-            releaseGraphics();
-            if (sink_.state) {
-                sink_.state(VisualSourceState::closed);
-            }
-            return;
+            return false;
         }
-
-        thread_ = std::thread([this] { poll(); });
-    }
-
-    void stop() override
-    {
-        stop_.store(true);
-        if (thread_.joinable()) {
-            thread_.join();
-        }
-        releaseGraphics();
-        sink_ = {};
     }
 
 private:
-    void releaseGraphics()
-    {
-        if (session_) {
-            try {
-                session_.Close();
-            } catch (...) {
-            }
-            session_ = nullptr;
-        }
-        if (pool_) {
-            try {
-                pool_.Close();
-            } catch (...) {
-            }
-            pool_ = nullptr;
-        }
-        staging_ = nullptr;
-        context_ = nullptr;
-        device_ = nullptr;
-        render_device_ = nullptr;
-        item_ = nullptr;
-    }
-
-    bool sourceAvailable()
-    {
-        if (kind_ == VisualSourceKind::window) {
-            const HWND window = reinterpret_cast<HWND>(native_handle_);
-            DWORD process = 0;
-            if (IsWindow(window) == FALSE) {
-                return false;
-            }
-            GetWindowThreadProcessId(window, &process);
-            return process == process_id_;
-        }
-        const HMONITOR monitor = reinterpret_cast<HMONITOR>(native_handle_);
-        MONITORINFOEXW info{};
-        info.cbSize = static_cast<DWORD>(sizeof(info));
-        if (GetMonitorInfoW(monitor, &info) == FALSE) {
-            return false;
-        }
-        return monitor_name_.empty() || monitor_name_ == info.szDevice;
-    }
-
-    bool suspendedNow() const
-    {
-        if (kind_ == VisualSourceKind::window) {
-            return IsIconic(reinterpret_cast<HWND>(native_handle_)) != FALSE;
-        }
-        return false;
-    }
-
-    void publishState(VisualSourceState state)
-    {
-        if (last_state_ && *last_state_ == state) {
-            return;
-        }
-        last_state_ = state;
-        if (sink_.state) {
-            sink_.state(state);
-        }
-    }
-
-    void poll()
-    {
-        initialiseApartment();
-        auto last_check = std::chrono::steady_clock::now();
-        while (!stop_.load()) {
-            const auto now = std::chrono::steady_clock::now();
-            if (now - last_check >= std::chrono::milliseconds(200)) {
-                last_check = now;
-                if (!sourceAvailable()) {
-                    publishState(VisualSourceState::closed);
-                    stop_.store(true);
-                    break;
-                }
-                const bool suspended = suspendedNow();
-                if (suspended != suspended_.load()) {
-                    suspended_.store(suspended);
-                    publishState(suspended ? VisualSourceState::suspended
-                                           : VisualSourceState::available);
-                }
-            }
-            if (suspended_.load() || !session_ || !pool_) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-                continue;
-            }
-
-            winrt::Windows::Graphics::Capture::Direct3D11CaptureFrame frame{nullptr};
-            try {
-                frame = pool_.TryGetNextFrame();
-            } catch (...) {
-                publishState(VisualSourceState::closed);
-                stop_.store(true);
-                break;
-            }
-            if (!frame) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                continue;
-            }
-
-            const auto content = frame.ContentSize();
-            const std::uint32_t width = static_cast<std::uint32_t>(std::max(0, content.Width));
-            const std::uint32_t height = static_cast<std::uint32_t>(std::max(0, content.Height));
-            if (saneSize(width, height)) {
-                if (width != pool_size_.width || height != pool_size_.height) {
-                    // El frame pertenece al pool anterior: cerrarlo antes de
-                    // recrear el pool y descartar este frame de transición.
-                    try {
-                        frame.Close();
-                    } catch (...) {
-                    }
-                    try {
-                        pool_.Recreate(
-                            render_device_,
-                            winrt::Windows::Graphics::DirectX::DirectXPixelFormat::
-                                B8G8R8A8UIntNormalized,
-                            2, content);
-                        pool_size_ = {width, height};
-                    } catch (...) {
-                        publishState(VisualSourceState::closed);
-                        stop_.store(true);
-                        break;
-                    }
-                    continue;
-                }
-                VisualFrame visual;
-                if (copyFrame(frame, width, height, visual)) {
-                    if (sink_.frame) {
-                        sink_.frame(std::move(visual));
-                    }
-                }
-            }
-            try {
-                frame.Close();
-            } catch (...) {
-            }
-        }
-    }
-
     bool ensureStaging(std::uint32_t width, std::uint32_t height, DXGI_FORMAT format)
     {
         if (staging_ && staging_size_.width == width && staging_size_.height == height
@@ -304,77 +138,227 @@ private:
         return true;
     }
 
-    bool copyFrame(const winrt::Windows::Graphics::Capture::Direct3D11CaptureFrame& frame,
-                   std::uint32_t width, std::uint32_t height, VisualFrame& out)
+    winrt::com_ptr<ID3D11Device> device_;
+    winrt::com_ptr<ID3D11DeviceContext> context_;
+    winrt::com_ptr<ID3D11Texture2D> staging_;
+    VisualSize staging_size_{};
+    DXGI_FORMAT staging_format_ = DXGI_FORMAT_UNKNOWN;
+};
+
+class WinRtWgcFrame final : public detail::WgcFrame {
+public:
+    WinRtWgcFrame(winrt::Windows::Graphics::Capture::Direct3D11CaptureFrame frame,
+                  std::shared_ptr<WinRtFrameCopier> copier)
+        : frame_(std::move(frame))
+        , copier_(std::move(copier))
+    {
+    }
+
+    VisualSize contentSize() override
+    {
+        const auto content = frame_.ContentSize();
+        return {static_cast<std::uint32_t>(std::max(0, content.Width)),
+                static_cast<std::uint32_t>(std::max(0, content.Height))};
+    }
+
+    bool copyTo(VisualFrame& out) override
     {
         try {
-            const auto surface = frame.Surface();
+            const auto surface = frame_.Surface();
             const auto access = surface.as<
                 ::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>();
             winrt::com_ptr<ID3D11Texture2D> texture;
             winrt::check_hresult(access->GetInterface(
                 __uuidof(ID3D11Texture2D), texture.put_void()));
-            D3D11_TEXTURE2D_DESC description{};
-            texture->GetDesc(&description);
-            if (description.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
-                return false; // El contrato exige BGRA; no se entrega otro formato.
-            }
-            const std::uint32_t copy_width = std::min(width, description.Width);
-            const std::uint32_t copy_height = std::min(height, description.Height);
-            if (!saneSize(copy_width, copy_height)
-                || !ensureStaging(copy_width, copy_height, description.Format)) {
-                return false;
-            }
+            return copier_->copy(texture.get(), contentSize(), out);
+        } catch (...) {
+            return false;
+        }
+    }
 
-            D3D11_BOX box{};
-            box.left = 0;
-            box.top = 0;
-            box.front = 0;
-            box.right = copy_width;
-            box.bottom = copy_height;
-            box.back = 1;
-            context_->CopySubresourceRegion(staging_.get(), 0, 0, 0, 0, texture.get(), 0, &box);
+    void close() override
+    {
+        if (frame_) {
+            try {
+                frame_.Close();
+            } catch (...) {
+            }
+            frame_ = nullptr;
+        }
+    }
 
-            D3D11_MAPPED_SUBRESOURCE mapped{};
-            if (FAILED(context_->Map(staging_.get(), 0, D3D11_MAP_READ, 0, &mapped))) {
-                return false;
+private:
+    winrt::Windows::Graphics::Capture::Direct3D11CaptureFrame frame_{nullptr};
+    std::shared_ptr<WinRtFrameCopier> copier_;
+};
+
+class WinRtWgcSession final : public detail::WgcSession {
+public:
+    explicit WinRtWgcSession(
+        winrt::Windows::Graphics::Capture::GraphicsCaptureSession session)
+        : session_(std::move(session))
+    {
+    }
+
+    void configureCursor() override
+    {
+        (void)detail::tryDisableCursor<
+            winrt::Windows::Graphics::Capture::GraphicsCaptureSession,
+            ABI::Windows::Graphics::Capture::IGraphicsCaptureSession2>(session_);
+    }
+
+    void start() override { session_.StartCapture(); }
+
+    void close() override
+    {
+        if (session_) {
+            try {
+                session_.Close();
+            } catch (...) {
             }
-            out.size = {copy_width, copy_height};
-            out.bgra.resize(static_cast<std::size_t>(copy_width) * copy_height * 4ull);
-            const auto* source = static_cast<const std::uint8_t*>(mapped.pData);
-            for (std::uint32_t row = 0; row < copy_height; ++row) {
-                std::memcpy(out.bgra.data() + static_cast<std::size_t>(row) * copy_width * 4ull,
-                            source + static_cast<std::size_t>(row) * mapped.RowPitch,
-                            static_cast<std::size_t>(copy_width) * 4ull);
-            }
-            context_->Unmap(staging_.get(), 0);
-            makeOpaque(out);
+            session_ = nullptr;
+        }
+    }
+
+private:
+    winrt::Windows::Graphics::Capture::GraphicsCaptureSession session_{nullptr};
+};
+
+class WinRtWgcFramePool final : public detail::WgcFramePool {
+public:
+    WinRtWgcFramePool(
+        winrt::Windows::Graphics::Capture::GraphicsCaptureItem item,
+        winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice render_device,
+        winrt::com_ptr<ID3D11Device> device, winrt::com_ptr<ID3D11DeviceContext> context,
+        winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool pool)
+        : item_(std::move(item))
+        , render_device_(std::move(render_device))
+        , pool_(std::move(pool))
+        , copier_(std::make_shared<WinRtFrameCopier>(std::move(device), std::move(context)))
+    {
+    }
+
+    std::unique_ptr<detail::WgcSession> createSession() override
+    {
+        return std::make_unique<WinRtWgcSession>(pool_.CreateCaptureSession(item_));
+    }
+
+    std::unique_ptr<detail::WgcFrame> nextFrame() override
+    {
+        auto frame = pool_.TryGetNextFrame();
+        if (!frame) {
+            return nullptr;
+        }
+        return std::make_unique<WinRtWgcFrame>(std::move(frame), copier_);
+    }
+
+    bool recreate(VisualSize size) override
+    {
+        try {
+            pool_.Recreate(render_device_,
+                           winrt::Windows::Graphics::DirectX::DirectXPixelFormat::
+                               B8G8R8A8UIntNormalized,
+                           2, toSizeInt32(size));
             return true;
         } catch (...) {
             return false;
         }
     }
 
+    void close() override
+    {
+        if (pool_) {
+            try {
+                pool_.Close();
+            } catch (...) {
+            }
+            pool_ = nullptr;
+        }
+    }
+
+private:
     winrt::Windows::Graphics::Capture::GraphicsCaptureItem item_{nullptr};
-    winrt::com_ptr<ID3D11Device> device_;
-    winrt::com_ptr<ID3D11DeviceContext> context_;
     winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice render_device_{nullptr};
     winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool pool_{nullptr};
-    winrt::Windows::Graphics::Capture::GraphicsCaptureSession session_{nullptr};
-    winrt::com_ptr<ID3D11Texture2D> staging_;
-    VisualSize staging_size_{};
-    DXGI_FORMAT staging_format_ = DXGI_FORMAT_UNKNOWN;
+    std::shared_ptr<WinRtFrameCopier> copier_;
+};
+
+class WinRtWgcPoolFactory final : public detail::WgcFramePoolFactory {
+public:
+    WinRtWgcPoolFactory(
+        winrt::Windows::Graphics::Capture::GraphicsCaptureItem item,
+        winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice render_device,
+        winrt::com_ptr<ID3D11Device> device, winrt::com_ptr<ID3D11DeviceContext> context)
+        : item_(std::move(item))
+        , render_device_(std::move(render_device))
+        , device_(std::move(device))
+        , context_(std::move(context))
+    {
+    }
+
+    std::unique_ptr<detail::WgcFramePool> create(VisualSize initial_size) override
+    {
+        auto pool =
+            winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool::CreateFreeThreaded(
+                render_device_,
+                winrt::Windows::Graphics::DirectX::DirectXPixelFormat::
+                    B8G8R8A8UIntNormalized,
+                2, toSizeInt32(initial_size));
+        return std::make_unique<WinRtWgcFramePool>(item_, render_device_, device_, context_,
+                                                   std::move(pool));
+    }
+
+private:
+    winrt::Windows::Graphics::Capture::GraphicsCaptureItem item_{nullptr};
+    winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice render_device_{nullptr};
+    winrt::com_ptr<ID3D11Device> device_;
+    winrt::com_ptr<ID3D11DeviceContext> context_;
+};
+
+class WinRtWgcSource final : public detail::WgcSource {
+public:
+    WinRtWgcSource(VisualSourceKind kind, std::uint64_t native_handle, DWORD process_id,
+                   std::wstring monitor_name)
+        : kind_(kind)
+        , native_handle_(native_handle)
+        , process_id_(process_id)
+        , monitor_name_(std::move(monitor_name))
+    {
+    }
+
+    bool available() override
+    {
+        if (kind_ == VisualSourceKind::window) {
+            const HWND window = reinterpret_cast<HWND>(native_handle_);
+            DWORD process = 0;
+            if (IsWindow(window) == FALSE) {
+                return false;
+            }
+            GetWindowThreadProcessId(window, &process);
+            return process == process_id_;
+        }
+        const HMONITOR monitor = reinterpret_cast<HMONITOR>(native_handle_);
+        MONITORINFOEXW info{};
+        info.cbSize = static_cast<DWORD>(sizeof(info));
+        if (GetMonitorInfoW(monitor, &info) == FALSE) {
+            return false;
+        }
+        return monitor_name_.empty() || monitor_name_ == info.szDevice;
+    }
+
+    bool suspended() override
+    {
+        if (kind_ == VisualSourceKind::window) {
+            return IsIconic(reinterpret_cast<HWND>(native_handle_)) != FALSE;
+        }
+        return false;
+    }
+
+private:
     VisualSourceKind kind_ = VisualSourceKind::monitor;
     std::uint64_t native_handle_ = 0;
     DWORD process_id_ = 0;
     std::wstring monitor_name_;
-    VisualSize size_{};
-    VisualSize pool_size_{};
-    std::atomic<bool> stop_{false};
-    std::atomic<bool> suspended_{false};
-    std::optional<VisualSourceState> last_state_;
-    Sink sink_;
-    std::thread thread_;
 };
 
 } // namespace
@@ -454,13 +438,17 @@ std::unique_ptr<NativeCapture> createWin32Capture(std::uint64_t handle, VisualSo
             size.width = static_cast<std::uint32_t>(item_size.Width);
             size.height = static_cast<std::uint32_t>(item_size.Height);
         }
-        if (!saneSize(size.width, size.height)) {
+        if (!detail::saneSize(size)) {
             return nullptr;
         }
 
-        return std::make_unique<WgcCapture>(std::move(item), std::move(device),
-                                            std::move(context), std::move(render_device), kind,
-                                            handle, process, std::move(monitor_name), size);
+        auto source = std::make_unique<WinRtWgcSource>(
+            kind, handle, process, std::move(monitor_name));
+        auto pool_factory = std::make_unique<WinRtWgcPoolFactory>(
+            std::move(item), std::move(render_device), std::move(device), std::move(context));
+        return std::make_unique<detail::WgcCaptureCore>(
+            std::move(pool_factory), std::move(source), size,
+            [] { initialiseApartment(); });
     } catch (...) {
         return nullptr;
     }
