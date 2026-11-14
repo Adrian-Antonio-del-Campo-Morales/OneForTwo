@@ -42,8 +42,7 @@ jobs:
         shell: pwsh
         run: >
           cmake -S cmake/capture_windows -B build/windows-msvc-${{ matrix.sdk }}
-          -G "Visual Studio 17 2022" -A x64
-          -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=${{ matrix.sdk }}
+          -G "Visual Studio 17 2022" -A "x64,version=${{ matrix.sdk }}"
           -DONEINTWO_BUILD_TESTS=ON
           -DONEINTWO_CAPTURE_QT=OFF
           -DONEINTWO_REQUIRE_WGC=ON

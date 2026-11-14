@@ -39,21 +39,20 @@ function Invoke-ExpectedFailure {
 $common = @(
     '-S', $sourceDir,
     '-G', 'Visual Studio 17 2022',
-    '-A', 'x64',
     '-DONEINTWO_CAPTURE_QT=OFF',
     '-DONEINTWO_BUILD_TESTS=OFF'
 )
 
 $oldSdkArgs = $common + @(
-    '-B', (Join-Path $buildRoot 'sdk-old'),
-    '-DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=10.0.17763.0'
+    '-A', 'x64,version=10.0.17763.0',
+    '-B', (Join-Path $buildRoot 'sdk-old')
 )
 Invoke-ExpectedFailure -Name 'sdk-old' -CMakeArguments $oldSdkArgs `
     -ExpectedText 'OneInTwo requiere Windows SDK 10.0.19041 o posterior'
 
 $missingApiArgs = $common + @(
+    '-A', 'x64,version=10.0.26100.0',
     '-B', (Join-Path $buildRoot 'api-missing'),
-    '-DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=10.0.26100.0',
     "-DCMAKE_CXX_FLAGS=/I$fakeInclude",
     '-DONEINTWO_REQUIRE_WGC=ON'
 )
