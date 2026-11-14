@@ -141,8 +141,15 @@ jobs:
         run: |
           git config user.name "oneintwo-ci"
           git config user.email "ci@users.noreply.github.com"
+          $snapshot = Join-Path $env:RUNNER_TEMP "oneintwo-msix-logs"
+          if (Test-Path $snapshot) { Remove-Item $snapshot -Recurse -Force }
+          if (Test-Path ci-logs/msix) { Copy-Item ci-logs/msix $snapshot -Recurse -Force }
           git fetch origin "refs/heads/${{ github.ref_name }}:refs/remotes/origin/${{ github.ref_name }}"
           git reset --hard "origin/${{ github.ref_name }}"
+          if (Test-Path $snapshot) {
+            New-Item -ItemType Directory -Force ci-logs/msix | Out-Null
+            Copy-Item "$snapshot\*" ci-logs/msix -Force
+          }
           if (Test-Path artifacts/msix/validation.txt) {
             Copy-Item artifacts/msix/validation.txt ci-logs/msix/validation.txt -Force
           }
