@@ -78,6 +78,7 @@ jobs:
   msix:
     needs: msvc
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -111,6 +112,7 @@ jobs:
 
       - name: Validate, pack and sign MSIX
         id: package_msix
+        timeout-minutes: 8
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
