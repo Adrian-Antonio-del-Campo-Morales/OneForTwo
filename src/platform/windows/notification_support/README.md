@@ -51,13 +51,18 @@ aplicación empaquetada expone su identidad como
    confirma identidad de paquete. Sin ella, `requestObservationPermission` y
    `startObserving` completan con `unavailable` y la interfaz debe mostrar la
    función como no disponible.
-3. En el primer arranque con reenvío autorizado y una lista no vacía, el módulo
+3. Para poblar la lista de aplicaciones, la interfaz llama a
+   `SharedNotifications::discoverApplications`. Es una consulta independiente:
+   puede solicitar consentimiento, enumera las aplicaciones con avisos actuales
+   y no inicia la observación ni altera su línea base. La lista puede refrescarse
+   cuando el usuario vuelva a abrir la selección.
+4. En el primer arranque con reenvío autorizado y una lista no vacía, el módulo
    llama a `startObserving`. El adaptador solicita consentimiento con
    `RequestAccessAsync` desde el hilo de interfaz del coordinador.
-4. Si el usuario retira el consentimiento en **Configuración → Privacidad →
+5. Si el usuario retira el consentimiento en **Configuración → Privacidad →
    Notificaciones**, el adaptador lo detecta en su sondeo de dos segundos,
    abandona la suscripción y entrega `state_changed(denied)`.
-5. Al iniciar cada suscripción se lee la lista existente con
+6. Al iniciar cada suscripción se lee la lista existente con
    `GetNotificationsAsync` y se usa como línea base: no se reenvía el historial
    del centro de notificaciones. Una reconexión o un regreso de suspensión
    reinicia la observación y toma una línea base nueva.
@@ -75,9 +80,9 @@ aplicación empaquetada expone su identidad como
   `observación de notificaciones denegada por el escritorio`. El coordinador
   debe volver a consultar `notificationCapabilities()` y actualizar el estado del
   control de reenvío.
-- El módulo llama a `setAllowedApplications` con AppUserModelID locales. La
-  interfaz debe poblar esa lista con los identificadores que entrega
-  `ObservedNotification::app_id`; el nombre visible solo se usa para atribución.
+- La interfaz obtiene la selección con `discoverApplications` y llama a
+  `setAllowedApplications` con los `NotificationApplication::app_id` elegidos.
+  El nombre visible solo se usa para atribución.
 - No registrar activadores de toast ni acciones: el receptor presenta texto
   plano y no permite respuestas remotas.
 
@@ -130,6 +135,8 @@ visualmente:
       `unavailable` (código de salida 77) y no se muestra nada.
 - [ ] Con paquete y consentimiento, `observe=true` y `startObserving` completa con
       `ready`.
+- [ ] `discoverApplications` enumera las aplicaciones con avisos actuales,
+      excluye OneInTwo y no inicia la observación.
 - [ ] Un aviso nuevo de una aplicación autorizada llega una sola vez con su
       nombre visible; los avisos previos al inicio no se reenvían.
 - [ ] Los avisos de OneInTwo no se reenvían (sin eco).

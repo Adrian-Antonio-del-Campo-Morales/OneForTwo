@@ -61,12 +61,13 @@ La parada de captura invalida la selección o adquisición pendiente. La respues
 | Cerrar visor | La fábrica creada por P llama a `VisualShare::stop`. |
 | Formulario de aviso | P llama a `SharedNotifications::sendManual`. |
 | Aviso remoto | P llama a `receiveNotice`. |
+| Descubrir aplicaciones | P llama a `SharedNotifications::discoverApplications`. N consulta al adaptador y devuelve una instantánea; no cambia autorización ni observación. |
 | Cambio de apps permitidas | P llama a `setAllowedApplications`. N reinicia o actualiza su observación según permisos. |
 | Cambio de autorización | P llama a `setAuthorization` en ambos módulos antes de despachar más trabajo. |
 
 P y N usan exclusivamente `SendFeatureMessage` para transmitir. `queued` significa que la sesión adquirió el mensaje. `busy` permite descartar vídeo y mantener avisos en una cola local acotada. `disconnected` o `denied` cancelan el trabajo afectado. Si falla el envío de un mensaje de control visual, P termina localmente la operación. El otro extremo aplica su temporizador.
 
-N solicita el permiso nativo cuando existe permiso funcional de reenvío y una lista de apps habilitada. `startObserving` informa inicio o error y posteriores retiradas mediante `state_changed`. Los callbacks capturan el identificador de suscripción. `presentNotice` completa una vez con el resultado de la solicitud al escritorio. El permiso se comprueba otra vez antes de presentar.
+N solicita el permiso nativo al descubrir aplicaciones o al iniciar la observación. El descubrimiento es una consulta independiente que no arranca la observación; esta sigue exigiendo permiso funcional de reenvío y una lista habilitada. `startObserving` informa inicio o error y posteriores retiradas mediante `state_changed`. Los callbacks capturan el identificador de suscripción. `presentNotice` completa una vez con el resultado de la solicitud al escritorio. El permiso se comprueba otra vez antes de presentar.
 
 P implementa los límites de perfiles existentes. Habitual permite las capacidades concedidas. Solo envíos conserva avisos manuales y retira vídeo y reenvío. Pausa retira todas. La interfaz permite habilitar por separado cada modalidad y sentido, aceptar ofertas y detener operaciones. El bloqueo retira capacidades efectivas y vacía la presentación.
 

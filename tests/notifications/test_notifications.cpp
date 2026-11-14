@@ -219,6 +219,97 @@ TEST_CASE(observed_events_are_filtered_by_identity_and_allow_list) {
     CHECK_EQUAL(sent.ref.notice_id, std::uint64_t{1});
 }
 
+TEST_CASE(discovery_offers_only_eligible_unique_applications) {
+    Fixture fixture;
+    std::vector<NotificationApplication> offered{
+        {"app.one", "Visor"},
+        {"app.one", "Duplicada"},
+        {"app.two", "Dos"},
+        {"", "Sin identidad"},
+        {"OneInTwo.Desktop", "OneInTwo"},
+        {"app.three", ""},
+        {"app.four", repeated("a", 129)},
+        {"app.five", "Cinco"},
+    };
+
+    bool called = false;
+    DesktopResult result = DesktopResult::error;
+    std::vector<NotificationApplication> received;
+    fixture.module->discoverApplications(
+        [&](DesktopResult value, std::vector<NotificationApplication> applications) {
+            called = true;
+            result = value;
+            received = std::move(applications);
+        });
+    REQUIRE(fixture.desktop.discoveries.size() == 1);
+    CHECK(!called); // La consulta nativa es asíncrona.
+
+    fixture.desktop.complete_discovery(0, DesktopResult::ready, std::move(offered));
+    CHECK(called);
+    CHECK(result == DesktopResult::ready);
+    REQUIRE(received.size() == 3);
+    CHECK_EQUAL(received[0].app_id, std::string("app.five"));
+    CHECK_EQUAL(received[1].app_id, std::string("app.two"));
+    CHECK_EQUAL(received[2].app_id, std::string("app.one"));
+    CHECK_EQUAL(received[2].app_name, std::string("Visor"));
+    CHECK_EQUAL(fixture.desktop.start_count, 0);
+}
+
+TEST_CASE(discovery_is_unavailable_without_observation_support) {
+    Fixture fixture;
+    fixture.desktop.caps.observe = false;
+
+    bool called = false;
+    DesktopResult result = DesktopResult::error;
+    std::vector<NotificationApplication> received{{"app.one", "Visor"}};
+    fixture.module->discoverApplications(
+        [&](DesktopResult value, std::vector<NotificationApplication> applications) {
+            called = true;
+            result = value;
+            received = std::move(applications);
+        });
+
+    CHECK(called);
+    CHECK(result == DesktopResult::unavailable);
+    CHECK(received.empty());
+    CHECK(fixture.desktop.discoveries.empty());
+    CHECK_EQUAL(fixture.desktop.start_count, 0);
+}
+
+TEST_CASE(discovery_errors_do_not_offer_applications) {
+    Fixture fixture;
+    bool called = false;
+    DesktopResult result = DesktopResult::error;
+    std::vector<NotificationApplication> received{{"app.one", "Visor"}};
+
+    fixture.module->discoverApplications(
+        [&](DesktopResult value, std::vector<NotificationApplication> applications) {
+            called = true;
+            result = value;
+            received = std::move(applications);
+        });
+    REQUIRE(fixture.desktop.discoveries.size() == 1);
+    fixture.desktop.complete_discovery(0, DesktopResult::denied,
+                                       {{"app.one", "Visor"}});
+
+    CHECK(called);
+    CHECK(result == DesktopResult::denied);
+    CHECK(received.empty());
+}
+
+TEST_CASE(discovery_callback_is_discarded_after_module_destruction) {
+    Fixture fixture;
+    bool called = false;
+    fixture.module->discoverApplications(
+        [&](DesktopResult, std::vector<NotificationApplication>) { called = true; });
+    REQUIRE(fixture.desktop.discoveries.size() == 1);
+    const auto complete = fixture.desktop.discoveries.front().complete;
+
+    fixture.module.reset();
+    complete(DesktopResult::ready, {{"app.one", "Visor"}});
+    CHECK(!called);
+}
+
 TEST_CASE(observed_duplicates_are_suppressed_within_the_window) {
     Fixture fixture;
     start_observation(fixture);

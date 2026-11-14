@@ -6,6 +6,7 @@
 #include "../integration/feature_contracts.hpp"
 #include "../platform/desktop.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <deque>
@@ -672,6 +673,69 @@ struct SharedNotifications::Impl {
         flushInbound(current);
     }
 
+    void discoverApplications(
+        std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete) {
+        if (!complete) {
+            return;
+        }
+        bool supported = false;
+        try {
+            supported = deps.desktop.notificationCapabilities().observe;
+        } catch (...) {
+            supported = false;
+        }
+        if (!supported) {
+            complete(DesktopResult::unavailable, {});
+            return;
+        }
+
+        const std::shared_ptr<Lifetime> token = lifetime;
+        auto finish = [token, complete = std::move(complete)](
+                          DesktopResult result,
+                          std::vector<NotificationApplication> applications) mutable {
+            if (!token->alive.load(std::memory_order_acquire)) {
+                return; // El módulo se destruyó mientras se consultaba.
+            }
+            if (result != DesktopResult::ready) {
+                complete(result, {});
+                return;
+            }
+
+            // La lista es una superficie de configuración: se descartan
+            // identidades no utilizables y duplicados antes de ofrecerla.
+            std::set<std::string> seen;
+            std::vector<NotificationApplication> accepted;
+            for (auto& application : applications) {
+                if (application.app_id.empty() ||
+                    is_product_application(application.app_id) ||
+                    !seen.insert(application.app_id).second) {
+                    continue;
+                }
+                if (application.app_name.empty() ||
+                    !is_valid_utf8(application.app_name) ||
+                    application.app_name.size() > max_notification_app_name_bytes) {
+                    continue;
+                }
+                accepted.push_back(std::move(application));
+            }
+            std::sort(accepted.begin(), accepted.end(),
+                      [](const NotificationApplication& left,
+                         const NotificationApplication& right) {
+                          if (left.app_name != right.app_name) {
+                              return left.app_name < right.app_name;
+                          }
+                          return left.app_id < right.app_id;
+                      });
+            complete(result, std::move(accepted));
+        };
+
+        try {
+            deps.desktop.discoverApplications(finish);
+        } catch (...) {
+            finish(DesktopResult::error, {});
+        }
+    }
+
     void shutdown() {
         lifetime->alive.store(false, std::memory_order_release);
         stopObservation();
@@ -690,6 +754,11 @@ SharedNotifications::~SharedNotifications() {
 
 void SharedNotifications::tick() {
     impl_->tick();
+}
+
+void SharedNotifications::discoverApplications(
+    std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete) {
+    impl_->discoverApplications(std::move(complete));
 }
 
 void SharedNotifications::setAllowedApplications(std::set<std::string> app_ids) {

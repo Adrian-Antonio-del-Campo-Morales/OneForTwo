@@ -101,6 +101,22 @@ TEST_CASE(linux_adapter_announces_presentation_and_no_observation) {
     CHECK(capabilities.present);
     CHECK(!capabilities.observe);
 
+    std::promise<DesktopResult> discovery_result;
+    auto discovery_future = discovery_result.get_future();
+    std::promise<std::vector<NotificationApplication>> discovery_applications;
+    auto applications_future = discovery_applications.get_future();
+    adapter->discoverApplications(
+        [&discovery_result, &discovery_applications](
+            DesktopResult result, std::vector<NotificationApplication> applications) {
+            discovery_result.set_value(result);
+            discovery_applications.set_value(std::move(applications));
+        });
+    REQUIRE(discovery_future.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+    CHECK(discovery_future.get() == DesktopResult::unavailable);
+    REQUIRE(applications_future.wait_for(std::chrono::seconds(1)) ==
+            std::future_status::ready);
+    CHECK(applications_future.get().empty());
+
     std::promise<DesktopResult> state;
     auto state_future = state.get_future();
     adapter->startObserving([](ObservedNotification) {},

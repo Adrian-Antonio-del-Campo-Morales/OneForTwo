@@ -69,6 +69,10 @@ Semántica que el coordinador debe respetar:
 - La observación se inicia solo con permiso de reenvío, lista no vacía y
   `notificationCapabilities().observe`. Un cambio de lista con ambos válidos
   mantiene la suscripción y se reevalúa al consumir cada evento.
+- La UI puebla la selección con `discoverApplications`: es una consulta
+  asíncrona que puede solicitar consentimiento, no inicia la observación y
+  devuelve aplicaciones únicas, ordenadas y filtradas. Un resultado distinto de
+  `ready` no incluye lista.
 - La UI obtiene de `notificationCapabilities()` si el escritorio puede presentar
   y observar. `requestObservationPermission` permite un botón explícito de
   concesión; su resultado es asíncrono. La retirada de consentimiento llega al
@@ -84,13 +88,13 @@ Semántica que el coordinador debe respetar:
   `notification_rate_per_second = 5`. La implementación aplica tres y deja una
   comprobación estática de que no supera la cota del canal. El integrador debe
   decidir si corrige el documento o la constante pública.
-- **Descubrimiento de aplicaciones:** `DesktopNotifications` no enumera
-  aplicaciones y `setAllowedApplications` solo recibe identificadores. La lista
-  debe sembrarse desde preferencias persistidas. Para un primer descubrimiento
-  haría falta una ampliación pública, por ejemplo un callback
-  `application_seen(app_id, app_name)` en `NotificationDependencies` y permitir
-  observación con lista vacía solo durante el descubrimiento. No se modificó la
-  cabecera; queda para el integrador.
+- **Descubrimiento de aplicaciones:** resuelto con
+  `SharedNotifications::discoverApplications` y
+  `DesktopNotifications::discoverApplications`. Devuelve
+  `NotificationApplication {app_id, app_name}` a partir de los avisos existentes
+  en el escritorio. No se arranca la observación con una lista vacía: el
+  descubrimiento es una consulta aparte, puede repetirse y no altera la línea
+  base ni la autorización.
 - **Estado de observación:** el contrato no expone un evento de observación hacia
   la UI. El backend Windows informa `capabilities_changed` y el módulo emite el
   error local; la UI debe reflejar el estado del control de reenvío a partir de
@@ -101,12 +105,12 @@ Semántica que el coordinador debe respetar:
 
 ## Evidencia de este paquete
 
-- 45 casos en `oneintwo_notifications_tests`: UTF-8 y límites exactos, título
+- 49 casos en `oneintwo_notifications_tests`: UTF-8 y límites exactos, título
   obligatorio, frecuencia, colas y caducidad, deduplicación, filtros de
   identidad y eco, permisos por modalidad, cambio de perfil, bloqueo,
-  revocación antes de presentar, reconexión, presentación y retirada del
-  adaptador Linux con servicio controlado, y ayudantes de la línea base y el
-  texto XML de Windows.
+  revocación antes de presentar, reconexión, descubrimiento filtrado y
+  asíncrono, presentación y retirada del adaptador Linux con servicio
+  controlado, y ayudantes de la línea base y el texto XML de Windows.
 - Recorrido Linux con bus de sesión privado y servicio mínimo: `Notify` real con
   Unicode y atribución `De EQUIPO-DE-PRUEBA`, `CloseNotification` y
   `observe=false`. Sin escritorio gráfico no se certifica la presentación visual.

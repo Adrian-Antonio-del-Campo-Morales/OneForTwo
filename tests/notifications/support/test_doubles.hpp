@@ -83,6 +83,10 @@ struct ObservationStart {
     std::function<void(DesktopResult)> state_changed;
 };
 
+struct DiscoveryRequest {
+    std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete;
+};
+
 class FakeDesktopNotifications final : public DesktopNotifications {
 public:
     NotificationCapabilities caps{true, true};
@@ -93,6 +97,7 @@ public:
     int permission_requests = 0;
     std::vector<std::function<void(DesktopResult)>> permission_callbacks;
     std::vector<ObservationStart> starts;
+    std::vector<DiscoveryRequest> discoveries;
     std::vector<PresentationRecord> presentations;
 
     NotificationCapabilities notificationCapabilities() const override { return caps; }
@@ -100,6 +105,12 @@ public:
     void requestObservationPermission(std::function<void(DesktopResult)> complete) override {
         ++permission_requests;
         permission_callbacks.push_back(std::move(complete));
+    }
+
+    void discoverApplications(
+        std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete)
+        override {
+        discoveries.push_back(DiscoveryRequest{std::move(complete)});
     }
 
     void startObserving(std::function<void(ObservedNotification)> observed,
@@ -126,6 +137,13 @@ public:
     void emit_state(std::size_t start_index, DesktopResult result) const {
         if (start_index < starts.size()) {
             starts[start_index].state_changed(result);
+        }
+    }
+
+    void complete_discovery(std::size_t request_index, DesktopResult result,
+                            std::vector<NotificationApplication> applications) const {
+        if (request_index < discoveries.size()) {
+            discoveries[request_index].complete(result, std::move(applications));
         }
     }
 };
