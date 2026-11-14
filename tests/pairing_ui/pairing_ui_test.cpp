@@ -311,6 +311,124 @@ TEST_CASE(pairing_dialog_pairs_loopback_and_adopts_authenticated_session) {
     result_b->transport->close();
 }
 
+TEST_CASE(pairing_dialog_enables_normal_pinned_session) {
+    QTemporaryDir directory;
+    CHECK(directory.isValid());
+    const std::string store_a_path = pathUnder(directory, "a.tsv");
+    const std::string store_b_path = pathUnder(directory, "b.tsv");
+    PairingStore store_a(store_a_path);
+    PairingStore store_b(store_b_path);
+    CHECK(store_a.lastError().empty());
+    CHECK(store_b.lastError().empty());
+
+    DialogPairing paired;
+    CHECK(pairDialogs(
+        identityFor("device-a", oneintwo_test::certificate_a,
+                    oneintwo_test::private_key_a),
+        store_a,
+        identityFor("device-b", oneintwo_test::certificate_b,
+                    oneintwo_test::private_key_b),
+        store_b, &paired));
+    CHECK(paired.listener.has_value());
+    CHECK(paired.connector.has_value());
+    if (!paired.listener.has_value() || !paired.connector.has_value()) {
+        return;
+    }
+
+    // La sesión normal debe usar exactamente los pines que persistió el
+    // diálogo, no el canal TLS temporal de la ceremonia SAS.
+    PairingStore persisted_a(store_a_path);
+    PairingStore persisted_b(store_b_path);
+    CHECK(persisted_a.lastError().empty());
+    CHECK(persisted_b.lastError().empty());
+    const auto peer_b = persisted_a.find("device-b");
+    const auto peer_a = persisted_b.find("device-a");
+    CHECK(peer_b.has_value());
+    CHECK(peer_a.has_value());
+    if (!peer_b.has_value() || !peer_a.has_value()) {
+        return;
+    }
+    const std::string pin_b = peer_b->pins.front();
+    const std::string pin_a = peer_a->pins.front();
+    CHECK(!pin_a.empty());
+    CHECK(!pin_b.empty());
+
+    paired.listener->transport->close();
+    paired.connector->transport->close();
+
+    TlsTransportConfig server_config;
+    server_config.mode = TlsTransportMode::listen;
+    server_config.certificate_pem = oneintwo_test::certificate_b;
+    server_config.private_key_pem = oneintwo_test::private_key_b;
+    server_config.peer_fingerprint = pin_a;
+    server_config.bind_address = "127.0.0.1";
+    server_config.listen_port = 0;
+    QtTlsTransport server(std::move(server_config));
+    bool server_ready = false;
+    server.setReadyHandler([&] { server_ready = true; });
+    std::string error;
+    CHECK(server.start(&error));
+
+    TlsTransportConfig client_config;
+    client_config.mode = TlsTransportMode::connect;
+    client_config.certificate_pem = oneintwo_test::certificate_a;
+    client_config.private_key_pem = oneintwo_test::private_key_a;
+    client_config.peer_fingerprint = pin_b;
+    client_config.peer_host = "127.0.0.1";
+    client_config.peer_port = server.listeningPort();
+    QtTlsTransport client(std::move(client_config));
+    bool client_ready = false;
+    client.setReadyHandler([&] { client_ready = true; });
+    CHECK(client.start(&error));
+
+    CHECK(waitUntil([&] { return server_ready && client_ready; }));
+    CHECK(server.encrypted());
+    CHECK(client.encrypted());
+    CHECK_EQ(server.authenticated_peer_fingerprint(), pin_a);
+    CHECK_EQ(client.authenticated_peer_fingerprint(), pin_b);
+
+    SessionEndpoint session_a;
+    SessionEndpoint session_b;
+    SessionLinkHandlers handlers_a;
+    handlers_a.established = [&session_a](SessionGeneration, SessionGeneration) {
+        session_a.established = true;
+    };
+    handlers_a.failed = [&session_a](SessionLinkError, std::string detail) {
+        session_a.failed = true;
+        session_a.failure = std::move(detail);
+    };
+    session_a.session = std::make_unique<AuthenticatedSession>(
+        linkOptions("device-a", "device-b", pin_b, 301), client,
+        directRuntime(), std::move(handlers_a));
+
+    SessionLinkHandlers handlers_b;
+    handlers_b.established = [&session_b](SessionGeneration, SessionGeneration) {
+        session_b.established = true;
+    };
+    handlers_b.failed = [&session_b](SessionLinkError, std::string detail) {
+        session_b.failed = true;
+        session_b.failure = std::move(detail);
+    };
+    session_b.session = std::make_unique<AuthenticatedSession>(
+        linkOptions("device-b", "device-a", pin_a, 302), server,
+        directRuntime(), std::move(handlers_b));
+
+    session_a.session->start();
+    session_b.session->start();
+    CHECK(waitUntil([&] {
+        return session_a.established && session_b.established;
+    }));
+    CHECK(!session_a.failed);
+    CHECK(!session_b.failed);
+    CHECK_EQ(session_a.session->phase(), SessionLinkPhase::established);
+    CHECK_EQ(session_b.session->phase(), SessionLinkPhase::established);
+
+    session_a.session->close();
+    session_b.session->close();
+    client.close();
+    server.close();
+}
+
 TEST_CASE(re_pairing_after_rotation_keeps_previous_pin_as_secondary) {
     QTemporaryDir directory;
     CHECK(directory.isValid());
