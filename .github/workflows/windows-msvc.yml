@@ -33,7 +33,13 @@ jobs:
             }
           }
           if ($exitCode -ne 0) {
-            Write-Output "::error title=CMake guard failed::See the job summary for the captured CMake output."
+            $details = ''
+            if (Test-Path -LiteralPath $log) {
+              $details = (Get-Content -LiteralPath $log -Tail 60 | Out-String).Trim()
+              $details = $details -replace "`r", "" -replace "`n", "%0A"
+            }
+            if (-not $details) { $details = 'No CMake output was captured.' }
+            Write-Output "::error title=CMake guard failed::$details"
             exit $exitCode
           }
 
