@@ -26,7 +26,9 @@
 namespace {
 
 struct DiscoveryState {
-    std::promise<std::pair<DesktopResult, std::vector<NotificationApplication>>> result;
+    std::promise<std::pair<oneintwo::DesktopResult,
+                             std::vector<oneintwo::NotificationApplication>>>
+        result;
 };
 
 } // namespace
