@@ -11,13 +11,86 @@ MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
   oneintwo_notifications.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\Debug\oneintwo_notifications.lib
   Building Custom Rule D:/a/OneForTwo/OneForTwo/tests/notifications/CMakeLists.txt
   Building Custom Rule D:/a/OneForTwo/OneForTwo/tests/notifications/CMakeLists.txt
+  Building Custom Rule D:/a/OneForTwo/OneForTwo/tests/notifications/CMakeLists.txt
   windows_presentation.cpp
+  windows_discovery.cpp
   test_main.cpp
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(29,28): error C2065: 'DesktopResult': undeclared identifier [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(29,55): error C2065: 'NotificationApplication': undeclared identifier [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(29,48): error C2923: 'std::vector': 'NotificationApplication' is not a valid template type argument for parameter '_Ty' [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+      D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(29,55):
+      see declaration of 'NotificationApplication'
+  
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(29,48): error C2976: 'std::vector': too few template arguments [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+      C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include\vector(459,7):
+      see declaration of 'std::vector'
+  
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(29,23): error C2923: 'std::pair': 'DesktopResult' is not a valid template type argument for parameter '_Ty1' [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+      D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(29,28):
+      see declaration of 'DesktopResult'
+  
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(29,48): error C3203: 'vector': unspecialized class template can't be used as a template argument for template parameter '_Ty2', expected a real type [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(29,23): error C3203: 'pair': unspecialized class template can't be used as a template argument for template parameter '_Ty', expected a real type [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(66,31): error C2665: 'std::promise<<error>>::set_value': no overloaded function could convert all the argument types [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+      C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include\future(1093,10):
+      could be 'void std::promise<<error>>::set_value(_Ty &&)'
+          with
+          [
+              _Ty=<error>
+          ]
+          D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(66,31):
+          'void std::promise<<error>>::set_value(_Ty &&)': cannot convert argument 1 from 'std::pair<oneintwo::DesktopResult,std::vector<oneintwo::NotificationApplication,std::allocator<oneintwo::NotificationApplication>>>' to '_Ty &&'
+          with
+          [
+              _Ty=<error>
+          ]
+              D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(67,35):
+              Reason: cannot convert from 'std::pair<oneintwo::DesktopResult,std::vector<oneintwo::NotificationApplication,std::allocator<oneintwo::NotificationApplication>>>' to '_Ty'
+          with
+          [
+              _Ty=<error>
+          ]
+              D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(67,35):
+              No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+      C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include\future(1085,10):
+      or       'void std::promise<<error>>::set_value(const _Ty &)'
+          with
+          [
+              _Ty=<error>
+          ]
+          D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(66,31):
+          'void std::promise<<error>>::set_value(const _Ty &)': cannot convert argument 1 from 'std::pair<oneintwo::DesktopResult,std::vector<oneintwo::NotificationApplication,std::allocator<oneintwo::NotificationApplication>>>' to 'const _Ty &'
+          with
+          [
+              _Ty=<error>
+          ]
+              D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(67,35):
+              Reason: cannot convert from 'std::pair<oneintwo::DesktopResult,std::vector<oneintwo::NotificationApplication,std::allocator<oneintwo::NotificationApplication>>>' to 'const _Ty'
+          with
+          [
+              _Ty=<error>
+          ]
+              D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(67,35):
+              No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+      D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(66,31):
+      while trying to match the argument list '(std::pair<oneintwo::DesktopResult,std::vector<oneintwo::NotificationApplication,std::allocator<oneintwo::NotificationApplication>>>)'
+  
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(78,45): error C3617: initializers of structured bindings must be of array or non-union class type; type '_Ty' is not permitted [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(78,45): error C3617:         with [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(78,45): error C3617:         [ [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(78,45): error C3617:             _Ty=<error> [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(78,45): error C3617:         ] [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(79,16): error C2677: binary '!=': no global operator found which takes type 'oneintwo::DesktopResult' (or there is no acceptable conversion) [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(85,30): warning C4473: 'fprintf' : not enough arguments passed for format string [D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\oneintwo_notifications_native_windows_discovery.vcxproj]
+      D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(85,30):
+      placeholders and their parameters expect 1 variadic arguments, but 0 were provided
+      D:\a\OneForTwo\OneForTwo\tests\notifications\native\windows_discovery.cpp(85,30):
+      the missing variadic argument 1 is required by format string '%zu'
+  
   test_notifications.cpp
   test_support_helpers.cpp
-  test_windows_helpers.cpp
   oneintwo_notifications_native_windows.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\Debug\oneintwo_notifications_native_windows.exe
+  test_windows_helpers.cpp
   test_harness.cpp
   Generating Code...
   oneintwo_notifications_tests.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\Debug\oneintwo_notifications_tests.exe
-  Building Custom Rule D:/a/OneForTwo/OneForTwo/cmake/notifications/CMakeLists.txt
