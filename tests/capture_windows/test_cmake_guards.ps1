@@ -70,3 +70,5 @@ Invoke-ExpectedFailure -Name 'api-missing' -CMakeArguments $missingApiArgs `
     -ExpectedText 'IGraphicsCaptureSession2/IsCursorCaptureEnabled'
 
 Write-Host 'CMake guard negative checks passed.'
+# Los cmake esperados dejan $LASTEXITCODE en 1; el guard ha terminado bien.
+exit 0
