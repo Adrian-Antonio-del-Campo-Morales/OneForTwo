@@ -158,8 +158,11 @@ jobs:
 
             $installLog = Join-Path $logDir "smoke-install.log"
             $installErr = Join-Path $logDir "smoke-install.err.log"
+            $installStatusPath = Join-Path $logDir "smoke-install.status.log"
+            Remove-Item -LiteralPath $installStatusPath -Force -ErrorAction SilentlyContinue
             $escapedMsix = $msix.Replace("'", "''")
-            $installCommand = "Add-AppxPackage -Path '$escapedMsix' -ErrorAction Stop"
+            $escapedStatus = $installStatusPath.Replace("'", "''")
+            $installCommand = "try { Add-AppxPackage -Path '$escapedMsix' -ErrorAction Stop; Set-Content -LiteralPath '$escapedStatus' -Value 'ok' -Encoding ASCII -ErrorAction Stop } catch { Set-Content -LiteralPath '$escapedStatus' -Value ('failed=' + `$_.Exception.Message) -Encoding ASCII -ErrorAction Stop; exit 1 }"
             $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($installCommand))
             $process = Start-Process -FilePath "powershell.exe" `
                 -ArgumentList @("-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", $encoded) `
@@ -172,9 +175,20 @@ jobs:
               $lines += "install=timeout"
               throw "Add-AppxPackage no terminó en 90 s."
             }
-            $lines += "install_exit=$($process.ExitCode)"
-            if ($process.ExitCode -ne 0) {
-              throw "Add-AppxPackage falló con código $($process.ExitCode)."
+            $installStatus = "missing"
+            if (Test-Path -LiteralPath $installStatusPath) {
+              $installStatus = (Get-Content -LiteralPath $installStatusPath -Raw).Trim()
+            }
+            $lines += "install_status=$installStatus"
+            $installExit = $null
+            try { $installExit = $process.ExitCode } catch { }
+            if ($null -eq $installExit) {
+              $lines += "install_exit=unavailable"
+            } else {
+              $lines += "install_exit=$installExit"
+            }
+            if ($installStatus -ne "ok") {
+              throw "Add-AppxPackage no completó: $installStatus"
             }
 
             $deadline = (Get-Date).AddSeconds(15)
