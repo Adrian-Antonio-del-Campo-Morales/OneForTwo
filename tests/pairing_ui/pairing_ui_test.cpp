@@ -511,7 +511,8 @@ TEST_CASE(re_pairing_after_rotation_keeps_previous_pin_as_secondary) {
     paired.listener->transport->close();
     paired.connector->transport->close();
 
-    // El pin nuevo, y no el anterior, debe abrir una conexión TLS normal.
+    // La conexión normal usa la huella principal, nunca el respaldo.
+    CHECK_EQ(peer_a_in_b->pins.front(), new_pin);
     TlsTransportConfig server_config;
     server_config.mode = TlsTransportMode::listen;
     server_config.certificate_pem = b.certificate_pem;
@@ -544,6 +545,51 @@ TEST_CASE(re_pairing_after_rotation_keeps_previous_pin_as_secondary) {
     CHECK_EQ(client.authenticated_peer_fingerprint(), pin_b);
     client.close();
     server.close();
+
+    // El pin anterior sigue guardado como respaldo, pero no autentica al peer
+    // que rotó el certificado: fijarlo en el servidor debe rechazar el nuevo
+    // certificado de A. Solo el pin nuevo es la identidad principal.
+    CHECK_EQ(peer_a_in_b->pins.back(), old_pin);
+    TlsTransportConfig previous_server_config;
+    previous_server_config.mode = TlsTransportMode::listen;
+    previous_server_config.certificate_pem = b.certificate_pem;
+    previous_server_config.private_key_pem = b.private_key_pem;
+    previous_server_config.peer_fingerprint = old_pin;
+    previous_server_config.bind_address = "127.0.0.1";
+    previous_server_config.listen_port = 0;
+    QtTlsTransport previous_server(std::move(previous_server_config));
+    bool previous_server_ready = false;
+    bool previous_server_failed = false;
+    std::string previous_server_error;
+    previous_server.setReadyHandler([&] { previous_server_ready = true; });
+    previous_server.setFailureHandler([&](std::string message) {
+        previous_server_failed = true;
+        previous_server_error = std::move(message);
+    });
+    error.clear();
+    CHECK(previous_server.start(&error));
+
+    TlsTransportConfig previous_client_config;
+    previous_client_config.mode = TlsTransportMode::connect;
+    previous_client_config.certificate_pem = rotated_a.certificate_pem;
+    previous_client_config.private_key_pem = rotated_a.private_key_pem;
+    previous_client_config.peer_fingerprint = pin_b;
+    previous_client_config.peer_host = "127.0.0.1";
+    previous_client_config.peer_port = previous_server.listeningPort();
+    QtTlsTransport previous_client(std::move(previous_client_config));
+    previous_client.setFailureHandler([](std::string) {});
+    CHECK(previous_client.start(&error));
+
+    CHECK(waitUntil([&] {
+        return previous_server_failed || previous_server_ready;
+    }));
+    CHECK(previous_server_failed);
+    CHECK(!previous_server_ready);
+    CHECK(!previous_server.encrypted());
+    CHECK(previous_server.authenticated_peer_fingerprint().empty());
+    CHECK(!previous_server_error.empty());
+    previous_client.close();
+    previous_server.close();
 }
 
 int main(int argc, char** argv) {
