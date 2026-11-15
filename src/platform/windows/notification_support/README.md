@@ -96,15 +96,21 @@ el artefacto `oneintwo-notifications-msix` con:
 - `OneInTwo-NativeCheck.msix` firmado con un certificado efímero de prueba.
 - `OneInTwo-NativeCheck.cer` para confiar en él solo durante la comprobación.
 - `install.txt` con los pasos de instalación y arranque.
-- `validation.txt` y los logs de `MakeAppx`/`signtool`.
+- `validation.txt`, `signature-verify.log` y los logs de `MakeAppx`/`signtool`.
 
 El script comprueba antes de firmar que el manifiesto declara
 `userNotificationListener` en `uap3`, `runFullTrust` en `rescap`, la aplicación
-full-trust, el ejecutable y los recursos; después empaqueta con `MakeAppx`,
-firma con `signtool` y comprueba el contenedor MSIX: manifiesto empaquetado,
-ejecutable, recursos y `AppxSignature.p7x`. La verificación criptográfica y la
-instalación se completan en el equipo Windows de comprobación. El `.pfx` privado
-no se publica.
+full-trust, el ejecutable y los recursos; después empaqueta con `MakeAppx` y
+firma con `signtool`. A continuación verifica la firma de forma offline, sin
+invocar `signtool verify` ni las API WinTrust/Appx: extrae `AppxSignature.p7x`,
+exige el encabezado `PKCX`, decodifica el PKCS#7, valida la firma con
+`SignedCms.CheckSignature` y comprueba que el firmante es el certificado
+efímero generado. `signature-verify.log` registra el resultado y
+`validation.txt` incluye `signature_crypto=verified`. También comprueba el
+contenedor MSIX: manifiesto empaquetado, ejecutable, recursos y presencia de
+`AppxSignature.p7x`. La confianza de la cadena de certificados y la instalación
+se completan en el equipo Windows de comprobación. El `.pfx` privado no se
+publica.
 
 El paquete usa la identidad `OneInTwo.Notifications.NativeCheck` y el
 `Application Id` `NativeCheck`. No es el paquete de producto ni sustituye al
