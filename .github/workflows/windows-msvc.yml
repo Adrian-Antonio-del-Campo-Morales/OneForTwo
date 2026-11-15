@@ -31,10 +31,12 @@ jobs:
           # El mínimo declarado por el backend.
           - sdk: "10.0.19041.0"
             platform: "x64,version=10.0.19041.0"
+            expected_sdk: "10.0.19041.0"
             label: minimum
           # SDK por defecto de la imagen; seguirá al SDK actual cuando se actualice.
           - sdk: "default"
             platform: "x64"
+            expected_sdk: "default"
             label: current
 
     steps:
@@ -42,12 +44,67 @@ jobs:
 
       - name: Configure (${{ matrix.label }})
         shell: pwsh
-        run: >
-          cmake -S cmake/capture_windows -B build/windows-msvc-${{ matrix.sdk }}
-          -G "Visual Studio 17 2022" -A "${{ matrix.platform }}"
-          -DONEINTWO_BUILD_TESTS=ON
-          -DONEINTWO_CAPTURE_QT=OFF
-          -DONEINTWO_REQUIRE_WGC=ON
+        run: |
+          $buildDir = "build/windows-msvc-${{ matrix.sdk }}"
+          $log = Join-Path $buildDir 'configure.log'
+          New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
+          $cmakeArgs = @(
+            '-S', 'cmake/capture_windows',
+            '-B', $buildDir,
+            '-G', 'Visual Studio 17 2022',
+            '-A', "${{ matrix.platform }}",
+            '-DONEINTWO_BUILD_TESTS=ON',
+            '-DONEINTWO_CAPTURE_QT=OFF',
+            '-DONEINTWO_REQUIRE_WGC=ON'
+          )
+          & cmake @cmakeArgs 2>&1 | Tee-Object -FilePath $log
+          $configureExit = $LASTEXITCODE
+          if ($configureExit -ne 0) { exit $configureExit }
+
+      - name: Verify selected Windows SDK (${{ matrix.label }})
+        shell: pwsh
+        run: |
+          $buildDir = "build/windows-msvc-${{ matrix.sdk }}"
+          $log = Join-Path $buildDir 'configure.log'
+
+          function Get-SelectedSdk {
+            param([string]$LogPath)
+            $text = Get-Content -LiteralPath $LogPath -Raw
+            $match = [regex]::Match($text, "OneInTwo selected Windows SDK: '([^']+)'")
+            if (-not $match.Success) {
+              $match = [regex]::Match($text, 'Selecting Windows SDK version ([0-9.]+) to target Windows')
+            }
+            if (-not $match.Success) {
+              throw "No se encontró el SDK seleccionado en $LogPath"
+            }
+            return $match.Groups[1].Value
+          }
+
+          $selected = Get-SelectedSdk $log
+          Write-Host "Lane ${{ matrix.label }} selected Windows SDK: $selected"
+
+          $expected = "${{ matrix.expected_sdk }}"
+          if ($expected -ne 'default') {
+            if ($selected -ne $expected) {
+              throw "La lane ${{ matrix.label }} seleccionó Windows SDK '$selected', pero se esperaba '$expected'."
+            }
+            Write-Host "OK: ${{ matrix.label }} usa el SDK fijado $selected"
+          } else {
+            $probeSource = 'tests/capture_windows/default_sdk_probe'
+            $probeBuild = Join-Path $buildDir 'default-sdk-probe'
+            $probeLog = Join-Path $buildDir 'default-sdk-probe.log'
+            & cmake -S $probeSource -B $probeBuild -G 'Visual Studio 17 2022' -A 'x64' 2>&1 | Tee-Object -FilePath $probeLog
+            $probeExit = $LASTEXITCODE
+            if ($probeExit -ne 0) {
+              throw "No se pudo configurar la sonda del SDK por defecto; revisa $probeLog."
+            }
+            $defaultSdk = Get-SelectedSdk $probeLog
+            Write-Host "Runner default Windows SDK: $defaultSdk"
+            if ($selected -ne $defaultSdk) {
+              throw "La lane ${{ matrix.label }} seleccionó '$selected', pero el SDK por defecto del runner es '$defaultSdk'; debe usar -A x64 sin version=."
+            }
+            Write-Host "OK: ${{ matrix.label }} usa el SDK por defecto del runner ($selected)"
+          }
 
       - name: Build backend, link check and tests (${{ matrix.label }})
         shell: pwsh

@@ -52,6 +52,11 @@ if(ONEINTWO_CAPTURE_QT)
 endif()
 
 if(WIN32)
+    # Línea estable para que CI pueda publicar y validar el SDK realmente
+    # seleccionado por el generador Visual Studio.
+    message(STATUS
+        "OneInTwo selected Windows SDK: '${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}'")
+
     # IsCursorCaptureEnabled llegó con el SDK 10.0.19041. El backend lo usa
     # siempre; el QI de runtime conserva Windows 1903/1909. Fallar aquí evita
     # una build que compile el fallback silenciosamente.
