@@ -43,6 +43,18 @@ jobs:
             exit $exitCode
           }
 
+      - name: Diagnose CMake guard failure
+        if: failure()
+        shell: pwsh
+        run: |
+          $output = & ./tests/capture_windows/test_cmake_guards.ps1 2>&1
+          $code = $LASTEXITCODE
+          $details = ($output | Out-String).Trim()
+          if (-not $details) { $details = "No output; exit=$code" }
+          $details = $details -replace "`r", "" -replace "`n", "%0A"
+          Write-Output "::error title=CMake guard diagnostics (exit $code)::$details"
+          exit 0
+
   build:
     name: WGC (MSVC x64, SDK ${{ matrix.sdk }})
     runs-on: windows-2022
