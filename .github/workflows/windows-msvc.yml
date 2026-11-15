@@ -19,12 +19,22 @@ jobs:
       - name: Run negative CMake checks
         shell: pwsh
         run: |
+          $log = Join-Path $env:RUNNER_TEMP 'cmake-guards.log'
+          $exitCode = 0
           try {
-            ./tests/capture_windows/test_cmake_guards.ps1
+            ./tests/capture_windows/test_cmake_guards.ps1 2>&1 | Tee-Object -FilePath $log
+            $exitCode = $LASTEXITCODE
           } catch {
-            $message = $_.Exception.Message -replace "`r", "" -replace "`n", "%0A"
-            Write-Output "::error title=CMake guard failed::$message"
-            exit 1
+            $_ | Out-String | Out-File -Append -LiteralPath $log
+            $exitCode = 1
+          } finally {
+            if (Test-Path -LiteralPath $log) {
+              Get-Content -LiteralPath $log | Out-File -Append $env:GITHUB_STEP_SUMMARY
+            }
+          }
+          if ($exitCode -ne 0) {
+            Write-Output "::error title=CMake guard failed::See the job summary for the captured CMake output."
+            exit $exitCode
           }
 
   build:
