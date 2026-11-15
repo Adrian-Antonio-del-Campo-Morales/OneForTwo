@@ -148,8 +148,20 @@ if(WIN32)
             _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     endif()
     if(MSVC)
-        target_compile_options(oneintwo_capture_windows PRIVATE /W4 /permissive-)
+        # El cppwinrt incluido en el SDK 19041 usa nombres que no resuelven con
+        # /permissive- en los compiladores v143 actuales. La lane mínima conserva
+        # ese SDK con /permissive; las cabeceras modernas siguen en modo estricto.
+        set(_oneintwo_msvc_sdk "${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
+        if(NOT _oneintwo_msvc_sdk AND CMAKE_GENERATOR_PLATFORM MATCHES "version=([0-9.]+)")
+            set(_oneintwo_msvc_sdk "${CMAKE_MATCH_1}")
+        endif()
+        target_compile_options(oneintwo_capture_windows PRIVATE /W4)
         target_compile_options(oneintwo_capture_windows_model PRIVATE /W4 /permissive-)
+        if(_oneintwo_msvc_sdk AND _oneintwo_msvc_sdk VERSION_LESS "10.0.22000")
+            target_compile_options(oneintwo_capture_windows PRIVATE /permissive)
+        else()
+            target_compile_options(oneintwo_capture_windows PRIVATE /permissive-)
+        endif()
     endif()
 else()
     message(STATUS

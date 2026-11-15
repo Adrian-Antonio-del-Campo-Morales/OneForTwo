@@ -14,6 +14,13 @@ if (-not (Test-Path -LiteralPath (Join-Path $fakeInclude 'windows.graphics.captu
     throw "Falta la cabecera falsa en $fakeInclude"
 }
 
+function Stop-WithDiagnostic {
+    param([Parameter(Mandatory = $true)][string]$Message)
+    $encoded = $Message -replace "`r", "" -replace "`n", "%0A"
+    Write-Output "::error title=CMake guard failed::$encoded"
+    throw $Message
+}
+
 function Invoke-ExpectedFailure {
     param(
         [Parameter(Mandatory = $true)][string]$Name,
@@ -28,10 +35,10 @@ function Invoke-ExpectedFailure {
     Write-Host $output
 
     if ($exitCode -eq 0) {
-        throw "El caso '$Name' configuró correctamente; se esperaba un error."
+        Stop-WithDiagnostic "El caso '$Name' configuró correctamente; se esperaba un error.`n$output"
     }
     if ($output -notmatch [regex]::Escape($ExpectedText)) {
-        throw "El caso '$Name' falló sin el mensaje esperado: '$ExpectedText'. Salida:`n$output"
+        Stop-WithDiagnostic "El caso '$Name' falló sin el mensaje esperado: '$ExpectedText'. Salida:`n$output"
     }
     Write-Host "OK: '$Name' falló con el mensaje esperado."
 }

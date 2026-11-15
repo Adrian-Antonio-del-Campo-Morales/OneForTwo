@@ -38,7 +38,7 @@ inline constexpr RequiredModule kRequiredModules[] = {
     {L"d3d11.dll", "D3D11CreateDevice"},
     {L"dxgi.dll", "CreateDXGIFactory1"},
     {L"dwmapi.dll", "DwmGetWindowAttribute"},
-    {L"runtimeobject.dll", "RoGetActivationFactory"},
+    {L"combase.dll", "RoGetActivationFactory"},
 };
 
 inline bool checkRequired(Runtime& runtime, const RequiredModule& module, bool& missing_dll,
