@@ -32,6 +32,20 @@ if(ONEINTWO_BUILD_NATIVE_NOTIFICATION_TESTS)
         target_compile_features(oneintwo_notifications_native_windows PRIVATE cxx_std_17)
         add_test(NAME notifications-native-windows
                  COMMAND oneintwo_notifications_native_windows)
+
+        # Sin MSIX, el descubrimiento debe fallar cerrado antes de solicitar
+        # consentimiento. Se ejecuta en el job MSVC, que no empaqueta el proceso.
+        add_executable(oneintwo_notifications_native_windows_discovery
+                       native/windows_discovery.cpp)
+        target_link_libraries(oneintwo_notifications_native_windows_discovery
+                              PRIVATE oneintwo_notifications)
+        target_compile_features(oneintwo_notifications_native_windows_discovery
+                                PRIVATE cxx_std_17)
+        add_test(NAME notifications-windows-discovery-no-package
+                 COMMAND oneintwo_notifications_native_windows_discovery)
+        # 77: el proceso sí tiene identidad de paquete; la prueba no aplica.
+        set_tests_properties(notifications-windows-discovery-no-package
+                             PROPERTIES SKIP_RETURN_CODE 77)
     elseif(UNIX)
         add_executable(oneintwo_notifications_native_linux native/linux_presentation.cpp)
         target_link_libraries(oneintwo_notifications_native_linux
