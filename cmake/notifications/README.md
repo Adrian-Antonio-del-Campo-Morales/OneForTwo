@@ -3,7 +3,9 @@
 Implementación del envío manual, la recepción y el reenvío de avisos según
 [`docs/NOTIFICACIONES.md`](../../docs/NOTIFICACIONES.md) y
 [`docs/IMPLEMENTACION_PARALELA.md`](../../docs/IMPLEMENTACION_PARALELA.md).
-Las cuatro cabeceras públicas no se modifican.
+Las cabeceras públicas se limitan a los cambios documentados en este paquete:
+las ampliaciones de descubrimiento en `SharedNotifications` y
+`DesktopNotifications`, y el límite de frecuencia de tres avisos por segundo.
 
 ## Composición
 
