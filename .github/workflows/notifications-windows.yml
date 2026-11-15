@@ -122,6 +122,113 @@ jobs:
             Tee-Object -FilePath "ci-logs\msix\package.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Smoke test MSIX install and removal
+        id: smoke_msix
+        if: always() && steps.package_msix.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 5
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $msix = (Resolve-Path "artifacts\msix\OneInTwo-NativeCheck.msix").Path
+          $cer = (Resolve-Path "artifacts\msix\OneInTwo-NativeCheck.cer").Path
+          $logDir = "ci-logs\msix"
+          New-Item -ItemType Directory -Force $logDir | Out-Null
+          $resultPath = Join-Path $logDir "smoke.txt"
+          $lines = @("runner=$env:ImageOS")
+          $certificate = $null
+          $installed = @()
+          $smoke = "failed"
+
+          try {
+            try {
+              $certificate = Import-Certificate -FilePath $cer `
+                  -CertStoreLocation "Cert:\LocalMachine\TrustedPeople" -ErrorAction Stop
+              $lines += "trust=LocalMachine\TrustedPeople"
+              $lines += "certificate_thumbprint=$($certificate.Thumbprint)"
+            } catch {
+              $smoke = "unavailable"
+              $lines += "trust=unavailable"
+              $lines += "trust_error=$($_.Exception.Message)"
+              throw
+            }
+
+            Get-AppxPackage -Name "OneInTwo.Notifications.NativeCheck" -ErrorAction SilentlyContinue |
+                Remove-AppxPackage -ErrorAction SilentlyContinue
+
+            $installLog = Join-Path $logDir "smoke-install.log"
+            $installErr = Join-Path $logDir "smoke-install.err.log"
+            $escapedMsix = $msix.Replace("'", "''")
+            $installCommand = "Add-AppxPackage -Path '$escapedMsix' -ErrorAction Stop"
+            $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($installCommand))
+            $process = Start-Process -FilePath "powershell.exe" `
+                -ArgumentList @("-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", $encoded) `
+                -NoNewWindow -PassThru `
+                -RedirectStandardOutput $installLog -RedirectStandardError $installErr
+            if (-not $process.WaitForExit(90000)) {
+              try { $process.Kill() } catch { }
+              [void]$process.WaitForExit(5000)
+              $smoke = "unavailable"
+              $lines += "install=timeout"
+              throw "Add-AppxPackage no terminó en 90 s."
+            }
+            $lines += "install_exit=$($process.ExitCode)"
+            if ($process.ExitCode -ne 0) {
+              throw "Add-AppxPackage falló con código $($process.ExitCode)."
+            }
+
+            $deadline = (Get-Date).AddSeconds(15)
+            do {
+              $installed = @(Get-AppxPackage -Name "OneInTwo.Notifications.NativeCheck" -ErrorAction SilentlyContinue)
+              if ($installed.Count -gt 0) { break }
+              Start-Sleep -Milliseconds 500
+            } while ((Get-Date) -lt $deadline)
+            if ($installed.Count -eq 0) {
+              throw "Add-AppxPackage terminó pero el paquete no aparece registrado."
+            }
+            $lines += "installed=$($installed[0].PackageFullName)"
+
+            $packageFullName = $installed[0].PackageFullName
+            Remove-AppxPackage -Package $packageFullName -ErrorAction Stop
+            $lines += "removed=$packageFullName"
+            $installed = @()
+            $smoke = "ok"
+          } catch {
+            $lines += "smoke_error=$($_.Exception.Message)"
+          } finally {
+            if ($certificate) {
+              try {
+                Remove-Item -LiteralPath "Cert:\LocalMachine\TrustedPeople\$($certificate.Thumbprint)" `
+                    -Force -ErrorAction Stop
+                $lines += "certificate_removed=true"
+              } catch {
+                $lines += "certificate_removed=false"
+                $lines += "certificate_cleanup_error=$($_.Exception.Message)"
+              }
+            }
+            try {
+              $remaining = @(Get-AppxPackage -Name "OneInTwo.Notifications.NativeCheck" -ErrorAction SilentlyContinue)
+              foreach ($package in $remaining) {
+                Remove-AppxPackage -Package $package.PackageFullName -ErrorAction Stop
+              }
+              if ($remaining.Count -gt 0) {
+                $lines += "cleanup_removed=$($remaining.Count)"
+              }
+            } catch {
+              $lines += "cleanup_error=$($_.Exception.Message)"
+            }
+            $lines += "smoke=$smoke"
+            $lines | Set-Content -LiteralPath $resultPath -Encoding UTF8
+            try {
+              Copy-Item -LiteralPath $resultPath -Destination "artifacts\msix\smoke.txt" -Force
+            } catch {
+              Write-Warning "No se pudo copiar smoke.txt al artefacto: $($_.Exception.Message)"
+            }
+            $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            $lines | ForEach-Object { Write-Output $_ }
+          }
+          exit 0
+
       - name: Upload MSIX artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -132,6 +239,7 @@ jobs:
             artifacts/msix/OneInTwo-NativeCheck.cer
             artifacts/msix/install.txt
             artifacts/msix/validation.txt
+            artifacts/msix/smoke.txt
             artifacts/msix/*.log
           if-no-files-found: warn
 
