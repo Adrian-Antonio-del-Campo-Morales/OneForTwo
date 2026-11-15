@@ -1,0 +1,8 @@
+﻿runner=win25-vs2026
+trust=LocalMachine\TrustedPeople
+certificate_thumbprint=EC60B5689C2EDD7551790F1E52EF5289684C3B8D
+install_exit=
+smoke_error=Add-AppxPackage fallÃ³ con cÃ³digo .
+certificate_removed=true
+cleanup_removed=1
+smoke=failed
