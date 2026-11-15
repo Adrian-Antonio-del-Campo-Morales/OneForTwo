@@ -276,6 +276,58 @@ TEST_CASE(trust_store_keeps_one_pin_per_device_and_rotates_it) {
     }
 }
 
+TEST_CASE(trust_store_rotates_pin_and_peer_metadata_together) {
+    QTemporaryDir directory;
+    CHECK(directory.isValid());
+    const std::string path = tempPath(directory, "devices.tsv");
+    const std::string old_pin = pinFor(oneintwo_test::certificate_a);
+    const std::string new_pin = pinFor(oneintwo_test::certificate_b);
+    CHECK(!old_pin.empty());
+    CHECK(!new_pin.empty());
+    CHECK(old_pin != new_pin);
+
+    PairingStore store(path);
+    CHECK(store.lastError().empty());
+    TrustedDevice original;
+    original.device_id = "equipo-b";
+    original.name = "Equipo B";
+    original.host = "127.0.0.1";
+    original.port = 45871;
+    original.pins = {old_pin};
+    CHECK(store.save(original));
+
+    TrustedDevice updated = original;
+    updated.name = "Equipo B renombrado";
+    updated.host = "192.0.2.10";
+    updated.port = 47123;
+    updated.pins = {new_pin};
+    const auto rotated = store.rotatePin(updated);
+    CHECK(rotated.has_value());
+    if (!rotated.has_value()) {
+        return;
+    }
+    CHECK_EQ(rotated->name, std::string("Equipo B renombrado"));
+    CHECK_EQ(rotated->host, std::string("192.0.2.10"));
+    CHECK_EQ(rotated->port, static_cast<std::uint16_t>(47123));
+    CHECK_EQ(rotated->pins.size(), static_cast<std::size_t>(2));
+    CHECK_EQ(rotated->pins.front(), new_pin);
+    CHECK_EQ(rotated->pins.back(), old_pin);
+
+    PairingStore reopened(path);
+    CHECK(reopened.lastError().empty());
+    const auto persisted = reopened.find("equipo-b");
+    CHECK(persisted.has_value());
+    if (!persisted.has_value()) {
+        return;
+    }
+    CHECK_EQ(persisted->name, std::string("Equipo B renombrado"));
+    CHECK_EQ(persisted->host, std::string("192.0.2.10"));
+    CHECK_EQ(persisted->port, static_cast<std::uint16_t>(47123));
+    CHECK_EQ(persisted->pins.size(), static_cast<std::size_t>(2));
+    CHECK_EQ(persisted->pins.front(), new_pin);
+    CHECK_EQ(persisted->pins.back(), old_pin);
+}
+
 TEST_CASE(sas_pairing_over_temporary_tls_accepts_matching_confirmation) {
     const std::string pin_a = pinFor(oneintwo_test::certificate_a);
     const std::string pin_b = pinFor(oneintwo_test::certificate_b);
