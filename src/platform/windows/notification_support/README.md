@@ -48,9 +48,9 @@ aplicación empaquetada expone su identidad como
    ```
 
 2. El adaptador anuncia `observe=true` únicamente si `GetCurrentPackageFullName`
-   confirma identidad de paquete. Sin ella, `requestObservationPermission` y
-   `startObserving` completan con `unavailable` y la interfaz debe mostrar la
-   función como no disponible.
+   confirma identidad de paquete. Sin ella, `requestObservationPermission`,
+   `discoverApplications` y `startObserving` completan con `unavailable` y la
+   interfaz debe mostrar la función como no disponible.
 3. Para poblar la lista de aplicaciones, la interfaz llama a
    `SharedNotifications::discoverApplications`. Es una consulta independiente:
    puede solicitar consentimiento, enumera las aplicaciones con avisos actuales
@@ -110,6 +110,44 @@ El paquete usa la identidad `OneInTwo.Notifications.NativeCheck` y el
 `Application Id` `NativeCheck`. No es el paquete de producto ni sustituye al
 manifiesto del integrador.
 
+## Descubrimiento de aplicaciones
+
+### Sin identidad de paquete (automática)
+
+`notifications-windows-discovery-no-package` es un ejecutable nativo que crea el
+adaptador sin MSIX, comprueba que `notificationCapabilities().observe` es falso,
+llama a `discoverApplications` y exige `DesktopResult::unavailable` con una
+lista vacía. No presenta avisos ni abre ningún diálogo. Se ejecuta en el job
+`msvc` de CI y puede repetirse con:
+
+```powershell
+ctest --test-dir build/notifications -C Release `
+      -R notifications-windows-discovery-no-package --output-on-failure
+```
+
+Si el proceso tuviera identidad de paquete, el ejecutable devuelve 77 y CTest lo
+marca como omitido: esa variante corresponde a la comprobación manual siguiente.
+
+### Con consentimiento real (manual, MSIX)
+
+Requiere instalar el paquete firmado del artefacto
+`oneintwo-notifications-msix`; no se ejecuta en CI porque el runner no instala
+MSIX ni puede interactuar con el diálogo de consentimiento. Pasos:
+
+1. Instalar el certificado y el MSIX siguiendo `install.txt`, y abrir la
+   aplicación NativeCheck.
+2. En la primera llamada a `discoverApplications`, Windows muestra el
+   consentimiento de **Configuración → Privacidad → Notificaciones**. Aceptarlo.
+3. Confirmar que la llamada completa una sola vez con `ready` y una lista de
+   aplicaciones con avisos actuales. La lista puede estar vacía si no hay avisos;
+   no debe incluir OneInTwo ni duplicados, y el descubrimiento no debe iniciar la
+   observación ni alterar su línea base.
+4. Retirar el consentimiento en Configuración, repetir el descubrimiento y
+   confirmar que completa con `denied` o `unavailable`, sin lista, sin bloquear
+   el proceso y sin iniciar la observación.
+5. Registrar sistema, versión de Windows, resultado y si el diálogo apareció una
+   sola vez.
+
 ## Comprobación nativa pendiente
 
 En un equipo Windows con MSVC y Windows SDK 10.0.17763 o posterior:
@@ -122,7 +160,8 @@ ctest --test-dir build/notifications -C Release --output-on-failure
 build/notifications/tests/notifications/Release/oneintwo_notifications_native_windows.exe
 ```
 
-El recorrido imprime las capacidades, presenta un aviso manual atribuido a
+El recorrido imprime las capacidades, consulta `discoverApplications` (sin
+paquete debe devolver `unavailable`), presenta un aviso manual atribuido a
 `EQUIPO-DE-PRUEBA`, inicia la observación si está disponible y espera un aviso
 nuevo. Para la variante empaquetada, descargar el artefacto
 `oneintwo-notifications-msix` y seguir `install.txt`; así el ejecutable tiene
@@ -135,8 +174,13 @@ visualmente:
       `unavailable` (código de salida 77) y no se muestra nada.
 - [ ] Con paquete y consentimiento, `observe=true` y `startObserving` completa con
       `ready`.
-- [ ] `discoverApplications` enumera las aplicaciones con avisos actuales,
-      excluye OneInTwo y no inicia la observación.
+- [ ] `discoverApplications` sin paquete completa con `unavailable` (prueba
+      automática `notifications-windows-discovery-no-package`).
+- [ ] Con paquete y consentimiento, `discoverApplications` completa con `ready`,
+      enumera las aplicaciones con avisos actuales, excluye OneInTwo y no inicia
+      la observación.
+- [ ] Tras retirar el consentimiento, `discoverApplications` completa con
+      `denied` o `unavailable` y no entrega aplicaciones.
 - [ ] Un aviso nuevo de una aplicación autorizada llega una sola vez con su
       nombre visible; los avisos previos al inicio no se reenvían.
 - [ ] Los avisos de OneInTwo no se reenvían (sin eco).
