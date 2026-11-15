@@ -1,4 +1,7 @@
 $ErrorActionPreference = 'Stop'
+# Un fallo esperado de CMake es un resultado del guard; no debe abortar el script
+# antes de comprobar el código y el mensaje.
+$PSNativeCommandUseErrorActionPreference = $false
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $sourceDir = Join-Path $repoRoot 'cmake\capture_windows'
