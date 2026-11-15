@@ -262,6 +262,18 @@ TEST_CASE(application_uses_primary_saved_pin_when_old_pin_is_backup) {
     CHECK(server_error.empty());
     CHECK(server.encrypted());
     CHECK_EQ(server.authenticated_peer_fingerprint(), identity_a->fingerprint);
+
+    // El handshake TLS ya autenticó la huella principal; Application debe
+    // retirar el respaldo una sola vez y dejarlo persistido.
+    CHECK(waitUntil([&] {
+        oneintwo::PairingStore current(pairing_store_path);
+        const auto current_peer = current.find("device-b");
+        return current_peer.has_value() &&
+               current_peer->pins.size() == 1 &&
+               current_peer->pins.front() == new_pin &&
+               !current.pinTrusted("device-b", old_pin) &&
+               current.primaryPinTrusted("device-b", new_pin);
+    }));
 }
 
 int main(int argc, char** argv) {

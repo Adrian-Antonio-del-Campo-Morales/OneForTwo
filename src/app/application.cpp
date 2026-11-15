@@ -349,11 +349,12 @@ struct Application::Impl {
             options.peer_fingerprint.empty() && identity.has_value() &&
             pairing_store != nullptr && !pairing_store->devices().empty()) {
             const TrustedDevice& peer = pairing_store->devices().back();
-            if (!peer.pins.empty()) {
+            const auto primary = pairing_store->primaryPin(peer.device_id);
+            if (primary.has_value()) {
                 options.local_device_id = identity->device_id;
                 options.peer_device_id = peer.device_id;
                 options.peer_name = peer.name.empty() ? "Par" : peer.name;
-                options.peer_fingerprint = peer.pins.front();
+                options.peer_fingerprint = *primary;
                 options.tls.certificate_pem = identity->certificate_pem;
                 options.tls.private_key_pem = identity->private_key_pem;
                 options.tls.peer_fingerprint = options.peer_fingerprint;
@@ -403,7 +404,25 @@ struct Application::Impl {
         }
     }
 
+    void retireFallbackAfterAuthentication(const std::string& peer_pin) {
+        // createSession solo se alcanza con un transporte ya autenticado. Solo
+        // se retira el respaldo cuando la huella que funcionó es la principal;
+        // una autenticación con el respaldo no debe convertirla en la única.
+        if (pairing_store == nullptr || options.peer_device_id.empty() ||
+            !pairing_store->fallbackPin(options.peer_device_id).has_value() ||
+            pairing_store->pinRole(options.peer_device_id, peer_pin) !=
+                PairingStore::PinRole::primary) {
+            return;
+        }
+        std::string error;
+        if (!pairing_store->retireFallback(options.peer_device_id, &error) &&
+            window && !error.empty()) {
+            window->setError(error);
+        }
+    }
+
     void createSession(SessionTransport& active_transport, const std::string& peer_pin) {
+        retireFallbackAfterAuthentication(peer_pin);
         SessionLinkOptions link;
         link.local_device_id = options.local_device_id;
         link.peer_device_id = options.peer_device_id;

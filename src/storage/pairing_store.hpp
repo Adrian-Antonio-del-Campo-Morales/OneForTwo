@@ -23,6 +23,12 @@ struct TrustedDevice {
 
 class PairingStore {
 public:
+    enum class PinRole {
+        none,
+        primary,
+        fallback,
+    };
+
     explicit PairingStore(std::string path);
 
     const std::string& path() const { return path_; }
@@ -32,10 +38,24 @@ public:
     const std::vector<TrustedDevice>& devices() const { return devices_; }
 
     std::optional<TrustedDevice> find(const std::string& device_id) const;
+    std::optional<std::string> primaryPin(const std::string& device_id) const;
+    std::optional<std::string> fallbackPin(const std::string& device_id) const;
+    PinRole pinRole(const std::string& device_id,
+                    const std::string& fingerprint) const;
+
     bool save(const TrustedDevice& device, std::string* error = nullptr);
     bool remove(const std::string& device_id, std::string* error = nullptr);
+    // Compatibilidad: acepta tanto la huella principal como el respaldo.
     bool pinTrusted(const std::string& device_id,
                     const std::string& fingerprint) const;
+    // Para decisiones que solo deben aceptar la identidad activa.
+    bool primaryPinTrusted(const std::string& device_id,
+                           const std::string& fingerprint) const;
+
+    // Retira el respaldo cuando ya se ha establecido una conexión autenticada
+    // con la huella principal. Es idempotente si no hay respaldo.
+    bool retireFallback(const std::string& device_id,
+                        std::string* error = nullptr);
 
     // Rotación: la huella nueva pasa a ser la activa y la anterior se conserva
     // como máximo durante la transición. Nunca se acumulan más de dos.
@@ -53,7 +73,10 @@ public:
     static bool isValidPin(const std::string& fingerprint);
 
 private:
-    bool writeFile(std::string* error) const;
+    bool writeFile(const std::vector<TrustedDevice>& devices,
+                   std::string* error) const;
+    bool commit(std::vector<TrustedDevice> devices, std::string* error);
+    void setError(std::string message, std::string* error);
 
     std::string path_;
     std::string error_;

@@ -1,5 +1,11 @@
 #include "storage/pairing_store.hpp"
 
+#include <QByteArray>
+#include <QFile>
+#include <QIODevice>
+#include <QSaveFile>
+#include <QString>
+
 #include <algorithm>
 #include <cctype>
 #include <charconv>
@@ -7,6 +13,11 @@
 #include <fstream>
 #include <sstream>
 #include <system_error>
+
+#ifndef _WIN32
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 namespace oneintwo {
 namespace {
@@ -109,6 +120,23 @@ bool cleanDevice(const TrustedDevice& device, TrustedDevice* cleaned,
     return true;
 }
 
+#ifndef _WIN32
+void syncPath(const fs::path& path, bool directory) {
+    int flags = O_RDONLY;
+#ifdef O_DIRECTORY
+    if (directory) {
+        flags |= O_DIRECTORY;
+    }
+#endif
+    const int descriptor = ::open(path.c_str(), flags);
+    if (descriptor < 0) {
+        return;
+    }
+    ::fsync(descriptor);
+    ::close(descriptor);
+}
+#endif
+
 }  // namespace
 
 bool TrustedDevice::trusts(const std::string& fingerprint) const {
@@ -158,35 +186,72 @@ std::optional<TrustedDevice> PairingStore::find(
     return *iterator;
 }
 
+std::optional<std::string> PairingStore::primaryPin(
+    const std::string& device_id) const {
+    const auto device = find(device_id);
+    if (!device.has_value() || device->pins.empty()) {
+        return std::nullopt;
+    }
+    return device->pins.front();
+}
+
+std::optional<std::string> PairingStore::fallbackPin(
+    const std::string& device_id) const {
+    const auto device = find(device_id);
+    if (!device.has_value() || device->pins.size() < 2) {
+        return std::nullopt;
+    }
+    return device->pins[1];
+}
+
+PairingStore::PinRole PairingStore::pinRole(
+    const std::string& device_id, const std::string& fingerprint) const {
+    const auto device = find(device_id);
+    if (!device.has_value()) {
+        return PinRole::none;
+    }
+    const std::string normalized = normalizePin(fingerprint);
+    if (normalized.empty()) {
+        return PinRole::none;
+    }
+    for (std::size_t index = 0; index < device->pins.size(); ++index) {
+        if (device->pins[index] != normalized) {
+            continue;
+        }
+        return index == 0 ? PinRole::primary : PinRole::fallback;
+    }
+    return PinRole::none;
+}
+
 bool PairingStore::reload(std::string* error) {
     error_.clear();
-    devices_.clear();
+    if (error != nullptr) {
+        error->clear();
+    }
+    const auto fail = [this, error](std::string message) {
+        setError(std::move(message), error);
+        return false;
+    };
+
     const fs::path path(path_);
     std::error_code filesystem_error;
     if (!fs::exists(path, filesystem_error)) {
         if (filesystem_error) {
-            if (error != nullptr) {
-                *error = "no se pudo consultar el almacén de pares: " +
-                         filesystem_error.message();
-            }
-            return false;
+            return fail("no se pudo consultar el almacén de pares: " +
+                        filesystem_error.message());
         }
+        // La ausencia del archivo es un almacén vacío, no un error.
+        devices_.clear();
         return true;
     }
 
     std::ifstream input(path);
     if (!input) {
-        if (error != nullptr) {
-            *error = "no se pudo leer el almacén de pares";
-        }
-        return false;
+        return fail("no se pudo leer el almacén de pares");
     }
     std::string line;
     if (!std::getline(input, line) || line != kHeader) {
-        if (error != nullptr) {
-            *error = "el almacén de pares no tiene el formato esperado";
-        }
-        return false;
+        return fail("el almacén de pares no tiene el formato esperado");
     }
     std::vector<TrustedDevice> parsed;
     while (std::getline(input, line)) {
@@ -196,29 +261,20 @@ bool PairingStore::reload(std::string* error) {
         const auto fields = split(line, '\t');
         if (fields.size() < 5 || !safeId(fields[0]) || fields[1].empty() ||
             !isValidPin(fields[4])) {
-            if (error != nullptr) {
-                *error = "el almacén de pares contiene una entrada no válida";
-            }
-            return false;
+            return fail("el almacén de pares contiene una entrada no válida");
         }
         TrustedDevice device;
         device.device_id = fields[0];
         device.name = sanitize(fields[1]);
         device.host = sanitize(fields[2]);
         if (!parsePort(fields[3], &device.port)) {
-            if (error != nullptr) {
-                *error = "el almacén de pares contiene un puerto no válido";
-            }
-            return false;
+            return fail("el almacén de pares contiene un puerto no válido");
         }
         for (std::size_t index = 4; index < fields.size(); ++index) {
             const std::string pin = normalizePin(fields[index]);
             if (pin.empty()) {
-                if (error != nullptr) {
-                    *error =
-                        "el almacén de pares contiene una huella no válida";
-                }
-                return false;
+                return fail(
+                    "el almacén de pares contiene una huella no válida");
             }
             if (std::find(device.pins.begin(), device.pins.end(), pin) ==
                 device.pins.end()) {
@@ -226,56 +282,59 @@ bool PairingStore::reload(std::string* error) {
             }
         }
         if (device.pins.empty() || device.pins.size() > 2) {
-            if (error != nullptr) {
-                *error = "el almacén de pares contiene demasiadas huellas";
-            }
-            return false;
+            return fail("el almacén de pares contiene demasiadas huellas");
         }
         if (std::any_of(parsed.begin(), parsed.end(),
                         [&device](const TrustedDevice& other) {
                             return other.device_id == device.device_id;
                         })) {
-            if (error != nullptr) {
-                *error = "el almacén de pares contiene un dispositivo duplicado";
-            }
-            return false;
+            return fail("el almacén de pares contiene un dispositivo duplicado");
         }
         parsed.push_back(std::move(device));
     }
+    // Solo se publica el estado nuevo cuando el archivo entero es válido.
     devices_ = std::move(parsed);
     return true;
 }
 
 bool PairingStore::save(const TrustedDevice& device, std::string* error) {
     TrustedDevice cleaned;
-    if (!cleanDevice(device, &cleaned, error)) {
+    std::string detail;
+    if (!cleanDevice(device, &cleaned, &detail)) {
+        setError(std::move(detail), error);
         return false;
     }
 
+    std::vector<TrustedDevice> candidate = devices_;
     const auto existing =
-        std::find_if(devices_.begin(), devices_.end(),
-                     [&cleaned](const TrustedDevice& candidate) {
-                         return candidate.device_id == cleaned.device_id;
+        std::find_if(candidate.begin(), candidate.end(),
+                     [&cleaned](const TrustedDevice& item) {
+                         return item.device_id == cleaned.device_id;
                      });
-    if (existing == devices_.end()) {
-        devices_.push_back(cleaned);
+    if (existing == candidate.end()) {
+        candidate.push_back(cleaned);
     } else {
         *existing = cleaned;
     }
-    return writeFile(error);
+    return commit(std::move(candidate), error);
 }
 
 bool PairingStore::remove(const std::string& device_id, std::string* error) {
+    std::vector<TrustedDevice> candidate = devices_;
     const auto iterator =
-        std::find_if(devices_.begin(), devices_.end(),
+        std::find_if(candidate.begin(), candidate.end(),
                      [&device_id](const TrustedDevice& device) {
                          return device.device_id == device_id;
                      });
-    if (iterator == devices_.end()) {
+    if (iterator == candidate.end()) {
+        error_.clear();
+        if (error != nullptr) {
+            error->clear();
+        }
         return true;
     }
-    devices_.erase(iterator);
-    return writeFile(error);
+    candidate.erase(iterator);
+    return commit(std::move(candidate), error);
 }
 
 bool PairingStore::pinTrusted(const std::string& device_id,
@@ -284,40 +343,67 @@ bool PairingStore::pinTrusted(const std::string& device_id,
     return device.has_value() && device->trusts(fingerprint);
 }
 
+bool PairingStore::primaryPinTrusted(const std::string& device_id,
+                                     const std::string& fingerprint) const {
+    return pinRole(device_id, fingerprint) == PinRole::primary;
+}
+
+bool PairingStore::retireFallback(const std::string& device_id,
+                                  std::string* error) {
+    const auto existing = find(device_id);
+    if (!existing.has_value()) {
+        setError("el dispositivo no está emparejado", error);
+        return false;
+    }
+    if (existing->pins.size() < 2) {
+        error_.clear();
+        if (error != nullptr) {
+            error->clear();
+        }
+        return true;
+    }
+
+    std::vector<TrustedDevice> candidate = devices_;
+    const auto iterator =
+        std::find_if(candidate.begin(), candidate.end(),
+                     [&device_id](const TrustedDevice& device) {
+                         return device.device_id == device_id;
+                     });
+    if (iterator == candidate.end()) {
+        setError("el dispositivo no está emparejado", error);
+        return false;
+    }
+    iterator->pins.resize(1);
+    return commit(std::move(candidate), error);
+}
+
 bool PairingStore::rotatePin(const std::string& device_id,
                              const std::string& new_fingerprint,
                              std::string* error) {
-    auto current = find(device_id);
+    const auto current = find(device_id);
     if (!current.has_value()) {
-        if (error != nullptr) {
-            *error = "el dispositivo no está emparejado";
-        }
+        setError("el dispositivo no está emparejado", error);
         return false;
     }
-    current->pins = {new_fingerprint};
-    return rotatePin(*current, error).has_value();
+    TrustedDevice updated = *current;
+    updated.pins = {new_fingerprint};
+    return rotatePin(updated, error).has_value();
 }
 
 std::optional<TrustedDevice> PairingStore::rotatePin(
     const TrustedDevice& device, std::string* error) {
     const auto existing = find(device.device_id);
     if (!existing.has_value()) {
-        if (error != nullptr) {
-            *error = "el dispositivo no está emparejado";
-        }
+        setError("el dispositivo no está emparejado", error);
         return std::nullopt;
     }
     if (device.pins.empty()) {
-        if (error != nullptr) {
-            *error = "la huella nueva no es un SHA-256 válido";
-        }
+        setError("la huella nueva no es un SHA-256 válido", error);
         return std::nullopt;
     }
     const std::string new_pin = normalizePin(device.pins.front());
     if (new_pin.empty()) {
-        if (error != nullptr) {
-            *error = "la huella nueva no es un SHA-256 válido";
-        }
+        setError("la huella nueva no es un SHA-256 válido", error);
         return std::nullopt;
     }
 
@@ -337,29 +423,51 @@ std::optional<TrustedDevice> PairingStore::rotatePin(
     }
 
     TrustedDevice cleaned;
-    if (!cleanDevice(candidate, &cleaned, error)) {
+    std::string detail;
+    if (!cleanDevice(candidate, &cleaned, &detail)) {
+        setError(std::move(detail), error);
         return std::nullopt;
     }
 
+    std::vector<TrustedDevice> next = devices_;
     const auto iterator =
-        std::find_if(devices_.begin(), devices_.end(),
-                     [&cleaned](const TrustedDevice& candidate_device) {
-                         return candidate_device.device_id == cleaned.device_id;
+        std::find_if(next.begin(), next.end(),
+                     [&cleaned](const TrustedDevice& item) {
+                         return item.device_id == cleaned.device_id;
                      });
-    TrustedDevice previous = *iterator;
+    if (iterator == next.end()) {
+        setError("el dispositivo no está emparejado", error);
+        return std::nullopt;
+    }
     *iterator = cleaned;
-    if (!writeFile(error)) {
-        *iterator = std::move(previous);
+    if (!commit(std::move(next), error)) {
         return std::nullopt;
     }
     return cleaned;
 }
 
-bool PairingStore::writeFile(std::string* error) const {
+bool PairingStore::commit(std::vector<TrustedDevice> devices,
+                          std::string* error) {
+    std::string detail;
+    if (!writeFile(devices, &detail)) {
+        setError(std::move(detail), error);
+        return false;
+    }
+    devices_ = std::move(devices);
+    error_.clear();
+    if (error != nullptr) {
+        error->clear();
+    }
+    return true;
+}
+
+bool PairingStore::writeFile(const std::vector<TrustedDevice>& devices,
+                             std::string* error) const {
     const fs::path path(path_);
     std::error_code filesystem_error;
-    if (!path.parent_path().empty()) {
-        fs::create_directories(path.parent_path(), filesystem_error);
+    const fs::path parent = path.parent_path();
+    if (!parent.empty()) {
+        fs::create_directories(parent, filesystem_error);
     }
     if (filesystem_error) {
         if (error != nullptr) {
@@ -368,10 +476,9 @@ bool PairingStore::writeFile(std::string* error) const {
         return false;
     }
 
-    const fs::path temporary = path.string() + ".tmp";
     std::ostringstream content;
     content << kHeader << '\n';
-    for (const TrustedDevice& device : devices_) {
+    for (const TrustedDevice& device : devices) {
         content << device.device_id << '\t' << sanitize(device.name) << '\t'
                 << sanitize(device.host) << '\t' << device.port;
         for (const std::string& pin : device.pins) {
@@ -380,45 +487,50 @@ bool PairingStore::writeFile(std::string* error) const {
         content << '\n';
     }
 
-    {
-        std::ofstream output(temporary, std::ios::trunc);
-        if (!output) {
-            if (error != nullptr) {
-                *error = "no se pudo escribir el almacén de pares";
-            }
-            return false;
-        }
-        output << content.str();
-        output.flush();
-        if (!output) {
-            if (error != nullptr) {
-                *error = "no se pudo guardar el almacén de pares";
-            }
-            fs::remove(temporary, filesystem_error);
-            return false;
-        }
-    }
-    fs::permissions(temporary,
-                    fs::perms::owner_read | fs::perms::owner_write,
-                    fs::perm_options::replace, filesystem_error);
-    // En POSIX rename reemplaza de forma atómica. En Windows el destino debe
-    // desaparecer antes; se conserva el archivo temporal si el reemplazo falla.
-    fs::rename(temporary, path, filesystem_error);
-    if (filesystem_error) {
-        std::error_code ignored;
-        fs::remove(path, ignored);
-        filesystem_error.clear();
-        fs::rename(temporary, path, filesystem_error);
-    }
-    if (filesystem_error) {
+    // QSaveFile usa un temporal único y un reemplazo atómico, también en
+    // Windows. Si algo falla, el archivo anterior permanece intacto.
+    QSaveFile output(QString::fromStdString(path.string()));
+    if (!output.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         if (error != nullptr) {
-            *error = "no se pudo reemplazar el almacén de pares: " +
-                     filesystem_error.message();
+            *error = "no se pudo escribir el almacén de pares: " +
+                     output.errorString().toStdString();
         }
-        fs::remove(temporary, filesystem_error);
         return false;
     }
+    const QByteArray bytes = QByteArray::fromStdString(content.str());
+    if (output.write(bytes) != static_cast<qint64>(bytes.size())) {
+        output.cancelWriting();
+        if (error != nullptr) {
+            *error = "no se pudo guardar el almacén de pares";
+        }
+        return false;
+    }
+    if (!output.commit()) {
+        if (error != nullptr) {
+            *error = "no se pudo reemplazar el almacén de pares: " +
+                     output.errorString().toStdString();
+        }
+        return false;
+    }
+
+    // El contenido ya está reemplazado; los permisos y el fsync son la última
+    // barrera de integridad y durabilidad. Los errores de fsync no se ignoran
+    // para la lógica de memoria, pero no pueden revertir el reemplazo.
+    std::error_code permissions_error;
+    fs::permissions(path, fs::perms::owner_read | fs::perms::owner_write,
+                    fs::perm_options::replace, permissions_error);
+#ifndef _WIN32
+    syncPath(path, false);
+    syncPath(parent.empty() ? fs::path(".") : parent, true);
+#endif
     return true;
+}
+
+void PairingStore::setError(std::string message, std::string* error) {
+    error_ = std::move(message);
+    if (error != nullptr) {
+        *error = error_;
+    }
 }
 
 }  // namespace oneintwo
