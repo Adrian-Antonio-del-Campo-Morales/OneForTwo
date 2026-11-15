@@ -17,9 +17,9 @@ MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
   test_main.cpp
   test_notifications.cpp
   test_support_helpers.cpp
+  test_windows_helpers.cpp
   oneintwo_notifications_native_windows.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\Debug\oneintwo_notifications_native_windows.exe
   oneintwo_notifications_native_windows_discovery.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\Debug\oneintwo_notifications_native_windows_discovery.exe
-  test_windows_helpers.cpp
   test_harness.cpp
   Generating Code...
   oneintwo_notifications_tests.vcxproj -> D:\a\OneForTwo\OneForTwo\build\notifications\tests\notifications\Debug\oneintwo_notifications_tests.exe
