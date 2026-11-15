@@ -18,7 +18,14 @@ jobs:
 
       - name: Run negative CMake checks
         shell: pwsh
-        run: ./tests/capture_windows/test_cmake_guards.ps1
+        run: |
+          try {
+            ./tests/capture_windows/test_cmake_guards.ps1
+          } catch {
+            $message = $_.Exception.Message -replace "`r", "" -replace "`n", "%0A"
+            Write-Output "::error title=CMake guard failed::$message"
+            exit 1
+          }
 
   build:
     name: WGC (MSVC x64, SDK ${{ matrix.sdk }})
@@ -108,18 +115,37 @@ jobs:
 
       - name: Build backend, link check and tests (${{ matrix.label }})
         shell: pwsh
-        run: >
-          cmake --build build/windows-msvc-${{ matrix.sdk }} --config Release
-          --target oneintwo_capture_windows oneintwo_capture_windows_link_check
-          oneintwo_capture_windows_tests oneintwo_wgc_capture_tests
-          oneintwo_wgc_probe_tests oneintwo_wgc_probe_fake oneintwo_wgc_smoke
-          oneintwo_wgc_probe
+        run: |
+          $buildDir = "build/windows-msvc-${{ matrix.sdk }}"
+          $log = Join-Path $buildDir 'build.log'
+          & cmake --build $buildDir --config Release --target `
+            oneintwo_capture_windows oneintwo_capture_windows_link_check `
+            oneintwo_capture_windows_tests oneintwo_wgc_capture_tests `
+            oneintwo_wgc_probe_tests oneintwo_wgc_probe_fake oneintwo_wgc_smoke `
+            oneintwo_wgc_probe 2>&1 | Tee-Object -FilePath $log
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -ne 0) {
+            $message = (Get-Content -LiteralPath $log -Tail 80 | Out-String) -replace "`r", "" -replace "`n", "%0A"
+            Write-Output "::error title=MSVC build failed (${{ matrix.label }})::$message"
+            exit $exitCode
+          }
 
       - name: Probe WGC runtime dependencies (${{ matrix.label }})
         shell: pwsh
         run: |
-          & "build/windows-msvc-${{ matrix.sdk }}/Release/oneintwo_wgc_probe.exe"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $probe = "build/windows-msvc-${{ matrix.sdk }}/Release/oneintwo_wgc_probe.exe"
+          if (-not (Test-Path -LiteralPath $probe)) {
+            Write-Output "::error title=WGC runtime probe missing (${{ matrix.label }})::$probe was not built"
+            exit 1
+          }
+          $output = & $probe 2>&1
+          $exitCode = $LASTEXITCODE
+          $output | Write-Host
+          if ($exitCode -ne 0) {
+            $message = ($output | Out-String) -replace "`r", "" -replace "`n", "%0A"
+            Write-Output "::error title=WGC runtime probe failed (${{ matrix.label }}) (exit $exitCode)::$message"
+            exit $exitCode
+          }
 
       - name: Run capture tests (${{ matrix.label }})
         shell: pwsh

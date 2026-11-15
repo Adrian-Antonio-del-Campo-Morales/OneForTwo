@@ -31,7 +31,7 @@ function Invoke-ExpectedFailure {
         throw "El caso '$Name' configuró correctamente; se esperaba un error."
     }
     if ($output -notmatch [regex]::Escape($ExpectedText)) {
-        throw "El caso '$Name' falló sin el mensaje esperado: '$ExpectedText'"
+        throw "El caso '$Name' falló sin el mensaje esperado: '$ExpectedText'. Salida:`n$output"
     }
     Write-Host "OK: '$Name' falló con el mensaje esperado."
 }
