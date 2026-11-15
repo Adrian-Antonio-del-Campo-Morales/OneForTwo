@@ -1,5 +1,150 @@
 # Problemas pendientes
 
+## FEATURE-SHARE-SCREEN — Pendientes de integración de la entrega P
+
+Proceden de [la documentación de la feature](docs/feature-share-screen/README.md) y
+se mantienen separados de los pendientes experimentales. Los criterios buscan
+resultados observables; no sustituyen la validación nativa de las ramas V y N.
+
+## PSS-01 — Persistir la generación del peer entre reinicios
+
+Estado: **pendiente**.
+
+`SessionLink` acepta `last_peer_generation` y `remember_peer_generation`, pero
+`Application` no los conecta a ningún almacén. La protección contra repetición
+de generaciones solo vive mientras dura el proceso.
+
+**Criterio de aceptación:** la última generación remota aceptada se guarda por
+`device_id` y se carga al construir `SessionLinkOptions`. Tras un reinicio de
+Application con el mismo almacén, una generación igual o inferior a la guardada
+debe rechazarse con `SessionLinkError::generation`; una superior debe aceptarse.
+Un intento rechazado no puede avanzar la marca persistida. Debe existir una
+prueba de integración con dos instancias secuenciales de Application, no solo
+una prueba unitaria de `SessionLink`.
+
+## PSS-02 — Hacer transaccional y atómico `LocalStore`
+
+Estado: **pendiente**.
+
+`LocalStore` todavía escribe en un temporal fijo (`path + ".tmp"`), no hace
+`fsync` y no devuelve el resultado de guardar. Un fallo puede dejar preferencias
+en memoria divergentes del archivo o perder el contenido anterior.
+
+**Criterio de aceptación:** `saveProfile` y `saveAllowedApplications` escriben
+con un temporal único y reemplazo atómico, hacen `fsync` en POSIX y solo
+actualizan el estado en memoria después de persistir. Un fallo forzado de
+escritura debe conservar el archivo y el estado en memoria anteriores, sin
+temporales residuales. Tras un guardado correcto y una nueva instancia de
+`LocalStore`, el perfil y las aplicaciones permitidas deben recuperarse. Debe
+existir una prueba con la ruta de destino bloqueada y otra de recarga.
+
+## PSS-03 — Seleccionar explícitamente entre varios pares guardados
+
+Estado: **pendiente**.
+
+`PairingStore` admite varios pares, pero `Application` reutiliza
+`devices().back()` al arrancar. Con más de un equipo guardado no hay selección y
+el orden del archivo decide de forma implícita.
+
+**Criterio de aceptación:** al arrancar con dos o más pares, Application no debe
+conectar silenciosamente con `devices().back()` ni dejar que el orden del TSV
+decida. Debe existir una selección explícita visible para el usuario y la
+elección debe persistirse. Una prueba con dos peers y endpoints distintos debe
+demostrar que solo se contacta el seleccionado y que la elección sobrevive al
+reinicio. Si el seleccionado ya no existe, la aplicación debe mostrarlo y no
+conectar con ningún otro par.
+
+## PSS-04 — Integrar la captura nativa de V y producir el ejecutable
+
+Estado: **pendiente de integración**.
+
+La captura nativa de monitor/ventana pertenece a `feature/share-window` (V) y no
+forma parte de la composición de esta rama. El target `oneintwo` se omite si no
+existen `oneintwo_capture_windows` o `oneintwo_capture_wayland`, por lo que hoy
+solo se prueba con `UnavailableCapture`/dobles.
+
+**Criterio de aceptación:** en Windows y Linux, CMake incorpora el target nativo
+de V y genera `oneintwo` sin fábricas de prueba. Una ejecución real debe abrir el
+selector nativo, compartir un monitor o ventana y entregar imágenes al visor;
+stop, cierre del visor y pérdida de la fuente deben liberar la captura. La
+prueba no puede declararse superada usando un adaptador simulado.
+
+## PSS-05 — Integrar notificaciones de N y retirar los dobles del producto
+
+Estado: **pendiente de integración**.
+
+Las notificaciones nativas pertenecen a `feature/notifications` (N). El núcleo de
+Application se prueba con `SharedNotifications` sustituido en
+`tests/application/application_test.cpp`; el ejecutable de producto todavía no
+enlaza `oneintwo_notifications`.
+
+**Criterio de aceptación:** el ejecutable de producto enlaza el target real de N
+y no contiene las implementaciones de prueba de notificaciones. Al menos un
+envío manual debe presentarse en Windows y Linux y un fallo del adaptador debe
+llegar a la UI sin bloquear la sesión. El binario final debe compilar y arrancar
+sin `oneintwo_notifications` simulado.
+
+## PSS-06 — Implementar descubrimiento y reconexión de peers
+
+Estado: **pendiente**.
+
+El emparejamiento exige host y puerto manuales. No hay descubrimiento en la LAN,
+resolución de cambios de dirección ni reconexión automática.
+
+**Criterio de aceptación:** dos instancias en la misma LAN deben poder localizar
+y seleccionar al peer sin introducir manualmente su dirección. Un cambio de IP o
+puerto del peer debe reflejarse sin crear una confianza nueva: la identidad se
+sigue comprobando con el pin y, si está en transición, con la SAS. Debe existir
+una prueba de descubrimiento y actualización de endpoint, además de una prueba
+de que un peer no autenticado no obtiene acceso a funciones.
+
+## PSS-07 — Definir y verificar el escritor único de `PairingStore`
+
+Estado: **pendiente**.
+
+`PairingStore` no tiene mutex ni bloqueo entre procesos. `QSaveFile` evita
+temporales compartidos y reemplazos parciales, pero dos instancias que cargan y
+guardan a la vez pueden perder una actualización.
+
+**Criterio de aceptación:** la aplicación debe imponer una instancia única de
+escritura o implementar un bloqueo que serialice las mutaciones. En cualquier
+caso, dos escritores independientes no pueden corromper el archivo ni perder un
+par confirmado; un fallo de escritura debe conservar el archivo anterior. La
+prueba debe cubrir dos `PairingStore` sobre la misma ruta, incluida una escritura
+fallida, y demostrar el comportamiento documentado.
+
+## PSS-08 — Recuperar un almacén de pares corrupto al arrancar
+
+Estado: **pendiente**.
+
+Si `paired-devices.tsv` está corrupto al construir Application, el almacén se
+deshabilita y se pierde la selección de pares en memoria. `reload()` conserva el
+último estado válido solo si la instancia ya estaba cargada.
+
+**Criterio de aceptación:** un archivo con cabecera inválida, línea truncada,
+puerto inválido o entrada duplicada no puede eliminar silenciosamente todos los
+pares ni sobrescribirse con un estado vacío. La aplicación debe conservar el
+archivo inválido en cuarentena o como copia, mostrar un error accionable y no
+continuar con un almacén vacío sin consentimiento. Si existe una copia válida,
+se restaura; si no, se ofrece reparar o volver a emparejar. La prueba debe
+demostrar que los pares válidos no se pierden sin consentimiento y que el estado
+anterior es recuperable.
+
+## PSS-09 — Validar compartir pantalla de extremo a extremo entre equipos
+
+Estado: **pendiente**.
+
+La suite actual valida protocolo, TLS, composición y arranque, pero no una
+captura real ni la cadena completa entre dos equipos.
+
+**Criterio de aceptación:** con los binarios integrados de P, V y N, realizar
+Windows → Linux y Linux → Windows sobre una LAN: seleccionar monitor o ventana,
+aceptar la invitación, ver imágenes en el visor y detener desde ambos extremos.
+Debe comprobarse aceptar, rechazar, caducidad, cierre del visor, pérdida de red y
+recuperación sin reanudación automática. La evidencia debe indicar revisión,
+plataformas y cualquier caso no ejecutado; `QT_QPA_PLATFORM=offscreen` o los
+dobles no cuentan como validación de escritorio.
+
 ## EXP-FILES-LAN-01 — Completar pegado Explorer y bajo demanda
 
 Estado: T1 completo; T2 recepción/copia CLI e integridad completas. TLS negativo
