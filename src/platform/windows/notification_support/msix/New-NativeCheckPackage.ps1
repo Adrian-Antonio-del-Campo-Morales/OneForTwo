@@ -20,6 +20,66 @@ function Assert-Condition {
     }
 }
 
+function Get-ZipEntryBytes {
+    param(
+        $Archive,
+        [string]$Name
+    )
+    $entry = $Archive.GetEntry($Name)
+    Assert-Condition ($null -ne $entry) "El MSIX no contiene $Name."
+    $stream = $entry.Open()
+    $memory = New-Object System.IO.MemoryStream
+    try {
+        $stream.CopyTo($memory)
+    } finally {
+        $stream.Dispose()
+    }
+    try {
+        $bytes = $memory.ToArray()
+    } finally {
+        $memory.Dispose()
+    }
+    return ,$bytes
+}
+
+function Assert-MsixSignature {
+    param(
+        [byte[]]$SignatureBytes,
+        $Certificate
+    )
+    Assert-Condition ($SignatureBytes.Length -gt 4) "AppxSignature.p7x está vacío."
+    Assert-Condition ([Text.Encoding]::ASCII.GetString($SignatureBytes, 0, 4) -eq "PKCX") `
+        "AppxSignature.p7x no tiene el encabezado PKCX."
+
+    $der = New-Object byte[] ($SignatureBytes.Length - 4)
+    [Array]::Copy($SignatureBytes, 4, $der, 0, $der.Length)
+    $cms = New-Object System.Security.Cryptography.Pkcs.SignedCms
+    $cms.Decode($der)
+    Assert-Condition ($null -ne $cms.SignerInfos -and $cms.SignerInfos.Count -eq 1) `
+        "AppxSignature.p7x debe tener un único firmante."
+
+    $signer = $cms.SignerInfos[0]
+    Assert-Condition ($null -ne $signer.Certificate) `
+        "La firma no incluye el certificado del firmante."
+    Assert-Condition ($signer.Certificate.Thumbprint -eq $Certificate.Thumbprint) `
+        "El firmante de AppxSignature.p7x no es el certificado efímero generado."
+
+    # true omite la cadena de confianza: el certificado es efímero y autofirmado.
+    # La firma PKCS#7 sobre el contenido sí se comprueba criptográficamente.
+    $cms.CheckSignature($true)
+
+    $contentType = "desconocido"
+    if ($null -ne $cms.ContentInfo -and $null -ne $cms.ContentInfo.ContentType) {
+        $contentType = $cms.ContentInfo.ContentType.Value
+    }
+    $details = [pscustomobject]@{
+        Thumbprint = $signer.Certificate.Thumbprint
+        DigestAlgorithm = $signer.DigestAlgorithm.Value
+        ContentType = $contentType
+    }
+    return $details
+}
+
 function New-SolidPng {
     param(
         [string]$Path,
@@ -64,6 +124,7 @@ try {
     Copy-Item -LiteralPath $executablePath -Destination (Join-Path $layout $exeName)
 
     Add-Type -AssemblyName System.Drawing
+    Add-Type -AssemblyName System.Security
     New-SolidPng -Path (Join-Path $assets "StoreLogo.png") -Size 50
     New-SolidPng -Path (Join-Path $assets "Square150x150Logo.png") -Size 150
     New-SolidPng -Path (Join-Path $assets "Square44x44Logo.png") -Size 44
@@ -166,9 +227,11 @@ try {
     Write-Output "msix: firma aplicada"
 
     # La verificación WinTrust/Appx queda fuera del runner porque se bloquea en
-    # este entorno. Se comprueba el contenedor real: manifiesto, ejecutable,
-    # recursos y la firma que signtool acaba de insertar.
+    # este entorno. La autenticidad de la firma se comprueba offline sobre el
+    # PKCS#7 de AppxSignature.p7x, sin invocar signtool verify. También se
+    # comprueba el contenedor real: manifiesto, ejecutable y recursos.
     Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $signatureDetails = $null
     $archive = [System.IO.Compression.ZipFile]::OpenRead($msixPath)
     try {
         $entries = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
@@ -185,6 +248,8 @@ try {
         $signatureEntry = $archive.GetEntry("AppxSignature.p7x")
         Assert-Condition ($null -ne $signatureEntry -and $signatureEntry.Length -gt 0) `
             "El MSIX no contiene una firma."
+        $signatureBytes = Get-ZipEntryBytes -Archive $archive -Name "AppxSignature.p7x"
+        $signatureDetails = Assert-MsixSignature -SignatureBytes $signatureBytes -Certificate $certificate
         $manifestEntry = $archive.GetEntry("AppxManifest.xml")
         $reader = New-Object System.IO.StreamReader($manifestEntry.Open())
         try {
@@ -202,7 +267,19 @@ try {
     } finally {
         $archive.Dispose()
     }
-    Write-Output "msix: manifiesto, recursos y firma presentes comprobados"
+    Assert-Condition ($null -ne $signatureDetails) "No se verificó la firma PKCS#7."
+    Write-Output "msix: firma PKCS#7 verificada sin signtool verify"
+    Write-Output "msix: manifiesto, recursos y contenedor comprobados"
+
+    $signatureLog = @(
+        "format=PKCS7-SignedData"
+        "prefix=PKCX"
+        "signature=valid"
+        "signer_thumbprint=$($signatureDetails.Thumbprint)"
+        "digest_algorithm=$($signatureDetails.DigestAlgorithm)"
+        "content_type=$($signatureDetails.ContentType)"
+    )
+    $signatureLog | Set-Content -LiteralPath (Join-Path $output "signature-verify.log") -Encoding UTF8
 
     $hash = (Get-FileHash -LiteralPath $msixPath -Algorithm SHA256).Hash
     $validation = @(
@@ -218,6 +295,8 @@ try {
         "msix_sha256=$hash"
         "certificate_thumbprint=$($certificate.Thumbprint)"
         "signature=present"
+        "signature_crypto=verified"
+        "signature_signer=$($signatureDetails.Thumbprint)"
         "container=verified"
         "result=ok"
     )
