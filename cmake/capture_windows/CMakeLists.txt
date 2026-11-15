@@ -139,6 +139,13 @@ if(WIN32)
         target_compile_definitions(oneintwo_wgc_probe PRIVATE
             UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX
             _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+        add_executable(oneintwo_wgc_smoke
+            ${CMAKE_CURRENT_LIST_DIR}/../../tests/capture_windows/wgc_smoke.cpp)
+        target_link_libraries(oneintwo_wgc_smoke
+            PRIVATE oneintwo_capture_windows user32 gdi32 dwmapi)
+        target_compile_definitions(oneintwo_wgc_smoke PRIVATE
+            UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX
+            _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     endif()
     if(MSVC)
         target_compile_options(oneintwo_capture_windows PRIVATE /W4 /permissive-)
@@ -211,4 +218,12 @@ if(ONEINTWO_BUILD_TESTS)
     set_tests_properties(capture_windows_wgc_probe_process PROPERTIES
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         TIMEOUT 120)
+
+    if(TARGET oneintwo_wgc_smoke)
+        add_test(NAME capture_windows_wgc_smoke COMMAND oneintwo_wgc_smoke)
+        set_tests_properties(capture_windows_wgc_smoke PROPERTIES
+            SKIP_RETURN_CODE 77
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            TIMEOUT 30)
+    endif()
 endif()
