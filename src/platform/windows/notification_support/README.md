@@ -96,7 +96,8 @@ el artefacto `oneintwo-notifications-msix` con:
 - `OneInTwo-NativeCheck.msix` firmado con un certificado efímero de prueba.
 - `OneInTwo-NativeCheck.cer` para confiar en él solo durante la comprobación.
 - `install.txt` con los pasos de instalación y arranque.
-- `validation.txt`, `signature-verify.log` y los logs de `MakeAppx`/`signtool`.
+- `validation.txt`, `signature-verify.log`, `smoke.txt` y los logs de
+  `MakeAppx`/`signtool`.
 
 El script comprueba antes de firmar que el manifiesto declara
 `userNotificationListener` en `uap3`, `runFullTrust` en `rescap`, la aplicación
@@ -108,9 +109,13 @@ exige el encabezado `PKCX`, decodifica el PKCS#7, valida la firma con
 efímero generado. `signature-verify.log` registra el resultado y
 `validation.txt` incluye `signature_crypto=verified`. También comprueba el
 contenedor MSIX: manifiesto empaquetado, ejecutable, recursos y presencia de
-`AppxSignature.p7x`. La confianza de la cadena de certificados y la instalación
-se completan en el equipo Windows de comprobación. El `.pfx` privado no se
-publica.
+`AppxSignature.p7x`. Después, el job ejecuta un smoke test acotado: importa el
+`.cer` en `LocalMachine\TrustedPeople`, instala el paquete con
+`Add-AppxPackage`, comprueba que queda registrado y lo retira con
+`Remove-AppxPackage`. El resultado se guarda en `smoke.txt` como `smoke=ok`,
+`smoke=unavailable` o `smoke=failed`; si el runner no permite la operación o
+agota el tiempo, el job continúa. La confianza de la cadena y la comprobación
+visual siguen siendo manuales. El `.pfx` privado no se publica.
 
 El paquete usa la identidad `OneInTwo.Notifications.NativeCheck` y el
 `Application Id` `NativeCheck`. No es el paquete de producto ni sustituye al
