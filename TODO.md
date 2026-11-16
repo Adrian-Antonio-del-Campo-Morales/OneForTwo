@@ -144,6 +144,99 @@ Debe comprobarse aceptar, rechazar, caducidad, cierre del visor, pérdida de red
 recuperación sin reanudación automática. La evidencia debe indicar revisión,
 plataformas y cualquier caso no ejecutado; `QT_QPA_PLATFORM=offscreen` o los
 dobles no cuentan como validación de escritorio.
+## NOTIF-WIN-01 — Validar presentación manual y retirada en Windows
+
+Estado: pendiente. Requiere un equipo Windows con MSIX instalable, identidad de
+paquete y usuario presente. La CI solo compila, instala y retira el paquete; no
+puede confirmar la presentación visual ni la atribución del equipo.
+
+Criterio de aceptación:
+
+- [ ] Instalar el MSIX firmado y arrancar la aplicación empaquetada.
+- [ ] Un aviso manual enviado desde el otro equipo aparece una sola vez, con
+      título, cuerpo Unicode y `De <equipo>`; no muestra botones, enlaces ni
+      acciones.
+- [ ] `withdrawNotices` retira el aviso propio activo.
+- [ ] Un aviso pendiente no reaparece después de bloquear, desconectar o
+      cambiar de generación.
+- [ ] Registrar versión de Windows, identidad del paquete y resultado.
+
+## NOTIF-WIN-02 — Validar consentimiento, descubrimiento y reenvío
+
+Estado: pendiente. La prueba nativa sin paquete ya cubre el rechazo cerrado;
+la observación real, el consentimiento y la lista de aplicaciones requieren un
+equipo Windows con MSIX y usuario presente.
+
+Criterio de aceptación:
+
+- [ ] Sin identidad de paquete, `notificationCapabilities().observe` es falso y
+      `discoverApplications` completa con `unavailable` sin pedir consentimiento.
+- [ ] Con paquete, `observe` refleja soporte técnico; el consentimiento se
+      comprueba al descubrir o iniciar y un rechazo produce `denied`, no
+      `unavailable`.
+- [ ] `discoverApplications` puede solicitar consentimiento, no inicia la
+      observación ni altera su línea base, devuelve aplicaciones únicas y
+      ordenadas, excluye OneInTwo y descarta identidades vacías.
+- [ ] Un aviso nuevo de una aplicación autorizada llega una sola vez con su
+      nombre visible; los avisos previos, las aplicaciones no autorizadas y los
+      avisos de OneInTwo no se reenvían.
+- [ ] Retirar el consentimiento en Configuración detiene la observación en menos
+      de cinco segundos y produce un error local recuperable.
+- [ ] Tras volver a conceder permiso y reiniciar la observación, la línea base es
+      nueva: no se reenvía el historial acumulado.
+- [ ] Registrar versión de Windows, identidad del paquete y resultado.
+
+## NOTIF-LINUX-01 — Validar presentación y retirada en Ubuntu real
+
+Estado: pendiente de comprobación visual. El adaptador se prueba con un bus de
+sesión privado, pero no se ha certificado la presentación en un escritorio
+gráfico real.
+
+Criterio de aceptación:
+
+- [ ] Con `org.freedesktop.Notifications` disponible, un aviso manual y uno
+      reenviado autorizado aparecen una sola vez, con el equipo de origen; el
+      reenviado incluye el nombre de la aplicación de origen.
+- [ ] El texto Unicode se conserva y no aparecen botones, enlaces ni acciones.
+- [ ] `withdrawNotices` retira los avisos propios activos.
+- [ ] `notificationCapabilities().observe` es falso, `discoverApplications`
+      devuelve `unavailable` y el envío manual sigue funcionando.
+- [ ] Registrar versión de Ubuntu, servicio de notificaciones y resultado.
+
+## NOTIF-RESUME-01 — Renovar la línea base al reanudar Windows
+
+Estado: pendiente de integración. El módulo no recibe por sí mismo un evento de
+reanudación; la observación debe reiniciarse para no reenviar avisos acumulados
+durante la suspensión.
+
+Criterio de aceptación:
+
+- [ ] El coordinador reinicia la observación con una suscripción nueva al volver
+      de suspensión, o el adaptador expone una señal equivalente y la prueba la
+      cubre.
+- [ ] Los avisos generados durante la suspensión no se reenvían al reanudar.
+- [ ] Un aviso nuevo generado después de reanudar llega exactamente una vez.
+- [ ] La prueba automatizada usa reloj y suscripción simulados; la comprobación
+      manual en Windows registra el caso y el resultado.
+
+## NOTIF-MSIX-01 — Completar la verificación de integridad APPX
+
+Estado: pendiente. La comprobación actual valida el PKCS#7 de
+`AppxSignature.p7x` y que el firmante sea el certificado efímero, pero no liga
+los digests `AXPC`, `AXCD`, `AXCT`, `AXBM` y `AXCI` (si existe) al paquete real.
+
+Criterio de aceptación:
+
+- [ ] Extraer y parsear el `SpcIndirectDataContent` firmado, incluido el
+      encabezado de digests APPX.
+- [ ] Recalcular los digests aplicables sobre el paquete sin su entrada de firma
+      y compararlos con los valores firmados.
+- [ ] Un paquete válido pasa; alterar el payload, el directorio central, el
+      block map, los content types o la firma provoca un fallo explícito.
+- [ ] El job `msix` registra `signature_integrity=verified` sin usar
+      `signtool verify` ni las API WinTrust/Appx.
+- [ ] La confianza de la cadena y la instalación quedan fuera de este criterio
+      y se validan por separado en el equipo Windows de comprobación.
 
 ## EXP-FILES-LAN-01 — Completar pegado Explorer y bajo demanda
 

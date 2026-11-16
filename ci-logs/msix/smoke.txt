@@ -1,0 +1,9 @@
+﻿runner=win25-vs2026
+trust=LocalMachine\TrustedPeople
+certificate_thumbprint=B88650692B6885EDB7D184892E64BF54B2D14504
+install_status=ok
+install_exit=unavailable
+installed=OneInTwo.Notifications.NativeCheck_1.0.0.0_x64__tmxfw7yt0bhz4
+removed=OneInTwo.Notifications.NativeCheck_1.0.0.0_x64__tmxfw7yt0bhz4
+certificate_removed=true
+smoke=ok

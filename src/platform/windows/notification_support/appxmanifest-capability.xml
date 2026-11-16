@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fragmento para el AppxManifest.xml del paquete MSIX de OneInTwo.
+
+  La observación de avisos de otras aplicaciones exige identidad de paquete y
+  la capacidad userNotificationListener. Sin ambos, el adaptador anuncia
+  observe=false y startObserving completa con unavailable/denied.
+
+  El integrador debe incorporar la capacidad al manifiesto real del producto y
+  conservar la identidad de aplicación "OneInTwo.Desktop" declarada en
+  src/features/notification_support/identity.hpp.
+-->
+<Package
+    xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+    xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+    xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
+
+    <Capabilities>
+        <Capability Name="internetClient" />
+        <!-- Lectura de notificaciones con consentimiento local del usuario. -->
+        <uap3:Capability Name="userNotificationListener" />
+        <!-- Requerida por una aplicación de escritorio empaquetada. -->
+        <rescap:Capability Name="runFullTrust" />
+    </Capabilities>
+
+</Package>
