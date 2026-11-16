@@ -1,0 +1,89 @@
+name: Windows MSVC
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  application-tests:
+    name: Application tests (MSVC x64)
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          arch: win64_msvc2022_64
+          archives: qtbase
+          cache: true
+
+      - name: Locate OpenSSL SDK
+        shell: pwsh
+        run: |
+          $opensslRoot = @(
+            "C:\Program Files\OpenSSL",
+            "C:\Program Files\OpenSSL-Win64"
+          ) | Where-Object { Test-Path "$_\include\openssl\ssl.h" } |
+            Select-Object -First 1
+          if (-not $opensslRoot) {
+            choco install openssl --yes --no-progress
+            $opensslRoot = "C:\Program Files\OpenSSL-Win64"
+          }
+          if (-not (Test-Path "$opensslRoot\include\openssl\ssl.h")) {
+            throw "No se encontró el SDK de OpenSSL"
+          }
+          "OPENSSL_ROOT_DIR=$opensslRoot" |
+            Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "$opensslRoot\bin" |
+            Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          if (-not $env:QT_ROOT_DIR) {
+            throw "La acción de Qt no definió QT_ROOT_DIR"
+          }
+          cmake -S . -B build/windows-msvc `
+            -G "Visual Studio 17 2022" -A x64 `
+            -DONEINTWO_BUILD_TESTS=ON `
+            -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" `
+            -DOPENSSL_ROOT_DIR="$env:OPENSSL_ROOT_DIR"
+
+      - name: Build and link application tests
+        shell: pwsh
+        run: |
+          cmake --build build/windows-msvc --config Release `
+            --target oneintwo_application_tests -- /m
+
+      - name: Run application startup test
+        shell: pwsh
+        run: |
+          $test = "build/windows-msvc/tests/application/Release/oneintwo_application_tests.exe"
+          if (-not (Test-Path $test)) {
+            throw "No se generó $test"
+          }
+          $env:QT_PLUGIN_PATH = Join-Path $env:QT_ROOT_DIR "plugins"
+          $env:QT_QPA_PLATFORM = "offscreen"
+          $listed = ctest --test-dir build/windows-msvc -C Release `
+            -N -R "^oneintwo_application$" 2>&1
+          $listedText = $listed -join "`n"
+          $listedText | Write-Output
+          if ($LASTEXITCODE -ne 0 -or $listedText -notmatch "Total Tests: 1") {
+            throw "CTest no registró exactamente la prueba de Application"
+          }
+          $result = ctest --test-dir build/windows-msvc -C Release `
+            -R "^oneintwo_application$" --output-on-failure 2>&1
+          $resultText = $result -join "`n"
+          $resultText | Write-Output
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($resultText -notmatch "100% tests passed" -or
+              $resultText -notmatch "oneintwo_application") {
+            throw "La prueba de arranque no se ejecutó correctamente"
+          }
