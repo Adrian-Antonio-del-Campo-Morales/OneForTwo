@@ -1,5 +1,5 @@
-// Responsabilidad: comprobaciones aisladas del núcleo con reloj, canales y
-// adaptadores falsos. No abre escritorio, no captura ni inyecta entrada real.
+// Responsibility: isolated core checks with clock, channels and
+// Fake adapters. Do not open desktop, do not capture or inject actual input.
 #include "self_test.hpp"
 
 #include "core/geometry.hpp"
@@ -26,7 +26,7 @@ void check(bool ok, const char* expression, int line) {
   ++g_checks;
   if (!ok) {
     ++g_failures;
-    std::printf("FALLO linea %d: %s\n", line, expression);
+    std::printf("FAIL line %d: %s\n", line, expression);
   }
 }
 
@@ -185,7 +185,7 @@ class FakeTargetIO : public TargetIO {
   std::string stopReason;
 };
 
-// Doble del portal: registra el orden de las llamadas y simula fallos por etapa.
+// Portal Double: Logs the order of calls and simulates faults by stage.
 class FakePortal : public wl::PortalOps {
  public:
   bool createInputSession(std::string& session, std::string& error) override {
@@ -286,7 +286,7 @@ class FakePortal : public wl::PortalOps {
   bool record(const std::string& call, std::string& error) {
     calls.push_back(call);
     if (call == failAt) {
-      error = "fallo simulado: " + call;
+      error = "simulated failure: " + call;
       return false;
     }
     return true;
@@ -391,7 +391,7 @@ void testProtocol() {
 }
 
 void testKeymap() {
-  CHECK(winScanToHid(0x27, false) == hid::Semicolon);      // ñ en español
+  CHECK(winScanToHid(0x27, false) == hid::Semicolon);      // ñ in Spanish
   CHECK(winScanToHid(0x1A, false) == 0x2F);                // tecla de ´
   CHECK(winScanToHid(0x56, false) == hid::NonUsBackslash); // < > ISO
   CHECK(winScanToHid(0x38, true) == hid::RightAlt);        // AltGr
@@ -451,8 +451,8 @@ void testGeometry() {
   CHECK(!gate.observe(1919, 540, 1110, ratio));
 
   gate.noteReturn(1200);
-  CHECK(!gate.observe(1895, 540, 1300, ratio)); // dentro de la banda y sin enfriar
-  CHECK(!gate.observe(1850, 540, 1499, ratio)); // arma, aún sin enfriar
+  CHECK(!gate.observe(1895, 540, 1300, ratio)); // inside the band and not cooled
+  CHECK(!gate.observe(1850, 540, 1499, ratio)); // gun, not yet cooled
   CHECK(!gate.observe(1850, 540, 1499, ratio));
   CHECK(gate.observe(1919, 540, 1500, ratio));
   CHECK(!gate.observe(1919, 540, 1510, ratio));
@@ -529,7 +529,7 @@ void testSourceHappyPath() {
   CHECK(!io.captureActive);
   CHECK(io.warpX == 1895 && io.warpY == 540);
 
-  // Segundo cruce: la generación aumenta y el anti-rebote exige salir de la banda.
+  // Second crossing: the generation increases and the anti-rebound demands to get out of the band.
   controller.onRaw(RawEvent{RawKind::MotionAbs, 1850, 540, 0, 0, 0, false}, 1600);
   controller.onRaw(RawEvent{RawKind::MotionAbs, 1919, 540, 0, 0, 0, false}, 1610);
   CHECK(io.sent.back().type == MsgType::EnterRequest);
@@ -844,7 +844,7 @@ void testTargetGuards() {
   }
 
   {
-    // Un ping de una generación distinta no debe mantener viva una sesión remota.
+    // A ping of a different generation should not keep a remote session alive.
     FakeTargetIO io;
     TargetTuning tuning;
     tuning.watchdogMs = 500;
@@ -952,14 +952,14 @@ void testInputCaptureFlow() {
   std::string reason;
   CHECK(flow.takeCaptureLost());
   CHECK(flow.fatal(reason));
-  CHECK(reason.find("cerró") != std::string::npos);
+  CHECK(reason.find("closed") != std::string::npos);
   CHECK(flow.stage() == wl::CaptureStage::Closed);
 
   portal.calls.clear();
   flow.close();
   CHECK(flow.stage() == wl::CaptureStage::Idle);
   CHECK(portal.inputSessionCloses == 1);
-  CHECK(portal.eisCloses == 0);  // el descriptor se había transferido a libei
+  CHECK(portal.eisCloses == 0);  // the descriptor had been transferred to libei
 }
 
 void testInputCaptureFailures() {
@@ -986,7 +986,7 @@ void testInputCaptureFailures() {
     portal.failedBarriers = {1};
     wl::InputCaptureFlow flow(portal, Edge::Right);
     CHECK(!flow.open(error));
-    CHECK(error.find("barrera") != std::string::npos);
+    CHECK(error.find("barrier") != std::string::npos);
     CHECK(portal.eisCloses == 1);
     CHECK(portal.closedFd == portal.eisFd);
     CHECK(portal.inputSessionCloses == 1);
@@ -1005,7 +1005,7 @@ void testInputCaptureFailures() {
 
 void testRemoteDesktopFlow() {
   std::string error;
-  // Probar la salida no crea RemoteDesktop, no conecta EIS ni exige geometría.
+  // Testing output does not create RemoteDesktop, does not connect EIS or require geometry.
   {
     FakePortal portal;
     wl::RemoteDesktopFlow flow(portal);
@@ -1017,7 +1017,7 @@ void testRemoteDesktopFlow() {
     CHECK(portal.remoteCloses == 0 && portal.eisCloses == 0);
     CHECK(portal.shortcutCloses == 1);
   }
-  // Sin pulsación real, ninguna solicitud de permisos de control ni descriptor.
+  // No real press, no request for control permissions or descriptor.
   {
     FakePortal portal;
     portal.failAt = "verifyEmergencyShortcut";
@@ -1031,7 +1031,7 @@ void testRemoteDesktopFlow() {
     CHECK(portal.remoteCloses == 0 && portal.eisCloses == 0);
     CHECK(portal.shortcutCloses == 1);
   }
-  // Si el escritorio cierra el atajo preparado, tampoco se permite abrir control.
+  // If the desktop closes the prepared shortcut, it is also not allowed to open control.
   {
     FakePortal portal;
     wl::RemoteDesktopFlow flow(portal);
@@ -1044,7 +1044,7 @@ void testRemoteDesktopFlow() {
     flow.close();
     CHECK(portal.shortcutCloses == 1 && portal.remoteCloses == 0);
   }
-  // Cada fallo de preparación cierra lo adquirido y no publica un FD utilizable.
+  // Each preparation failure closes what is purchased and does not publish a usable FD.
   for (const char* step : {"createShortcutSession", "bindEmergencyShortcut", "createRemoteSession",
                            "selectRemoteDevices", "startRemoteSession", "connectRemoteEis"}) {
     FakePortal portal;
@@ -1077,11 +1077,11 @@ void testRemoteDesktopFlow() {
 
   {
     FakePortal portal;
-    portal.grantedDevices = 1;  // el usuario solo concedió teclado
+    portal.grantedDevices = 1;  // user only granted keyboard
     wl::RemoteDesktopFlow flow(portal);
     int fd = -1;
     CHECK(!flow.open(fd, error));
-    CHECK(error.find("teclado y puntero") != std::string::npos);
+    CHECK(error.find("keyboard and pointer") != std::string::npos);
     CHECK(portal.remoteCloses == 1);
     CHECK(portal.eisCloses == 0);
   }
@@ -1105,7 +1105,7 @@ void testRemoteDesktopFlow() {
     flow.onClosed();
     std::string reason;
     CHECK(flow.fatal(reason));
-    CHECK(reason.find("cerró") != std::string::npos);
+    CHECK(reason.find("closed") != std::string::npos);
   }
 }
 
@@ -1149,9 +1149,9 @@ void testSourcePortalEvents() {
     CHECK(!io.captureActive);
     CHECK(io.observing);
     CHECK(!controller.stopRequested());
-    controller.onBackendFailure("el escritorio cerró la sesión", 1130);
+    controller.onBackendFailure("desktop closed session", 1130);
     CHECK(controller.state() == SourceState::Stopped);
-    CHECK(controller.stopReason() == "el escritorio cerró la sesión");
+    CHECK(controller.stopReason() == "desktop closed session");
     CHECK(!io.observing);
   }
 }
@@ -1159,7 +1159,7 @@ void testSourcePortalEvents() {
 }  // namespace
 
 int runSelfTests() {
-  std::printf("OneInTwo input experiment: self-tests aislados\n");
+  std::printf("OneInTwo input experiment: isolated self-tests\n");
   testProtocol();
   testKeymap();
   testGeometry();
@@ -1174,7 +1174,7 @@ int runSelfTests() {
   testInputCaptureFailures();
   testRemoteDesktopFlow();
   testSourcePortalEvents();
-  std::printf("Comprobaciones: %d, fallos: %d\n", g_checks, g_failures);
+  std::printf("Checks: %d, failures: %d\n", g_checks, g_failures);
   return g_failures;
 }
 

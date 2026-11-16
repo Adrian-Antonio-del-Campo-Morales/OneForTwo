@@ -1,5 +1,5 @@
-// Responsabilidad: validación de rutas relativas, generación de identificadores
-// impredecibles y utilidades comunes del modelo.
+// Responsibility: validation of relative paths, generation of identifiers
+// unpredictable and common benefits of the model.
 #include "core/model.hpp"
 
 #include <algorithm>
@@ -52,37 +52,37 @@ std::vector<std::string> splitComponents(const std::string& relPath) {
 }  // namespace
 
 std::string validateRelativePath(const std::string& relPath, const PathRules& rules) {
-    if (relPath.empty()) throw Error("ruta relativa vacía");
-    if (relPath.size() > rules.maxRelPathBytes) throw Error("ruta relativa demasiado larga");
-    if (relPath.front() == '/') throw Error("ruta absoluta rechazada");
+    if (relPath.empty()) throw Error("empty relative path");
+    if (relPath.size() > rules.maxRelPathBytes) throw Error("too long relative route");
+    if (relPath.front() == '/') throw Error("route rejected absolute");
     if (relPath.size() >= 2 && std::isalpha(static_cast<unsigned char>(relPath[0])) &&
         relPath[1] == ':') {
-        throw Error("ruta con unidad absoluta rechazada");
+        throw Error("route with absolute drive rejected");
     }
 
     const std::vector<std::string> parts = splitComponents(relPath);
     if (parts.size() > static_cast<std::size_t>(rules.maxDepth) + 1) {
-        throw Error("profundidad de ruta fuera de límite");
+        throw Error("out-of-limit path depth");
     }
     for (const std::string& part : parts) {
-        if (part.empty()) throw Error("componente de ruta vacío");
-        if (part == "." || part == "..") throw Error("componente de ruta no permitido");
-        if (part.size() > rules.maxNameBytes) throw Error("nombre de componente demasiado largo");
+        if (part.empty()) throw Error("empty path component");
+        if (part == "." || part == "..") throw Error("path component not allowed");
+        if (part.size() > rules.maxNameBytes) throw Error("too long component name");
         for (char c : part) {
             const auto uc = static_cast<unsigned char>(c);
-            if (uc < 0x20 || uc == 0x7f) throw Error("carácter de control en el nombre");
+            if (uc < 0x20 || uc == 0x7f) throw Error("control character in the name");
         }
         if (rules.windows) {
             for (char c : part) {
                 if (c == '\\' || c == '<' || c == '>' || c == ':' || c == '"' || c == '|' || c == '?' ||
                     c == '*') {
-                    throw Error("carácter no admitido por el sistema de archivos de destino");
+                    throw Error("not supported by the target file system");
                 }
             }
             if (part.back() == '.' || part.back() == ' ') {
-                throw Error("nombre con punto o espacio final no admitido en Windows");
+                throw Error("name with point or end space not supported on Windows");
             }
-            if (isWindowsReservedName(part)) throw Error("nombre reservado del sistema");
+            if (isWindowsReservedName(part)) throw Error("System reserved name");
         }
     }
     return relPath;
@@ -92,7 +92,7 @@ PathRules nativePathRules(const Limits& limits) {
     PathRules rules;
 #if defined(_WIN32)
     rules.windows = true;
-    rules.maxRelPathBytes = 240;  // margen bajo MAX_PATH para el descriptor de Windows
+    rules.maxRelPathBytes = 240;  // low margin MAX_PATH for the Windows descriptor
 #else
     rules.windows = false;
     rules.maxRelPathBytes = std::min<std::size_t>(limits.maxRelPathBytes, 4000);
@@ -149,7 +149,7 @@ std::string randomId(std::size_t bytes) {
     }
     ok = got == buf.size();
 #endif
-    if (!ok) throw Error("no se pudo obtener aleatoriedad del sistema");
+    if (!ok) throw Error("could not get system randomness");
     return toHex(buf.data(), buf.size());
 }
 

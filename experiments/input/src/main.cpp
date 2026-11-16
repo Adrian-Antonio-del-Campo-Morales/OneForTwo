@@ -1,6 +1,6 @@
-// Responsabilidad: modos explícitos del prototipo (ayuda, self-test,
-// diagnóstico, demostración de inyección, origen y destino) y sus bucles de
-// sesión. Nada se ejecuta sin un modo explícito.
+// Responsibility: explicit methods of the prototype (help, self-test,
+// diagnosis, injection demonstration, origin and destination) and their loops
+// session. Nothing is executed without an explicit mode.
 #include "core/clock.hpp"
 #include "core/keymap.hpp"
 #include "core/source_controller.hpp"
@@ -80,39 +80,39 @@ struct Options {
 
 void printHelp() {
   std::printf(
-      "OneInTwo - experimento de teclado y raton\n"
+      "OneInTwo - keyboard experiment and mouse\n"
       "\n"
-      "Uso: input_experiment <modo> [opciones]\n"
+      "Use: input_experiment <mode> [options]\n"
       "\n"
-      "Modos (uno solo):\n"
-      "  --self-test          Pruebas aisladas del nucleo; no toca el escritorio ni la red.\n"
-      "  --diagnose           Inventario de plataforma y capacidades; no instala hooks.\n"
-      "  --check-target       Comprueba la salida; Wayland: solo GlobalShortcuts, sin EIS.\n"
-      "  --inject-demo        Inyecta un movimiento breve y escribe 'oneintwo' en la ventana\n"
-      "                       enfocada. Solo manual: enfoque un editor desechable.\n"
-      "  --source             Origen de teclado y raton (captura e envia).\n"
-      "  --target             Destino (escucha y inyecta).\n"
-      "  --help               Muestra esta ayuda.\n"
+      "Modes (one only):\n"
+      "  --self-test Tests isolated from the core; does not touch the desktop or network.\n"
+      "  --diagnose Inventory of platform and capabilities; does not install hooks.\n"
+      "  --check-target       Checks the exit shortcut. On Wayland, uses GlobalShortcuts without EIS.\n"
+      "  --inject-demo Injects a brief movement and writes 'oneintwo' in window\n"
+      "                       Focused. Manual only: focus a disposable editor.\n"
+      "  --source Keyboard origin and mouse (capture and send).\n"
+      "  --target Destination (listen and inject).\n"
+      "  --help Displays this help.\n"
       "\n"
-      "Opciones de red (origen y destino, TLS obligatorio):\n"
-      "  --connect HOST:PORT       Direccion del destino (solo origen).\n"
-      "  --listen PORT             Puerto de escucha local (solo destino).\n"
+      "Network options (origin and destination, TLS mandatory):\n"
+      "  --connect HOST:PORT Address of destination (origin only).\n"
+      "  --listen PORT Local listening port (destination only).\n"
       "  --cert FILE               Certificado PEM propio.\n"
-      "  --key FILE                Clave privada PEM propia.\n"
-      "  --peer-fingerprint HEX    Huella SHA-256 del certificado del otro equipo.\n"
+      "  --key FILE Private key PEM own \n"
+      "  --peer-fingerprint HEX Footprint SHA-256 from the certificate of the other equipment.\n"
       "\n"
-      "Opciones de control:\n"
-      "  --edge right|left         Borde compartido del origen (por defecto right).\n"
-      "  --arm-seconds N           Preparacion visible antes de capturar (1..60, def. 5).\n"
-      "  --max-seconds N           Duracion maxima de la sesion (10..3600, def. 180).\n"
-      "  --wait-for-stop           Tras --inject-demo, espera emergencia o retirada de permiso.\n"
+      "Control options:\n"
+      "  --edge right|left  Shared edge of the source (default: right).\n"
+      "  --arm-seconds N Visible preparation before capture (1.60, def. 5).\n"
+      "  --max-seconds N Maximum session duration (10.3600, def. 180).\n"
+      "  --wait-for-stop After --inject-demo, expect emergency or withdrawal of permission.\n"
       "\n"
       "Salida: Ctrl+Alt+F12 (Windows/X11); Ctrl+Shift+F12 (destino Wayland).\n"
-      "El destino tambien libera al recibir ese atajo o actividad fisica local (Windows).\n"
+      "The destination also frees up when you receive that shortcut or local physical activity (Windows) \n"
       "\n"
-      "Wayland (Linux): usa los portales InputCapture y RemoteDesktop + libei.\n"
-      "El destino comprueba Ctrl+Shift+F12 antes de abrir RemoteDesktop/EIS. Sin esa salida\n"
-      "el destino no inicia la inyeccion. Requiere gio-2.0 y libei-1.0 al compilar.\n"
+      "Wayland (Linux): use the InputCapture and RemoteDesktop portals + libei.\n"
+      "Destination checks Ctrl+Shift+F12 before opening RemoteDesktop/EIS. Without that output\n"
+      "the destination does not initiate the injection. Requires gio-2.0 and libei-1.0 when compiling \n"
       "\n"
       "Ejemplos:\n"
       "  input_experiment --diagnose\n"
@@ -155,7 +155,7 @@ bool parseHostPort(const std::string& text, std::string& host, uint16_t& port) {
 bool parseArgs(int argc, char** argv, Options& options, std::string& error) {
   auto setMode = [&](Mode mode) {
     if (options.mode != Mode::Help) {
-      error = "solo se permite un modo por ejecucion";
+      error = "only one mode per execution is allowed";
       return false;
     }
     options.mode = mode;
@@ -163,7 +163,7 @@ bool parseArgs(int argc, char** argv, Options& options, std::string& error) {
   };
   auto valueAt = [&](int& index, std::string& value) {
     if (index + 1 >= argc) {
-      error = std::string("falta el valor de ") + argv[index];
+      error = std::string("the value of ") + argv[index];
       return false;
     }
     value = argv[++index];
@@ -192,14 +192,14 @@ bool parseArgs(int argc, char** argv, Options& options, std::string& error) {
       std::string value;
       if (!valueAt(index, value)) return false;
       if (!parseHostPort(value, options.host, options.port)) {
-        error = "formato esperado para --connect: HOST:PORT";
+        error = "expected format for --connect: HOST:PORT";
         return false;
       }
     } else if (argument == "--listen") {
       std::string value;
       if (!valueAt(index, value)) return false;
       if (!parsePort(value, options.port)) {
-        error = "puerto de escucha invalido";
+        error = "Invalid listening port";
         return false;
       }
     } else if (argument == "--cert") {
@@ -216,21 +216,21 @@ bool parseArgs(int argc, char** argv, Options& options, std::string& error) {
       } else if (value == "left") {
         options.edge = oit::Edge::Left;
       } else {
-        error = "--edge debe ser right o left";
+        error = "--edge must be right or left";
         return false;
       }
     } else if (argument == "--arm-seconds") {
       std::string value;
       if (!valueAt(index, value)) return false;
       if (!parseInt(value, 1, 60, options.armSeconds)) {
-        error = "--arm-seconds debe estar entre 1 y 60";
+        error = "--arm-seconds must be between 1 and 60";
         return false;
       }
     } else if (argument == "--max-seconds") {
       std::string value;
       if (!valueAt(index, value)) return false;
       if (!parseInt(value, 10, 3600, options.maxSeconds)) {
-        error = "--max-seconds debe estar entre 10 y 3600";
+        error = "--max-seconds must be between 10 and 3600";
         return false;
       }
     } else {
@@ -249,11 +249,11 @@ bool parseArgs(int argc, char** argv, Options& options, std::string& error) {
       return false;
     }
     if (options.mode == Mode::Source && (options.host.empty() || options.port == 0)) {
-      error = "el origen requiere --connect HOST:PORT";
+      error = "the origin requires --connect HOST:PORT";
       return false;
     }
     if (options.mode == Mode::Target && options.port == 0) {
-      error = "el destino requiere --listen PORT";
+      error = "the destination requires --listen PORT";
       return false;
     }
   }
@@ -262,9 +262,9 @@ bool parseArgs(int argc, char** argv, Options& options, std::string& error) {
 
 const char* sourceStateText(oit::SourceState state) {
   switch (state) {
-    case oit::SourceState::Idle: return "control local, observando el borde";
-    case oit::SourceState::Preparing: return "esperando aceptacion del destino";
-    case oit::SourceState::Remote: return "control remoto activo";
+    case oit::SourceState::Idle: return "local control, observing the border";
+    case oit::SourceState::Preparing: return "waiting for acceptance of destiny";
+    case oit::SourceState::Remote: return "active remote control";
     case oit::SourceState::Stopped: return "detenido";
   }
   return "?";
@@ -272,8 +272,8 @@ const char* sourceStateText(oit::SourceState state) {
 
 const char* targetStateText(oit::TargetState state) {
   switch (state) {
-    case oit::TargetState::Idle: return "en espera de control";
-    case oit::TargetState::Remote: return "inyectando entrada remota";
+    case oit::TargetState::Idle: return "awaiting control";
+    case oit::TargetState::Remote: return "injecting remote input";
     case oit::TargetState::Stopped: return "detenido";
   }
   return "?";
@@ -286,13 +286,13 @@ void printBackend(const oit::Backend& backend) {
   std::printf("Sesion: %s\n", backend.sessionType().c_str());
   std::printf("Monitores: %d\n", backend.monitorCount());
   if (geo.valid()) {
-    std::printf("Escritorio: (%d,%d) %dx%d\n", geo.x, geo.y, geo.w, geo.h);
+    std::printf("Desktop: (%d,%d) %dx%d\n", geo.x, geo.y, geo.w, geo.h);
   } else {
-    std::printf("Escritorio: no disponible\n");
+    std::printf("Desktop: not available\n");
   }
-  std::printf("Captura declarada: %s\n", caps.capture ? "si" : "no");
+  std::printf("Declared catch: %s\n", caps.capture ? "si" : "no");
   std::printf("Inyeccion declarada: %s\n", caps.inject ? "si" : "no");
-  std::printf("Actividad local del destino: %s\n", caps.targetLocalOverride ? "si" : "no");
+  std::printf("Local activity of destination: %s\n", caps.targetLocalOverride ? "si" : "no");
   std::printf("Notas: %s\n", caps.notes.c_str());
   std::fflush(stdout);
 }
@@ -307,7 +307,7 @@ bool countdown(int seconds, const char* message, oit::Backend* target = nullptr)
       if (target != nullptr) {
         oit::TargetSignal signal;
         if (target->nextTargetSignal(signal, 100)) {
-          std::printf("Salida local recibida durante la preparacion.\n");
+          std::printf("Local departure received during preparation \n");
           return false;
         }
       } else {
@@ -333,7 +333,7 @@ bool exchangeHello(oit::Link& link, bool source, std::string& error) {
         if (message.type == oit::MsgType::HelloAck && message.code == oit::kRoleTarget) return true;
       }
     }
-    error = "el destino no respondio al saludo";
+    error = "fate did not respond to the greeting";
     return false;
   }
 
@@ -350,7 +350,7 @@ bool exchangeHello(oit::Link& link, bool source, std::string& error) {
       }
     }
   }
-  error = "el origen no envió el saludo";
+  error = "the origin did not send the greeting";
   return false;
 }
 
@@ -399,7 +399,7 @@ class TargetIOImpl : public oit::TargetIO {
  private:
   bool report(bool ok) {
     if (!ok && !warned_) {
-      std::printf("[destino] Aviso de inyeccion: %s\n", lastError_.c_str());
+      std::printf("[destiny] Injection warning: %s\n", lastError_.c_str());
       std::fflush(stdout);
       warned_ = true;
     }
@@ -424,16 +424,16 @@ int runDiagnose(oit::Backend& backend) {
 
 int runCheckTarget(oit::Backend& backend, const Options& options) {
   if (!backend.caps().inject) {
-    std::printf("La preparacion de destino no esta disponible en este entorno.\n");
+    std::printf("The destination preparation is not available in this environment \n");
     return 1;
   }
   std::string error;
   if (!backend.prepareTargetExit(error)) {
-    std::printf("No se pudo preparar el destino: %s\n", error.c_str());
+    std::printf("Cannot prepare destination: %s\n", error.c_str());
     backend.stopTarget();
     return 1;
   }
-  std::printf("Comprobacion de salida. Pulse %s ahora.\n", backend.targetExitShortcut());
+  std::printf("Output check. Press %s now.\n", backend.targetExitShortcut());
   std::fflush(stdout);
   const int64_t deadline = oit::steadyNowMs() + options.maxSeconds * 1000LL;
   bool verified = false;
@@ -441,18 +441,18 @@ int runCheckTarget(oit::Backend& backend, const Options& options) {
     oit::TargetSignal signal;
     if (!backend.nextTargetSignal(signal, 100)) continue;
     verified = signal.kind == oit::TargetSignal::Kind::Emergency;
-    std::printf(verified ? "Atajo local verificado; cerrando sesiones.\n"
-                         : "El escritorio cerro o interrumpio la preparacion.\n");
+    std::printf(verified ? "Checked local catch; closing sessions \n"
+                         : "The desk shut down or interrupted preparation.\n");
     break;
   }
   backend.stopTarget();
-  if (!verified) std::printf("Atajo no verificado; no se ha inyectado entrada.\n");
+  if (!verified) std::printf("Unverified catch; no entry \n injected");
   return verified ? 0 : 1;
 }
 
 int runInjectDemo(oit::Backend& backend, const Options& options) {
   if (!backend.caps().inject) {
-    std::printf("La inyeccion de entrada no esta disponible en este entorno.\n");
+    std::printf("Input injection is not available in this environment.\n");
     return 1;
   }
   std::string error;
@@ -463,14 +463,14 @@ int runInjectDemo(oit::Backend& backend, const Options& options) {
   }
   const oit::Geo geo = backend.geometry();
   if (!geo.valid()) {
-    std::printf("No hay geometria de escritorio disponible.\n");
+    std::printf("No desktop geometry available \n");
     backend.stopTarget();
     return 1;
   }
 
   std::printf(
-      "Demostracion de inyeccion: se movera el cursor unos pixeles y se escribira\n"
-      "'oneintwo'. No se pulsan botones. Enfoque una ventana de texto desechable.\n");
+      "Injection demonstration: the cursor will move a few pixels and be written to \n"
+      "'oneintwo'. Do not press buttons. Focus a disposable text window.\n");
   if (!countdown(options.armSeconds, "Comienzo en", &backend)) {
     std::printf("Cancelado.\n");
     backend.stopTarget();
@@ -522,72 +522,72 @@ int runInjectDemo(oit::Backend& backend, const Options& options) {
     failed = !backend.injectMove(baseX, baseY, error);
   }
   if (options.waitForStop && !failed && !stopped && !interrupted()) {
-    std::printf("CONTROL ACTIVO: esperando emergencia o retirada de permiso.\n");
+    std::printf("CONTROL ACTIVO: waiting for emergency or withdrawal of permission.\n");
     std::fflush(stdout);
     const int64_t deadline = oit::steadyNowMs() + options.maxSeconds * 1000LL;
     while (!interrupted() && oit::steadyNowMs() < deadline) {
       oit::TargetSignal signal;
       if (!backend.nextTargetSignal(signal, 100)) continue;
       std::printf(signal.kind == oit::TargetSignal::Kind::Emergency
-                      ? "Control detenido por emergencia local.\n"
-                      : "Control detenido por cierre del escritorio o dispositivo.\n");
+                      ? "Control detained by local emergency \n"
+                      : "Control stopped by closing the desk or device.\n");
       backend.stopTarget();
       return 0;
     }
     backend.stopTarget();
-    std::printf("Control no verificado: tiempo agotado o interrupcion externa.\n");
+    std::printf("Unverified Control: Exhausted Time or External Interruption \n");
     return 1;
   }
   backend.stopTarget();
   if (failed) {
-    std::printf("Demostracion detenida por fallo: %s\n", error.c_str());
+    std::printf("Demonstration stopped by judgement: %s\n", error.c_str());
     return 1;
   }
   if (stopped || interrupted()) {
-    std::printf("Demostracion interrumpida; entrada liberada.\n");
+    std::printf("Discontinuous demonstration; entrance released \n");
     return 0;
   }
-  std::printf("Demostracion finalizada. Revise el texto y el cursor.\n");
+  std::printf("Demonstration completed. Check the text and cursor.\n");
   return 0;
 }
 
 int runSource(oit::Backend& backend, const Options& options) {
   if (!backend.caps().capture) {
     printBackend(backend);
-    std::printf("La captura de entrada no esta disponible en este entorno.\n");
+    std::printf("Input capture is not available in this environment.\n");
     return 1;
   }
 
-  // La autorización del portal precede a la red y a la geometría: en Wayland la
-  // zona del escritorio solo se conoce después de Start.
+  // The authorisation of the portal precedes the network and geometry: in Wayland the
+  // desktop area is only known after Start.
   std::string error;
   if (!backend.prepareSource(options.edge, error)) {
-    std::printf("No se pudo preparar la captura del escritorio: %s\n", error.c_str());
+    std::printf("Could not prepare desktop capture: %s\n", error.c_str());
     return 1;
   }
   printBackend(backend);
   const oit::Geo geo = backend.geometry();
   if (!geo.valid()) {
-    std::printf("El origen no tiene geometria de escritorio disponible.\n");
+    std::printf("Origin has no desktop geometry available.\n");
     backend.stopSource();
     return 1;
   }
 
   if (!oit::netInit(error)) {
-    std::printf("Error de red: %s\n", error.c_str());
+    std::printf("Network error: %s\n", error.c_str());
     backend.stopSource();
     return 1;
   }
   std::unique_ptr<oit::Link> link = oit::openTlsClient(
       options.host, options.port, options.certFile, options.keyFile, options.fingerprint, error);
   if (!link) {
-    std::printf("No se pudo abrir el canal TLS: %s\n", error.c_str());
+    std::printf("Could not open channel TLS: %s\n", error.c_str());
     backend.stopSource();
     oit::netShutdown();
     return 1;
   }
   if (!exchangeHello(*link, true, error)) {
-    std::printf("Fallo el saludo: %s\n", error.c_str());
+    std::printf("Greeting failed: %s\n", error.c_str());
     link->close();
     backend.stopSource();
     oit::netShutdown();
@@ -595,10 +595,10 @@ int runSource(oit::Backend& backend, const Options& options) {
   }
 
   std::printf(
-      "Conectado al destino. Enfoque en el destino la ventana de prueba.\n"
-      "El control se armara tras la preparacion. Ctrl+Alt+F12 devuelve el control local.\n");
+      "Connected to target. Focus on target test window \n"
+      "The control will be assembled after preparation. Ctrl+Alt+F12 returns the local control.\n");
   if (!countdown(options.armSeconds, "Preparacion")) {
-    std::printf("Cancelado antes de capturar.\n");
+    std::printf("Cancelled before catching \n");
     link->close();
     backend.stopSource();
     oit::netShutdown();
@@ -610,14 +610,14 @@ int runSource(oit::Backend& backend, const Options& options) {
   SourceIOImpl io(*link, backend);
   oit::SourceController controller(geo, options.edge, io, tuning, oit::steadyNowMs());
   if (!controller.start()) {
-    std::printf("No se pudo iniciar la observacion: %s\n", io.lastError().c_str());
+    std::printf("Observation could not be initiated: %s\n", io.lastError().c_str());
     link->close();
     backend.stopSource();
     oit::netShutdown();
     return 1;
   }
 
-  std::printf("[origen] Armado. Borde compartido: %s. Duracion maxima: %d s.\n",
+  std::printf("[origin] Armed. Shared border: %s. Maximum duration: %d s.\n",
               oit::edgeName(options.edge), options.maxSeconds);
   std::fflush(stdout);
 
@@ -635,7 +635,7 @@ int runSource(oit::Backend& backend, const Options& options) {
 
     std::vector<oit::Message> messages;
     if (!link->receive(messages, 2, error)) {
-      std::printf("[origen] Error de enlace: %s\n", error.c_str());
+      std::printf("[source] Link error: %s\n", error.c_str());
       controller.onLinkLost(now);
       break;
     }
@@ -664,50 +664,50 @@ int runSource(oit::Backend& backend, const Options& options) {
 int runTarget(oit::Backend& backend, const Options& options) {
   if (!backend.caps().inject) {
     printBackend(backend);
-    std::printf("La inyeccion de entrada no esta disponible en este entorno.\n");
+    std::printf("Input injection is not available in this environment.\n");
     return 1;
   }
 
-  // Autoriza RemoteDesktop y Ctrl+Alt+F12 antes de escuchar: sin esa salida
-  // local no se habilita ninguna inyección.
+  // Authorize RemoteDesktop and Ctrl+Alt+F12 before listening: without that output
+  // no injection is enabled.
   std::string error;
   if (!backend.prepareTarget(error)) {
-    std::printf("No se pudo preparar el destino: %s\n", error.c_str());
+    std::printf("Cannot prepare destination: %s\n", error.c_str());
     return 1;
   }
   printBackend(backend);
   const oit::Geo geo = backend.geometry();
   if (!geo.valid()) {
-    std::printf("El destino no tiene geometria de escritorio disponible.\n");
+    std::printf("Destination has no desktop geometry available \n");
     backend.stopTarget();
     return 1;
   }
 
   if (!oit::netInit(error)) {
-    std::printf("Error de red: %s\n", error.c_str());
+    std::printf("Network error: %s\n", error.c_str());
     backend.stopTarget();
     return 1;
   }
-  std::printf("Escuchando TLS en el puerto %u. Ctrl+C cancela antes de conectar.\n",
+  std::printf("Listening to TLS on port %u. Ctrl+C cancels before connecting.\n",
               static_cast<unsigned>(options.port));
   std::fflush(stdout);
   std::unique_ptr<oit::Link> link = oit::openTlsServer(
       options.port, options.certFile, options.keyFile, options.fingerprint, &interrupted, error);
   if (!link) {
-    std::printf("No se pudo abrir el canal TLS: %s\n", error.c_str());
+    std::printf("Could not open channel TLS: %s\n", error.c_str());
     backend.stopTarget();
     oit::netShutdown();
     return interrupted() ? 0 : 1;
   }
   if (!exchangeHello(*link, false, error)) {
-    std::printf("Fallo el saludo: %s\n", error.c_str());
+    std::printf("Greeting failed: %s\n", error.c_str());
     link->close();
     backend.stopTarget();
     oit::netShutdown();
     return 1;
   }
   if (!backend.startTarget(error)) {
-    std::printf("No se pudo habilitar la inyeccion: %s\n", error.c_str());
+    std::printf("Cannot enable injection: %s\n", error.c_str());
     link->close();
     backend.stopTarget();
     oit::netShutdown();
@@ -720,7 +720,7 @@ int runTarget(oit::Backend& backend, const Options& options) {
   oit::TargetController controller(geo, io, tuning, oit::steadyNowMs());
 
   std::printf(
-      "[destino] Conexion aceptada. %s libera el control localmente.\n",
+      "[destiny] Connection accepted. %s releases control locally.\n",
       backend.targetExitShortcut());
   std::fflush(stdout);
 
@@ -741,7 +741,7 @@ int runTarget(oit::Backend& backend, const Options& options) {
 
     std::vector<oit::Message> messages;
     if (!link->receive(messages, 2, error)) {
-      std::printf("[destino] Error de enlace: %s\n", error.c_str());
+      std::printf("[destiny] Link error: %s\n", error.c_str());
       controller.onLinkLost(now);
       break;
     }
@@ -788,21 +788,21 @@ int main(int argc, char** argv) {
   if (options.mode == Mode::SelfTest) {
 #ifdef OIT_WITH_WAYLAND
     if (!oit::runWaylandPortalResponseChecks()) {
-      std::printf("FAIL native_portal_response_and_shortcut (aislado, sin bus)\n");
+      std::printf("FAIL native_portal_response_and_shortcut (isolated, without bus)\n");
       return 1;
     }
-    std::printf("PASS native_portal_response_and_shortcut (aislado, sin bus)\n");
+    std::printf("PASS native_portal_response_and_shortcut (isolated, without bus)\n");
 #endif
     return oit::runSelfTests() == 0 ? 0 : 1;
   }
 
   std::unique_ptr<oit::Backend> backend = oit::makePlatformBackend(error);
   if (!backend) {
-    std::printf("Error creando el backend: %s\n", error.c_str());
+    std::printf("Error creating backend: %s\n", error.c_str());
     return 1;
   }
   if (!backend->init(error)) {
-    std::printf("Error inicializando el backend: %s\n", error.c_str());
+    std::printf("Error initializing backend: %s\n", error.c_str());
     return 1;
   }
 

@@ -83,7 +83,7 @@ public:
             cleanupAfterFailure(fd);
             return false;
         }
-        // El core toma la propiedad del descriptor a partir de este punto.
+        // The core takes ownership of the descriptor from this point.
         stream_ = pw_stream_new(
             core_, "oneintwo-capture",
             pw_properties_new(PW_KEY_MEDIA_TYPE, "Video", PW_KEY_MEDIA_CATEGORY, "Capture",

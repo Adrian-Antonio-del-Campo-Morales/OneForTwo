@@ -11,8 +11,8 @@
 
 namespace oneintwo {
 
-// Puerto de sesión. El producto lo adapta a AuthenticatedSession; las pruebas
-// de composición usan un doble que registra permisos y mensajes.
+// Session port. The product adapts it to AuthenticatedSession; the tests
+// Composition use a double that records permissions and messages.
 class SessionPort {
 public:
     virtual ~SessionPort() = default;
@@ -25,7 +25,7 @@ public:
     virtual bool established() const = 0;
 };
 
-// Puerto del módulo de avisos. El producto lo adapta a SharedNotifications.
+// Port of the notice module. The product adapts it to SharedNotifications.
 class NotificationPort {
 public:
     virtual ~NotificationPort() = default;
@@ -47,7 +47,7 @@ struct UiActions {
     std::function<void(std::set<std::string>)> allowed_applications_changed;
 };
 
-// Contrato de la ventana principal con el coordinador.
+// Main window contract with the coordinator.
 class CoordinatorView {
 public:
     virtual ~CoordinatorView() = default;
@@ -71,8 +71,8 @@ struct CoordinatorDependencies {
         make_viewer;
     std::string peer_name;
 
-    // Persistencia opcional de preferencias locales; el coordinador no conoce
-    // el almacén concreto.
+    // Optional local preferences persistence; the coordinator does not know
+    // the specific warehouse.
     std::function<void(ProfileId)> persist_profile;
     std::function<void(std::set<std::string>)> persist_applications;
 };

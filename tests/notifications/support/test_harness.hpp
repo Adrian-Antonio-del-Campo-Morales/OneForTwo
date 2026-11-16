@@ -43,7 +43,7 @@ std::string describe(const T& value) {
     do {                                                                              \
         if (!(condition)) {                                                           \
             ::oneintwo::tests::report_failure(__FILE__, __LINE__,                     \
-                                              "CHECK falló: " #condition);            \
+                                              "CHECK failed: " #condition);            \
         }                                                                             \
     } while (false)
 
@@ -51,7 +51,7 @@ std::string describe(const T& value) {
     do {                                                                              \
         if (!(condition)) {                                                           \
             ::oneintwo::tests::report_failure(                                        \
-                __FILE__, __LINE__, "CHECK falló: " #condition " | " +                \
+                __FILE__, __LINE__, "CHECK failed: " #condition " | " +                \
                                         ::std::string(message));                       \
         }                                                                             \
     } while (false)
@@ -60,8 +60,8 @@ std::string describe(const T& value) {
     do {                                                                              \
         if (!(condition)) {                                                           \
             ::oneintwo::tests::report_failure(__FILE__, __LINE__,                     \
-                                              "REQUIRE falló: " #condition);          \
-            throw ::oneintwo::tests::RequirementFailure("REQUIRE falló: " #condition);\
+                                              "REQUIRE failed: " #condition);          \
+            throw ::oneintwo::tests::RequirementFailure("REQUIRE failed: " #condition);\
         }                                                                             \
     } while (false)
 
@@ -72,7 +72,7 @@ std::string describe(const T& value) {
         if (!(actual_value == expected_value)) {                                      \
             ::oneintwo::tests::report_failure(                                        \
                 __FILE__, __LINE__,                                                   \
-                "CHECK_EQUAL falló: " #actual " != " #expected " (" +                 \
+                "CHECK_EQUAL failed: " #actual " != " #expected " (" +                 \
                     ::oneintwo::tests::describe(actual_value) + " vs " +              \
                     ::oneintwo::tests::describe(expected_value) + ")");               \
         }                                                                             \

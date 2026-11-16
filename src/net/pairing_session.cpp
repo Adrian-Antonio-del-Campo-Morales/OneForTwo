@@ -124,11 +124,11 @@ void PairingSession::start() {
     }
     local_.fingerprint = normalizeFingerprint(local_.fingerprint);
     if (!safeId(local_.device_id) || local_.fingerprint.empty()) {
-        finishWithError("la identidad local no es válida para emparejar");
+        finishWithError("local identity is not valid for matching");
         return;
     }
     if (!expected_peer_id_.empty() && !safeId(expected_peer_id_)) {
-        finishWithError("el identificador del equipo esperado no es válido");
+        finishWithError("the expected equipment identifier is invalid");
         return;
     }
 
@@ -147,7 +147,7 @@ void PairingSession::start() {
 void PairingSession::sendCommit() {
     if (!sendMessage(std::string(kMagic) + "\x1f" "commit" "\x1f" +
                      local_commit_)) {
-        finishWithError("no se pudo enviar el compromiso de emparejamiento");
+        finishWithError("could not send matching commitment");
     }
 }
 
@@ -160,7 +160,7 @@ void PairingSession::sendReveal() {
         "\x1f" + local_.name + "\x1f" + local_.fingerprint + "\x1f" +
         local_nonce_;
     if (!sendMessage(message)) {
-        finishWithError("no se pudo enviar la identidad de emparejamiento");
+        finishWithError("could not send matching identity");
         return;
     }
     reveal_sent_ = true;
@@ -176,7 +176,7 @@ void PairingSession::onFrame(SessionChannelKind channel,
     const std::string message(frame.begin(), frame.end());
     const auto fields = splitFields(message);
     if (fields.size() < 2 || fields[0] != kMagic) {
-        finishWithError("mensaje de emparejamiento no reconocido");
+        finishWithError("unrecognized matching message");
         return;
     }
     if (fields[1] == "commit") {
@@ -188,17 +188,17 @@ void PairingSession::onFrame(SessionChannelKind channel,
     } else if (fields[1] == "reject") {
         receiveReject(fields);
     } else {
-        finishWithError("tipo de mensaje de emparejamiento no reconocido");
+        finishWithError("type of unrecognized pairing message");
     }
 }
 
 void PairingSession::receiveCommit(const std::vector<std::string>& fields) {
     if (peer_committed_ || state_ != PairingState::waiting_peer) {
-        finishWithError("el otro equipo envió un compromiso duplicado");
+        finishWithError("the other team sent a duplicate commitment");
         return;
     }
     if (fields.size() != 3) {
-        finishWithError("el compromiso del otro equipo está incompleto");
+        finishWithError("the commitment of the other team is incomplete");
         return;
     }
     peer_commit_ = fields[2];
@@ -211,7 +211,7 @@ void PairingSession::receiveCommit(const std::vector<std::string>& fields) {
                      [](unsigned char character) {
                          return std::isxdigit(character);
                      })) {
-        finishWithError("el compromiso del otro equipo no es válido");
+        finishWithError("the commitment of the other team is invalid");
         return;
     }
     peer_committed_ = true;
@@ -221,11 +221,11 @@ void PairingSession::receiveCommit(const std::vector<std::string>& fields) {
 void PairingSession::receiveReveal(const std::vector<std::string>& fields) {
     if (reveal_received_ || !peer_committed_ ||
         state_ != PairingState::waiting_peer) {
-        finishWithError("el otro equipo envió una identidad duplicada");
+        finishWithError("the other team sent a duplicate identity");
         return;
     }
     if (fields.size() != 6) {
-        finishWithError("la identidad del otro equipo está incompleta");
+        finishWithError("the identity of the other team is incomplete");
         return;
     }
     PairingPeer peer;
@@ -239,28 +239,28 @@ void PairingSession::receiveReveal(const std::vector<std::string>& fields) {
                      [](unsigned char character) {
                          return std::isxdigit(character);
                      })) {
-        finishWithError("la identidad del otro equipo no es válida");
+        finishWithError("the identity of the other equipment is invalid");
         return;
     }
     if (commitmentFor(peer.device_id, peer.name, peer.fingerprint,
                       peer_nonce_) != peer_commit_) {
-        finishWithError("la identidad revelada no coincide con el compromiso");
+        finishWithError("the revealed identity does not match the commitment");
         return;
     }
     if (!expected_peer_id_.empty() &&
         peer.device_id != expected_peer_id_) {
-        finishWithError("el equipo conectado no es el esperado");
+        finishWithError("the connected equipment is not the one expected");
         return;
     }
     const std::string observed =
         normalizeFingerprint(transport_.authenticated_peer_fingerprint());
     if (!observed.empty() && observed != peer.fingerprint) {
         finishWithError(
-            "la huella del certificado no coincide con la identidad anunciada");
+            "the print of the certificate does not match the announced identity");
         return;
     }
     if (peer.device_id == local_.device_id) {
-        finishWithError("no se puede emparejar un equipo consigo mismo");
+        finishWithError("You can't match a team with yourself.");
         return;
     }
     if (peer.name.empty()) {
@@ -330,7 +330,7 @@ void PairingSession::confirm() {
     }
     if (!sendMessage(std::string(kMagic) + "\x1f" "confirm" "\x1f" +
                      transcript_hash_)) {
-        finishWithError("no se pudo enviar la confirmación de emparejamiento");
+        finishWithError("could not send matching confirmation");
         return;
     }
     local_confirmed_ = true;
@@ -342,7 +342,7 @@ void PairingSession::confirm() {
 void PairingSession::receiveConfirm(const std::vector<std::string>& fields) {
     if (state_ != PairingState::waiting_confirmation ||
         transcript_hash_.empty() || fields.size() != 3) {
-        finishWithError("confirmación de emparejamiento no válida");
+        finishWithError("Invalid pairing confirmation");
         return;
     }
     std::string received = fields[2];
@@ -352,7 +352,7 @@ void PairingSession::receiveConfirm(const std::vector<std::string>& fields) {
                    });
     if (received != transcript_hash_) {
         finishWithError(
-            "la confirmación no corresponde a esta conversación de emparejamiento");
+            "the confirmation does not correspond to this matching conversation");
         return;
     }
     peer_confirmed_ = true;
@@ -375,7 +375,7 @@ void PairingSession::receiveReject(const std::vector<std::string>& fields) {
     const std::string reason =
         fields.size() >= 3 && !fields[2].empty()
             ? fields[2]
-            : "el otro equipo rechazó el emparejamiento";
+            : "the other team rejected the pairing";
     state_ = PairingState::rejected;
     detach();
     if (callbacks_.failed) {
@@ -415,7 +415,7 @@ void PairingSession::finishWithError(const std::string& message) {
 void PairingSession::onClosed() {
     if (state_ != PairingState::complete && state_ != PairingState::failed &&
         state_ != PairingState::rejected) {
-        finishWithError("se cerró el canal de emparejamiento");
+        finishWithError("the pairing channel is closed");
     }
 }
 

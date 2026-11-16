@@ -1,8 +1,8 @@
 #pragma once
-// Responsabilidad: lógica portable de las sesiones Wayland. El origen usa el
-// portal InputCapture; el destino, RemoteDesktop + GlobalShortcuts. Esta capa no
-// habla D-Bus ni libei: recibe esas operaciones por PortalOps, de modo que puede
-// probarse con dobles y compilarse en cualquier plataforma.
+// Responsibility: Wayland session portable logic. Origin uses the
+// InputCapture portal; destination, RemoteDesktop + GlobalShortcuts. This layer does not
+// This is D-Bus or Libei: receive these operations by PortalOps, so you can
+// be tested with doubles and compiled on any platform.
 
 #include "core/types.hpp"
 
@@ -13,7 +13,7 @@
 namespace oit {
 namespace wl {
 
-// GetZones devuelve a(uuii): ancho, alto, desplazamiento x, desplazamiento y.
+// GetZones returns to(uuii): width, height, displacement x, displacement y.
 struct Zone {
   uint32_t width = 0;
   uint32_t height = 0;
@@ -21,7 +21,7 @@ struct Zone {
   int32_t y = 0;
 };
 
-// Barrera vertical en el borde exterior de la zona. id no puede ser cero.
+// Vertical barrier on the outer edge of the area. id cannot be zero.
 struct Barrier {
   uint32_t id = 1;
   int32_t x1 = 0;
@@ -35,28 +35,28 @@ constexpr uint32_t kCapabilityPointer = 2;
 constexpr uint32_t kDeviceKeyboard = 1;
 constexpr uint32_t kDevicePointer = 2;
 
-// Identificador nuevo: no reutilizar una concesión persistida de Ctrl+Alt+F12.
+// New identifier: do not reuse a persistent Ctrl+Alt+F12 concession.
 constexpr const char* kEmergencyShortcutId = "oneintwo-emergency-v2";
 constexpr const char* kEmergencyShortcutTrigger = "CTRL+SHIFT+F12";
 
-// El alcance del experimento es un solo monitor: una única zona.
+// The scope of the experiment is a single monitor: a single area.
 bool zoneGeometry(const std::vector<Zone>& zones, Geo& geo, std::string& error);
 
-// Barrera vertical en el borde compartido: x = zone.x + zone.width (Right) o
-// x = zone.x (Left); y1 = zone.y, y2 = zone.y + zone.height - 1.
+// Vertical barrier on shared edge: x = zone.x + zone.width (Right) or
+// x = zone.x (Left); y1 = zone.y, y2 = zone.and + zone.height - 1.
 bool sourceBarrier(const std::vector<Zone>& zones, Edge edge, Barrier& barrier,
                    std::string& error);
 
-// Convierte una región EIS en geometría de escritorio.
+// It converts a EIS region into desktop geometry.
 bool regionGeometry(uint32_t x, uint32_t y, uint32_t width, uint32_t height, Geo& geo);
 
-// Operaciones del portal, implementadas por GDBus en Linux y por un doble en las
-// pruebas. Los descriptores EIS transferidos pasan a ser propiedad del llamador.
+// Portal operations, implemented by GDBus on Linux and by a double in the
+// The EIS descriptors transferred become the property of the caller.
 class PortalOps {
  public:
   virtual ~PortalOps() = default;
 
-  // Origen: org.freedesktop.portal.InputCapture (versión 2).
+  // Origin: org.freedesktop.portal.InputCapture (version 2).
   virtual bool createInputSession(std::string& session, std::string& error) = 0;
   virtual bool startInputSession(const std::string& session, std::string& error) = 0;
   virtual bool connectInputEis(const std::string& session, int& fd, std::string& error) = 0;
@@ -70,10 +70,10 @@ class PortalOps {
   virtual bool releaseInput(const std::string& session, uint32_t activationId, double x, double y,
                             std::string& error) = 0;
   virtual void closeInputSession(const std::string& session) = 0;
-  // Cierra un descriptor EIS que todavía no se transfirió a libei.
+  // It closes a EIS descriptor that has not yet been transferred to libei.
   virtual void closeEis(int fd) = 0;
 
-  // Destino: org.freedesktop.portal.RemoteDesktop (versión 2).
+  // Destination: org.freedesktop.portal.RemoteDesktop (version 2).
   virtual bool createRemoteSession(std::string& session, std::string& error) = 0;
   virtual bool selectRemoteDevices(const std::string& session, uint32_t types,
                                    std::string& error) = 0;
@@ -86,7 +86,7 @@ class PortalOps {
   virtual bool createShortcutSession(std::string& session, std::string& error) = 0;
   virtual bool bindEmergencyShortcut(const std::string& session, bool& bound,
                                      std::string& error) = 0;
-  // Exige una activación y liberación reales antes de abrir RemoteDesktop/EIS.
+  // Requires real activation and release before opening RemoteDesktop/EIS.
   virtual bool verifyEmergencyShortcut(const std::string& session, std::string& error) = 0;
   virtual void closeShortcutSession(const std::string& session) = 0;
 };
@@ -100,14 +100,14 @@ struct Activation {
 
 enum class CaptureStage { Idle, Armed, Active, Closed, Failed };
 
-// Secuencia de autorización y estado del origen. open() ejecuta, en orden:
-// CreateSession2, Start, ConnectToEIS, GetZones, SetPointerBarriers y Enable.
+// Authorization sequence and state of origin. open() executes, in order:
+// CreateSession2, Start, ConnectToEIS, GetZones, SetPointerBarriers and Enable.
 class InputCaptureFlow {
  public:
   InputCaptureFlow(PortalOps& ops, Edge edge) : ops_(ops), edge_(edge) {}
 
   bool open(std::string& error);
-  // Tras ZonesChanged o Disabled. Re-consulta zonas y barreras solo si cambiaron.
+  // After ZonesChanged or Disabled. Consult zones and barriers only if they changed.
   bool rearm(std::string& error);
   bool release(double x, double y, std::string& error);
   void close();
@@ -154,8 +154,8 @@ class InputCaptureFlow {
 
 enum class TargetStage { Idle, ExitReady, Ready, Closed, Failed };
 
-// Primero GlobalShortcuts y comprobación física; después RemoteDesktop/EIS.
-// prepareExit() permite probar solo el atajo, sin sesión de control ni EIS.
+// First GlobalShortcuts and physical check; then RemoteDesktop/EIS.
+// prepareExit() allows to test only the shortcut, without control session nor EIS.
 class RemoteDesktopFlow {
  public:
   explicit RemoteDesktopFlow(PortalOps& ops) : ops_(ops) {}

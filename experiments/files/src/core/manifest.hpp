@@ -1,6 +1,6 @@
-// Responsabilidad: construir la oferta a partir de rutas autorizadas, aplicar
-// límites y conservar el mapa interno de ruta relativa a ruta absoluta. Ese mapa
-// nunca se transmite; el receptor solo recibe rutas relativas e identificadores.
+// Responsibility: build the offer from authorized routes, apply
+// limits and preserve the internal route map relative to absolute route.
+// is never transmitted; the receiver only receives relative paths and identifiers.
 #pragma once
 
 #include "core/model.hpp"
@@ -18,11 +18,11 @@ struct BuiltOffer {
 
 BuiltOffer buildOffer(const std::vector<std::string>& rootsUtf8, const Limits& limits);
 
-// Formato de estado de la caché (una línea de cabecera y una por elemento).
+// Cache status format (one header line and one per element).
 std::string serializeManifestText(const Offer& offer);
 Offer parseManifestText(const std::string& text, const Limits& limits);
 
-// Resumen sin rutas absolutas ni nombres de archivo: apto para logs por defecto.
+// Summary without absolute paths or file names: suitable for default logs.
 std::string describeOffer(const Offer& offer);
 
 }  // namespace o2f

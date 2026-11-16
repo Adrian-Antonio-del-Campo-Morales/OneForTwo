@@ -1,6 +1,6 @@
 #pragma once
 
-// Fixtures exclusivos de la prueba loopback. No son credenciales de producto.
+// Fixtures exclusive to the loopback test. They are not product credentials.
 namespace oneintwo_test {
 
 inline constexpr char certificate_a[] = R"PEM(

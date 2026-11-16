@@ -35,9 +35,9 @@ inline bool check(bool condition, const char* expression, const char* file, int 
 #define CHECK(condition) ::oneintwo::test::check((condition), #condition, __FILE__, __LINE__)
 
 /*
- * Ejecutor de prueba: ModuleRuntime.post encola y el hilo de prueba drena en
- * orden FIFO. No hay hilos nativos en el modelo Windows, así que esto reproduce
- * la serialización de callbacks que exige el contrato.
+ * Test Runer: ModuleRuntime.post glues and test thread drains in FIFO order. There are no native
+ * threads in the Windows model, so this reproduces the serialization of callbacks required by the
+ * contract.
  */
 struct TestRuntime {
     std::deque<Task> tasks;

@@ -46,7 +46,7 @@ bool initialiseApartment()
     try {
         winrt::init_apartment(winrt::apartment_type::multi_threaded);
     } catch (...) {
-        // La interfaz ya puede estar inicializada como STA por el hilo de UI.
+        // The interface can already be initialized as STA by the UI thread.
     }
     return true;
 }
@@ -74,7 +74,7 @@ public:
             D3D11_TEXTURE2D_DESC description{};
             texture->GetDesc(&description);
             if (description.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
-                return false; // El contrato exige BGRA; no se entrega otro formato.
+                return false; // The contract requires BGRA; no other format is provided.
             }
             const std::uint32_t copy_width = std::min(content.width, description.Width);
             const std::uint32_t copy_height = std::min(content.height, description.Height);
@@ -370,8 +370,8 @@ bool windowsGraphicsCaptureSupported()
         if (!winrt::Windows::Graphics::Capture::GraphicsCaptureSession::IsSupported()) {
             return false;
         }
-        // IsSupported puede ser cierto en sistemas anteriores a 1903, donde la
-        // interfaz de interoperabilidad para HWND/HMONITOR todavía no existe.
+        // IsSupported can be true in systems prior to 1903, where the
+        // Interoperability interface for HWND/HMONITOR does not yet exist.
         const auto interop = winrt::get_activation_factory<
             winrt::Windows::Graphics::Capture::GraphicsCaptureItem,
             IGraphicsCaptureItemInterop>();

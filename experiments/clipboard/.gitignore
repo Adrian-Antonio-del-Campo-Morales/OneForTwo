@@ -1,4 +1,4 @@
-# Responsabilidad: excluir artefactos, temporales y secretos del prototipo.
+# Exclude prototype artifacts, temporary files, and secrets.
 /build/
 /out/
 /deps/

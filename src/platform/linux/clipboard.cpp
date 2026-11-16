@@ -1,12 +1,13 @@
 /*
- * OneInTwo — Propiedad del portapapeles Linux.
- * Estado: estructura documental; implementación pendiente.
+ * OneInTwo — Linux clipboard ownership. Status: documentary structure; pending implementation.
  *
- * Responsabilidades previstas:
- * - Leer, escribir y observar formatos admitidos por el backend validado.
- * - Informar si el acceso depende de foco, captura activa, permiso o sesión; no simular disponibilidad permanente.
- * - Clasificar texto y ofertas de archivos y coordinar publicación única con file_clipboard.cpp.
- * - Respetar propiedad y vida de las ofertas, descriptores y transferencias locales.
- * - La vía para portapapeles independiente queda pendiente de P2; no implementar comandos externos como motor del producto.
+ * Responsibilities envisaged:
+ * - Read, write and observe formats supported by the validated backend.
+ * - Report whether access depends on focus, active capture, permission or session; do not simulate
+ *   permanent availability.
+ * - Sort text and file offers and coordinate single post with file_clipboard.cpp.
+ * - Respect property and life of offers, descriptors and local transfers.
+ * - The independent clipboard track is pending P2; do not implement external commands as a product
+ *   engine.
  */
 

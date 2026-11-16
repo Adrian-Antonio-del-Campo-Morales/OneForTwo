@@ -1,6 +1,6 @@
-// C++/WinRT incluye <experimental/coroutine> al compilar en C++17. El SDK
-// 26100 con MSVC 14.51 convierte esa inclusión en un error salvo que se
-// silencie explícitamente; el paquete no usa corrutinas propias.
+// C++/WinRT includes <experimental/coroutine> when compiling in C++17. SDK
+// 26100 with MSVC 14.51 turns that inclusion into a mistake unless it is
+// explicitly silence; the package does not use its own corrutines.
 #if defined(_MSC_VER) && !defined(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
 #define _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
 #endif
@@ -41,18 +41,17 @@
 #include <vector>
 
 /*
- * Presentación y observación nativas en Windows.
+ * Native presentation and observation on Windows.
  *
- * La presentación usa ToastNotificationManager. En una aplicación empaquetada
- * (MSIX) la identidad procede del paquete; en una compilación sin empaquetar se
- * usa el AppUserModelID del producto, que debe estar registrado por un acceso
- * directo del menú Inicio (ver notification_support/README.md).
+ * The presentation uses ToastNotificationManager. In a packaged application (MSIX) the identity
+ * comes from the package; in an unpackaged compilation the AppUserModelID of the product is used,
+ * which must be registered by a direct access from the Start menu (see
+ * notification_support/README.md).
  *
- * La observación usa UserNotificationListener y solo está disponible con
- * identidad de paquete y la capacidad userNotificationListener. RequestAccessAsync
- * se invoca desde el hilo de interfaz del coordinador; la escucha, la lectura
- * inicial y la presentación se ejecutan en un hilo propio con apartamento MTA.
- * El consentimiento se vuelve a comprobar periódicamente con GetAccessStatus.
+ * The observation uses UserNotificationListener and is only available with package identity and
+ * userNotificationListening capability. RequestAccessAsync is invoked from the coordinator's
+ * interface thread; listening, initial reading and presentation are executed in a proper thread
+ * with MTA apartment. Consent is periodically re-checked with GetAccessStatus.
  */
 
 namespace oneintwo {
@@ -115,7 +114,7 @@ struct Shared {
     std::deque<Task> tasks;
     bool stopping = false;
 
-    // Propiedad exclusiva del hilo de trabajo.
+    // Exclusive ownership of the work thread.
     wun::ToastNotifier notifier{nullptr};
     bool notifier_ready = false;
     std::map<std::uint64_t, wun::ToastNotification> tracked_toasts;
@@ -176,8 +175,8 @@ void post_state(const SharedPtr& shared, DesktopResult result) {
     });
 }
 
-// El consentimiento forma parte de la disponibilidad efectiva: el coordinador
-// vuelve a consultar capacidades y recalcula la autorización.
+// Consent is part of effective availability: the coordinator
+// Reconsult capabilities and recalculate the authorization.
 void notify_capabilities_changed(const SharedPtr& shared) {
     const auto callback = shared->capabilities_changed;
     if (!callback) {
@@ -272,7 +271,7 @@ std::vector<std::string> notification_text_lines(const wun::UserNotification& no
         try {
             binding = visual.GetBinding(wun::KnownNotificationBindings::ToastGeneric());
         } catch (const winrt::hresult_error&) {
-            // Plantillas antiguas sin enlace ToastGeneric.
+            // Old templates without ToastGeneric link
         }
         if (!binding) {
             const auto bindings = visual.Bindings();
@@ -309,11 +308,11 @@ void handle_changed(const SharedPtr& shared, std::uint64_t identifier,
         {
             std::lock_guard<std::mutex> lock(shared->mutex);
             if (!shared->baseline.accept(native_id)) {
-                return; // Existía antes de iniciar la observación o ya se entregó.
+                return; // It existed before the observation began or was already delivered.
             }
         }
 
-        // El evento solo identifica el aviso; puede haberse retirado ya.
+        // The event only identifies the warning; it may already have been withdrawn.
         const auto notification =
             wunm::UserNotificationListener::Current().GetNotification(native_id);
         if (!notification) {
@@ -322,7 +321,7 @@ void handle_changed(const SharedPtr& shared, std::uint64_t identifier,
 
         const std::string app_id = winrt::to_string(notification.AppInfo().AppUserModelId());
         if (app_id.empty() || notification_support::is_product_application(app_id)) {
-            return; // Sin identidad fiable o eco de OneInTwo.
+            return; // No reliable identity or echo from OneInTwo.
         }
         std::string app_name;
         try {
@@ -331,7 +330,7 @@ void handle_changed(const SharedPtr& shared, std::uint64_t identifier,
             app_name.clear();
         }
         if (app_name.empty()) {
-            return; // Sin nombre visible no hay atribución utilizable.
+            return; // Without a visible name there is no usable attribution.
         }
 
         const auto lines = notification_text_lines(notification);
@@ -360,7 +359,7 @@ void handle_changed(const SharedPtr& shared, std::uint64_t identifier,
             }
         });
     } catch (...) {
-        // Una notificación retirada entre el evento y la lectura se descarta.
+        // A notification withdrawn between the event and the reading is discarded.
     }
 }
 
@@ -378,7 +377,7 @@ void begin_listening(const SharedPtr& shared, std::uint64_t identifier) {
             return;
         }
 
-        // La carga inicial forma la línea base: no se reenvía el historial.
+        // The initial load forms the base line: the history is not forwarded.
         const auto existing = listener.GetNotificationsAsync(wun::NotificationKinds::Toast).get();
         std::set<std::uint32_t> identifiers;
         for (const auto& notification : existing) {
@@ -450,8 +449,8 @@ void discover_applications_worker(
                         }
                         found.emplace(app_id, std::move(app_name));
                     } catch (...) {
-                        // Una notificación retirada durante la lectura no impide
-                        // enumerar el resto.
+                        // A notification withdrawn during reading does not prevent
+                        // enumerate the rest.
                     }
                 }
                 applications.reserve(found.size());
@@ -495,16 +494,16 @@ void poll_access(const SharedPtr& shared) {
         }
     } catch (...) {
     }
-    // El usuario retiró el consentimiento en Configuración: se detiene y se
-    // informa al coordinador aunque no llegue ningún aviso nuevo.
+    // The user withdrew consent in Settings: stops and stops
+    // inform the coordinator even if no new notice arrives.
     shared->subscription.store(0, std::memory_order_release);
     unsubscribe_worker(shared);
     post_state(shared, DesktopResult::denied);
     notify_capabilities_changed(shared);
 }
 
-// RequestAccessAsync debe invocarse desde el hilo de interfaz. La continuación
-// se entrega ya en el hilo del coordinador.
+// RequestAccessAsync must be invoked from the interface thread.
+// is already delivered in the coordinator's thread.
 void request_access(const SharedPtr& shared, std::function<void(DesktopResult)> continuation) {
     if (!shared->alive.load(std::memory_order_acquire)) {
         return;
@@ -565,8 +564,8 @@ public:
         shared_->packaged = has_package_identity();
 
         if (!shared_->packaged) {
-            // El mismo AUMID que el acceso directo del menú Inicio. No sustituye
-            // al registro del acceso, pero mantiene coherente la identidad.
+            // The same AUMID as the shortcut from the Start menu. It does not replace
+            // the access record, but maintains a consistent identity.
             try {
                 const auto identifier = winrt::to_hstring(
                     notification_support::product_application_id);
@@ -588,7 +587,7 @@ public:
         if (worker_.joinable()) {
             worker_.join();
         }
-        // La parada descarta tareas pendientes; la retirada final se hace aquí.
+        // The stop discards to-do; the final retreat is done here.
         if (shared_->notifier_ready) {
             for (const auto& entry : shared_->tracked_toasts) {
                 try {

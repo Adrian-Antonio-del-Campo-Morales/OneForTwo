@@ -18,14 +18,13 @@
 #include <vector>
 
 /*
- * Avisos manuales y reenvío de notificaciones nuevas.
+ * Manual notices and forwarding of new notifications.
  *
- * Todas las entradas públicas se ejecutan en el hilo principal del coordinador.
- * Los adaptadores entregan sus callbacks por ModuleRuntime.post y el resultado
- * de presentNotice también vuelve por ese ejecutor. El módulo conserva un
- * contador de emisión por generación y sentido compartido, el último
- * identificador recibido, las colas acotadas con su instante de entrada y la
- * suscripción de observación vigente.
+ * All public entries are executed in the main thread of the coordinator. The adapters deliver
+ * their callbacks by ModuleRuntime.post and the result of presentNotice also returns by that
+ * executor. The module retains an emission counter per generation and shared sense, the latest
+ * identifier received, the queues taped with its input instant and the current observation
+ * subscription.
  */
 
 namespace oneintwo {
@@ -38,8 +37,8 @@ using notification_support::is_valid_utf8;
 constexpr std::size_t queue_capacity = notification_policy::queue_capacity;
 constexpr auto queue_lifetime = notification_policy::queue_lifetime;
 
-constexpr const char* manual_rejected = "aviso manual descartado: ";
-constexpr const char* forwarded_rejected = "aviso reenviado descartado: ";
+constexpr const char* manual_rejected = "Discarded manual warning: ";
+constexpr const char* forwarded_rejected = "Discarded forward notice: ";
 
 enum class ContentProblem {
     none,
@@ -65,15 +64,15 @@ ContentProblem checkContent(const NotificationContent& content) {
 const char* contentProblemDetail(ContentProblem problem) {
     switch (problem) {
     case ContentProblem::missing_title:
-        return "el título es obligatorio";
+        return "the title is compulsory";
     case ContentProblem::malformed:
-        return "contenido mal formado";
+        return "misformed content";
     case ContentProblem::too_long:
-        return "contenido fuera de límite";
+        return "off-limit content";
     case ContentProblem::none:
         break;
     }
-    return "contenido inválido";
+    return "invalid content";
 }
 
 std::string contentProblemText(NotificationMode mode, ContentProblem problem) {
@@ -85,17 +84,17 @@ std::string contentProblemText(NotificationMode mode, ContentProblem problem) {
 const char* presentationFailureText(DesktopResult result) {
     switch (result) {
     case DesktopResult::cancelled:
-        return "aviso no presentado: cancelado por el escritorio";
+        return "Unsubmitted notice: cancelled by desktop";
     case DesktopResult::denied:
-        return "aviso no presentado: permiso del escritorio denegado";
+        return "Unsubmitted notice: permission of desk denied";
     case DesktopResult::unavailable:
-        return "aviso no presentado: servicio de notificaciones no disponible";
+        return "not submitted: not available notification service";
     case DesktopResult::error:
-        return "aviso no presentado: error del escritorio";
+        return "not submitted notice: desktop error";
     case DesktopResult::ready:
         break;
     }
-    return "aviso no presentado";
+    return "not submitted";
 }
 
 bool modePermitted(FeatureSet features, NotificationMode mode) {
@@ -119,7 +118,7 @@ struct SharedNotifications::Impl {
 
     struct Outbound {
         RemoteNotification notice;
-        std::string source_app_id; // Vacío en los avisos manuales.
+        std::string source_app_id; // Empty in manual warnings.
         MonotonicTime queued_at;
     };
 
@@ -174,7 +173,7 @@ struct SharedNotifications::Impl {
         try {
             deps.report_error(std::move(message));
         } catch (...) {
-            // El registro local nunca puede tumbar el hilo principal.
+            // The local record can never knock down the main thread.
         }
     }
 
@@ -222,7 +221,7 @@ struct SharedNotifications::Impl {
         }
         if (result == SendResult::busy) {
             if (outbound.size() >= queue_capacity) {
-                report("aviso descartado: cola local de envío llena");
+                report("Discarded notice: local queue full shipping");
                 return;
             }
             outbound.push_back(Outbound{std::move(notice), std::move(source_app_id), now()});
@@ -230,11 +229,11 @@ struct SharedNotifications::Impl {
         }
         outbound.clear();
         inbound.clear();
-        report(result == SendResult::denied ? "aviso descartado: la sesión denegó el envío"
-                                           : "aviso descartado: sesión desconectada");
+        report(result == SendResult::denied ? "Discarded notice: session denied shipment"
+                                           : "Discarded notice: offline session");
     }
 
-    // Asigna identificador y entrega. El permiso y la forma ya se comprobaron.
+    // Assign identifier and delivery. Permission and form have already been checked.
     void emit(SessionGeneration requested_generation, NotificationMode mode,
               NotificationContent content, std::string app_name,
               std::string source_app_id) {
@@ -247,11 +246,11 @@ struct SharedNotifications::Impl {
         if (!allow(send_stamps, now())) {
             report(std::string(mode == NotificationMode::forwarded ? forwarded_rejected
                                                                    : manual_rejected) +
-                   "límite de frecuencia");
+                   "frequency limit");
             return;
         }
         if (send_counter_exhausted || next_send_id == 0) {
-            report("aviso descartado: contador de identificadores agotado");
+            report("Discarded warning: Identifier counter sold out");
             return;
         }
 
@@ -273,7 +272,7 @@ struct SharedNotifications::Impl {
             return false;
         }
         if (is_product_application(notice.app_id)) {
-            return false; // Eco de nuestros propios avisos.
+            return false; // Echoing our own announcements.
         }
         return allowed_applications.find(notice.app_id) != allowed_applications.end();
     }
@@ -304,47 +303,47 @@ struct SharedNotifications::Impl {
 
     void receiveNotice(const RemoteNotification& notice) {
         if (!validMode(notice.mode) || notice.ref.generation != generation) {
-            return; // Generación antigua o modalidad desconocida.
+            return; // Old generation or unknown mode.
         }
         if (!canReceive(notice.mode)) {
-            return; // No autorizado: la deduplicación no avanza.
+            return; // Unauthorized: deduplication does not progress.
         }
         if (notice.ref.notice_id == 0) {
-            report("aviso recibido descartado: identificador inválido");
+            report("notification received discarded: invalid identifier");
             return;
         }
         const ContentProblem problem = checkContent(notice.content);
         if (problem != ContentProblem::none) {
-            report(std::string("aviso recibido descartado: ") +
+            report(std::string("Notice received discarded: ") +
                    contentProblemDetail(problem));
             return;
         }
         if (notice.mode == NotificationMode::manual) {
             if (!notice.app_name.empty()) {
-                report("aviso recibido descartado: aviso manual con aplicación");
+                report("Discarded notice received: manual notice with application");
                 return;
             }
         } else {
             if (notice.app_name.empty() || !is_valid_utf8(notice.app_name) ||
                 notice.app_name.size() > max_notification_app_name_bytes) {
-                report("aviso recibido descartado: aplicación de origen inválida");
+                report("notification received discarded: application of invalid origin");
                 return;
             }
         }
 
         if (notice.ref.notice_id <= last_received_id) {
-            return; // Repetición o identificador ya consumido.
+            return; // Repeat or identifier already consumed.
         }
         last_received_id = notice.ref.notice_id;
 
         const MonotonicTime current = now();
         if (!allow(receive_stamps, current)) {
-            // La deduplicación ya avanzó: repetirlo no provoca otra presentación.
-            report("aviso recibido descartado: límite de frecuencia");
+            // The deduplication has already advanced: repeating it does not provoke another presentation.
+            report("warning received discarded: frequency limit");
             return;
         }
         if (inbound.size() >= queue_capacity) {
-            report("aviso recibido descartado: cola local de presentación llena");
+            report("Notice received discarded: local queue full presentation");
             return;
         }
         inbound.push_back(Inbound{notice, current});
@@ -360,7 +359,7 @@ struct SharedNotifications::Impl {
             peer.clear();
         }
         if (peer.empty()) {
-            report("aviso no presentado: identidad del equipo no disponible");
+            report("not submitted: identity of equipment not available");
             return;
         }
 
@@ -378,7 +377,7 @@ struct SharedNotifications::Impl {
         try {
             deps.desktop.presentNotice(peer, notice, std::move(complete));
         } catch (...) {
-            report("aviso no presentado: error del escritorio");
+            report("not submitted notice: desktop error");
         }
     }
 
@@ -386,7 +385,7 @@ struct SharedNotifications::Impl {
                      NotificationMode mode, DesktopResult result) {
         (void)reference;
         if (presented_generation != generation) {
-            return; // Retirada o generación nueva: el resultado ya no aplica.
+            return; // Withdrawal or new generation: the result no longer applies.
         }
         if (!canReceive(mode)) {
             return;
@@ -401,7 +400,7 @@ struct SharedNotifications::Impl {
         for (auto iterator = inbound.begin(); iterator != inbound.end();) {
             const bool expired = current - iterator->queued_at >= queue_lifetime;
             if (expired) {
-                report("aviso recibido descartado: cola caducada");
+                report("notice received discarded: tail expired");
                 iterator = inbound.erase(iterator);
             } else if (!canReceive(iterator->notice.mode)) {
                 iterator = inbound.erase(iterator);
@@ -414,7 +413,7 @@ struct SharedNotifications::Impl {
             Inbound next = std::move(inbound.front());
             inbound.pop_front();
             if (current - next.queued_at >= queue_lifetime) {
-                report("aviso recibido descartado: cola caducada");
+                report("notice received discarded: tail expired");
                 continue;
             }
             if (!canReceive(next.notice.mode)) {
@@ -430,7 +429,7 @@ struct SharedNotifications::Impl {
             outbound.pop_front();
 
             if (current - next.queued_at >= queue_lifetime) {
-                report("aviso descartado: cola local caducada");
+                report("Dismissed notice: local tail expired");
                 continue;
             }
             if (!canSend(next.notice.mode)) {
@@ -454,8 +453,8 @@ struct SharedNotifications::Impl {
                 break;
             }
             outbound.clear();
-            report(result == SendResult::denied ? "aviso descartado: la sesión denegó el envío"
-                                               : "aviso descartado: sesión desconectada");
+            report(result == SendResult::denied ? "Discarded notice: session denied shipment"
+                                               : "Discarded notice: offline session");
             break;
         }
     }
@@ -487,7 +486,7 @@ struct SharedNotifications::Impl {
         } catch (...) {
             observing = false;
             observation_subscription = 0;
-            report("observación de notificaciones no disponible");
+            report("observation of notifications not available");
         }
     }
 
@@ -495,8 +494,8 @@ struct SharedNotifications::Impl {
         if (!observing) {
             return;
         }
-        // Se invalida la suscripción antes de desconectar el backend: cualquier
-        // evento ya encolado de esta suscripción se descarta.
+        // Subscription is disabled before disconnecting the backend: any
+        // already glued event of this subscription is discarded.
         observing = false;
         observation_subscription = 0;
         try {
@@ -526,7 +525,7 @@ struct SharedNotifications::Impl {
 
     void onObserved(std::uint64_t subscription, ObservedNotification notice) {
         if (!observing || subscription != observation_subscription) {
-            return; // Suscripción anterior ya invalidada.
+            return; // Previous subscription already invalidated.
         }
         forwardObserved(generation, notice);
     }
@@ -546,16 +545,16 @@ struct SharedNotifications::Impl {
         }
         switch (result) {
         case DesktopResult::denied:
-            report("observación de notificaciones denegada por el escritorio");
+            report("observation of notifications denied by desktop");
             break;
         case DesktopResult::unavailable:
-            report("observación de notificaciones no disponible");
+            report("observation of notifications not available");
             break;
         case DesktopResult::cancelled:
-            report("observación de notificaciones cancelada");
+            report("observation of notifications cancelled");
             break;
         default:
-            report("observación de notificaciones interrumpida");
+            report("observation of notifications interrupted");
             break;
         }
     }
@@ -566,14 +565,14 @@ struct SharedNotifications::Impl {
             return;
         }
         if (!send_features.forwarded_notifications) {
-            return; // El permiso está retirado; no se registra como visto.
+            return; // The permit is withdrawn; it is not registered as seen.
         }
         if (!observedAllowed(notice)) {
-            return; // Sin identidad fiable, aplicación excluida o el propio producto.
+            return; // Without reliable identity, excluded application or the product itself.
         }
         if (notice.app_name.empty() || !is_valid_utf8(notice.app_name) ||
             notice.app_name.size() > max_notification_app_name_bytes) {
-            return; // Sin nombre visible no hay atribución utilizable.
+            return; // Without a visible name there is no usable attribution.
         }
         const ContentProblem problem = checkContent(notice.content);
         if (problem != ContentProblem::none) {
@@ -595,7 +594,7 @@ struct SharedNotifications::Impl {
             return;
         }
         if (!send_features.manual_notifications) {
-            report("aviso manual descartado: permiso de envío no concedido");
+            report("Discarded manual notice: shipping permit not granted");
             return;
         }
         const ContentProblem problem = checkContent(content);
@@ -608,7 +607,7 @@ struct SharedNotifications::Impl {
 
     void setAllowedApplications(std::set<std::string> app_ids) {
         allowed_applications = std::move(app_ids);
-        // Una aplicación retirada de la lista no debe consumir la cola de envío.
+        // An application removed from the list should not consume the shipping queue.
         for (auto iterator = outbound.begin(); iterator != outbound.end();) {
             const bool forwarded = iterator->notice.mode == NotificationMode::forwarded;
             if (forwarded &&
@@ -694,15 +693,15 @@ struct SharedNotifications::Impl {
                           DesktopResult result,
                           std::vector<NotificationApplication> applications) mutable {
             if (!token->alive.load(std::memory_order_acquire)) {
-                return; // El módulo se destruyó mientras se consultaba.
+                return; // The module was destroyed while being consulted.
             }
             if (result != DesktopResult::ready) {
                 complete(result, {});
                 return;
             }
 
-            // La lista es una superficie de configuración: se descartan
-            // identidades no utilizables y duplicados antes de ofrecerla.
+            // The list is a configuration surface: they are discarded
+            // Unusable and duplicated identities before offering.
             std::set<std::string> seen;
             std::vector<NotificationApplication> accepted;
             for (auto& application : applications) {

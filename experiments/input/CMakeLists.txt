@@ -1,5 +1,4 @@
-# Responsabilidad: compilación independiente de experiments/input.
-# No depende del CMake raíz ni del código de producto.
+# Standalone build for experiments/input, independent of the root CMake project and product code.
 cmake_minimum_required(VERSION 3.16)
 project(OneInTwoInputExperiment CXX)
 
@@ -9,8 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(ONEINTWO_BACKEND "native" CACHE STRING "Backend: native o none (solo pruebas)")
 set_property(CACHE ONEINTWO_BACKEND PROPERTY STRINGS native none)
-option(ONEINTWO_WITH_TLS "Compilar el canal TLS con OpenSSL" ON)
-option(ONEINTWO_BUILD_APP "Compilar el ejecutable principal" ON)
+option(ONEINTWO_WITH_TLS "Build the TLS channel with OpenSSL" ON)
+option(ONEINTWO_BUILD_APP "Build the main executable" ON)
 set(ONEINTWO_X11 "AUTO" CACHE STRING "Backend Linux X11: AUTO, ON u OFF")
 set_property(CACHE ONEINTWO_X11 PROPERTY STRINGS AUTO ON OFF)
 set(ONEINTWO_WAYLAND "AUTO" CACHE STRING "Backend Linux Wayland: AUTO, ON u OFF")
@@ -50,7 +49,7 @@ if(WIN32)
 elseif(UNIX)
   list(APPEND OIT_SOURCES src/platform/linux_factory.cpp)
 
-  # X11 es opcional: se usa cuando existen libX11, libXi y libXtst.
+  # X11 support is optional and uses libX11, libXi, and libXtst when available.
   set(OIT_X11_OK OFF)
   find_package(X11 QUIET)
   find_library(OIT_XTST_LIBRARY NAMES Xtst)
@@ -59,7 +58,7 @@ elseif(UNIX)
     set(OIT_X11_OK ON)
   endif()
 
-  # Wayland requiere GDBus (gio-2.0) y libei (libei-1.0). No se instala nada.
+  # Wayland support requires GDBus (gio-2.0) and libei (libei-1.0). The build installs neither.
   set(OIT_WAYLAND_DEPS OFF)
   find_package(PkgConfig QUIET)
   if(PkgConfig_FOUND)
@@ -71,12 +70,12 @@ elseif(UNIX)
   endif()
 
   if(ONEINTWO_X11 STREQUAL "ON" AND NOT OIT_X11_OK)
-    message(FATAL_ERROR "ONEINTWO_X11=ON requiere libX11, libXi y libXtst de desarrollo")
+    message(FATAL_ERROR "ONEINTWO_X11=ON requires libX11, libXi, and libXtst development packages")
   endif()
   if(ONEINTWO_WAYLAND STREQUAL "ON" AND NOT OIT_WAYLAND_DEPS)
     message(FATAL_ERROR
-      "ONEINTWO_WAYLAND=ON requiere gio-2.0 y libei-1.0 (pkg-config). "
-      "Instale libglib2.0-dev, libei-dev y pkg-config, o use AUTO.")
+      "ONEINTWO_WAYLAND=ON requires gio-2.0 and libei-1.0 (pkg-config). "
+      "Install libglib2.0-dev, libei-dev, and pkg-config, or use AUTO.")
   endif()
 
   set(OIT_USE_X11 OFF)
@@ -93,11 +92,11 @@ elseif(UNIX)
 
   if(NOT OIT_USE_X11 AND NOT OIT_USE_WAYLAND)
     message(WARNING
-      "Sin backend Linux: faltan X11 o gio-2.0+libei-1.0. "
-      "El binario compilará pero solo informará el error en ejecución.")
+      "Linux backend unavailable. X11 or gio-2.0 and libei-1.0 are missing. "
+      "The build succeeds. The binary reports the error at runtime.")
   endif()
 else()
-  message(FATAL_ERROR "Plataforma no soportada por este experimento")
+  message(FATAL_ERROR "This experiment does not support the platform")
 endif()
 
 add_executable(input_experiment ${OIT_SOURCES})
@@ -135,6 +134,6 @@ else()
   target_compile_definitions(input_experiment PRIVATE ONEINTWO_WITH_TLS=0)
 endif()
 
-# Las comprobaciones no arrancan el escritorio ni abren red.
+# The checks start no desktop services or network connections.
 enable_testing()
 add_test(NAME input_self_test COMMAND input_self_test)

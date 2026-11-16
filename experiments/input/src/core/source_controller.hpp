@@ -1,6 +1,6 @@
 #pragma once
-// Responsabilidad: máquina de estados del origen (local, preparación y control
-// remoto), independiente del escritorio y del canal. Se prueba con dobles.
+// Responsibility: state of origin machine (local, preparation and control)
+// Remote), independent of desktop and channel. Tested with doubles.
 
 #include "geometry.hpp"
 #include "types.hpp"
@@ -40,7 +40,7 @@ class SourceController {
   void onRaw(const RawEvent& event, int64_t nowMs);
   void onMessage(const Message& message, int64_t nowMs);
   void onLinkLost(int64_t nowMs);
-  // Fallo irrecuperable del adaptador (por ejemplo, sesión de portal cerrada).
+  // Unrecoverable adapter failure (e.g. closed portal session).
   void onBackendFailure(const std::string& reason, int64_t nowMs);
   void tick(int64_t nowMs);
   void stop(int64_t nowMs);

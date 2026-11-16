@@ -1,5 +1,5 @@
-// Responsabilidad: contrato del adaptador de portapapeles de archivos. La
-// publicación nativa se ejecuta solo en modos manuales explícitos.
+// Responsibility: file clipboard adapter contract.
+// native publication is executed only in explicit manual modes.
 #pragma once
 
 #include "core/model.hpp"
@@ -11,19 +11,19 @@
 
 namespace o2f {
 
-// Fuente de contenido para la entrega bajo demanda.
+// Source of content for delivery on demand.
 class ContentSource {
 public:
     virtual ~ContentSource() = default;
-    // Devuelve false y rellena err si el contenido no puede entregarse.
+    // Returns false and fill err if the content cannot be delivered.
     virtual bool read(const Entry& entry, std::uint64_t offset, void* buffer, std::size_t len,
                       std::size_t& got, std::string& err) = 0;
 };
 
 struct ClipboardRequest {
-    // Modo caché: rutas locales absolutas ya verificadas.
+    // Cache mode: absolute local routes already verified.
     std::vector<std::string> localPaths;
-    // Modo bajo demanda: manifiesto e identificadores autorizados.
+    // Mode on demand: manifest and authorised identifiers.
     Offer offer;
     std::shared_ptr<ContentSource> source;
 };
@@ -31,8 +31,8 @@ struct ClipboardRequest {
 bool clipboardAvailable(std::string& why);
 bool onDemandClipboardAvailable(std::string& why);
 
-// Publica la oferta y bloquea hasta Ctrl+C. Devuelve 0 si termina correctamente.
-// flushOnExit=true solo es válido cuando el contenido ya está en disco local.
+// Publish the offer and lock to Ctrl+C. Returns 0 if finished correctly.
+// flushOnExit=true is only valid when the content is already on local disk.
 int runClipboardPublisher(const ClipboardRequest& request, bool flushOnExit, std::string& err);
 
 }  // namespace o2f

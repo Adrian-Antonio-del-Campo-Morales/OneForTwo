@@ -1,153 +1,171 @@
-> Archivos, estado vigente: T1 completo; T2 recepción CLI e integridad, negativos TLS, corte/reintento y casos Windows superados. Pegado Explorer/bajo demanda pendientes por helper de escritorio. Consulte files/RESULTS.md.
+> Files, current status: T1 complete; T2 CLI reception and integrity, TLS negatives, corte/reintento
+> and Windows cases exceeded. Paste Explorer/bajo demands pending by desktop helper. See
+> files/RESULTS.md.
 
-# Experimentos de viabilidad
+# Feasibility experiments
 
-Actualizado: **5 de noviembre de 2026**. Los tres prototipos están compilados en Ubuntu/Wayland con sus dependencias y TLS. Fase local disponible de portapapeles y archivos completada, con limitaciones registradas. En entrada pasaron atajo, demostración EIS, R2 y R9 locales con un monitor, salida 0 y escritorio operativo confirmado. Se conserva el incidente anterior que requirió reinicio (EXP-INPUT-02). Las pruebas entre equipos no se han iniciado.
+Updated: ** November 5, 2026**. The three prototypes are compiled in Ubuntu/Wayland with their
+dependencies and TLS. Local phase available of clipboards and files completed, with recorded
+limitations. In input they passed shortcut, demonstration EIS, R2 and R9 local with a monitor,
+output 0 and confirmed operating desktop. The previous incident that required restarting
+(EXP-INPUT-02) is retained. Inter-team testing has not been initiated.
 
-La entrega Ubuntu `2ae444d` también se ha reconstruido en Windows en la rama
-`validation/windows`, sin cambios de fuentes: compilación con OpenSSL y
-self-tests superados, portapapeles 149/0, archivos 176/0 y entrada 579/0.
-La ayuda de los tres binarios funciona. El escritorio Windows y las pruebas
-entre equipos siguen pendientes. `main` aún no contiene estas ramas.
+The Ubuntu `2ae444d` delivery has also been reconstructed on Windows in the `validation/windows`
+branch, with no source changes: compilation with OpenSSL and overtaken self-tests, 149/0 clipboards,
+176/0 files and 579/0. input The help of the three binaries works. Windows desktop and
+inter-computer tests are still pending. `main` still does not contain these branches.
 
-## Estado consolidado
+## Consolidated status
 
-| Experimento | Evidencia aislada registrada | Pendientes principales |
+| Experiment | Recorded isolated evidence | Main Earrings |
 | --- | --- | --- |
-| [Portapapeles](clipboard/README.md) | Ubuntu portal + TLS: **153/0**. Lectura, pegado, observación, permiso `devices=0` y cancelación. Copia aislada: una notificación de la muestra y 12 s sin repeticiones. Windows 149/0 y Linux sin portal 149/0 históricos | Ecos, reconexión y sincronización real entre equipos |
-| [Archivos](files/README.md) | GTK3 + TLS: **176/0** previos. Pegado asistido en Nautilus: 5 archivos/5.551.150 bytes íntegros. L6/L7/L8 reales con TLS local superados tras corregir los nombres temporales de recepción. Windows 176/0 histórico | Transferencias y comparación Windows. Publicación automática y bajo demanda Linux: limitaciones registradas |
-| [Teclado y ratón](input/README.md) | Wayland GDBus/libei + TLS, **579/0** en Ubuntu y reconstrucción Windows. Diagnóstico, cancelación, atajo, demostración y R2/R9 locales Ubuntu superados con un monitor y escritorio operativo | Cruce/retorno, teclado completo y cortes entre equipos. Origen Ubuntu bloqueado por InputCapture v1 frente al requisito v2. X11 sin evidencia nueva |
+| [Clipboard](clipboard/README.md) | Ubuntu portal + TLS: **153/0**. Reading, pasting, observation, `devices=0` permission and cancellation. Insulated copy: a sample notification and 12 s without repetitions. Windows 149/0 and Linux without historical 149/0 portal | Echoes, real reconnection and synchronization between teams |
+| [Archives](files/README.md) | GTK3 + TLS: **176/0** previous. Paste assisted in Nautilus: 5 archivos/5.551.150 bytes in full. L6/L7/L8 reais with TLS local exceeded after correcting the temporary names of reception. Windows 176/0 historical | Windows Transfers and Comparisons. Automatic publication and on demand Linux: recorded limitations |
+| [Key and mouse](input/README.md) | Wayland GDBus/libei + TLS, **579/0** in Ubuntu and Windows reconstruction. Diagnosis, cancellation, shortcut, demonstration and local R2/R9 Ubuntu exceeded with an operating monitor and desktop | Cruce/retorno, complete keyboard and inter-equipment cuts. Ubuntu source locked by InputCapture v1 versus v2 requirement. X11 without new evidence |
 
-Entrada: atajo aislado y posterior demostración RemoteDesktop/EIS verificados
-con el usuario presente, guía y temporizador de 30 s. Texto `oneintwo`,
-movimiento breve y escritorio respondiendo confirmados; salida 0. Supervisor
-probado con proceso inocuo y 3 regresiones esenciales; no se repitió la
-batería general. R2/R9 también superados. Cortes y estados retenidos entre
-equipos siguen pendientes; reparar una imagen congelada no está garantizado
-(EXP-INPUT-02).
+Entry: isolated shortcut and subsequent demonstration RemoteDesktop/EIS verified with the user
+present, guide and 30 s timer. Text `oneintwo`, short movement and desktop responding confirmed;
+output 0. Supervisor tested with innocuous process and 3 essential regressions; the general battery
+was not repeated. R2/R9 also exceeded. Cuts and states held between teams remain pending; repairing
+a frozen image is not guaranteed (EXP-INPUT-02).
 
-R2 se intentó después con un modo mínimo de espera tras la demostración:
-rechazo de varias regiones EIS antes de inyectar, salida 1; timer de 30 s
-correcto. Tras la pausa, el usuario reanudó con un monitor: R2 y R9 pasaron
-con EIS activo, salida 0 y escritorio respondiendo. Fase local prevista
-completada; siguiente fase, coordinación Windows.
+R2 was then tried with a minimum standby mode after the demonstration: rejection of several EIS
+regions before injecting, output 1; timer of 30 s correct. After the pause, the user resumed with a
+monitor: R2 and R9 passed with EIS active, output 0 and desktop responding. Planned local phase
+completed; next phase, Windows coordination.
 
-Los recuentos describen comprobaciones de distinta naturaleza y no certifican soporte de los escritorios. La evidencia Windows histórica se conserva, junto con la reconstrucción aislada de la entrega Ubuntu descrita arriba. La evidencia de entrada 403/0 corresponde a la entrega anterior a Wayland y no describe toda la batería actual.
+The counts describe checks of different nature and do not certify desktop support. The historical
+Windows evidence is preserved, along with the isolated reconstruction of the Ubuntu delivery
+described above. The 403/0 input evidence corresponds to the previous delivery to Wayland and does
+not describe the entire current battery.
 
-Entorno nuevo: Ubuntu 26.04.1, sesión heredada GNOME Wayland, GCC 15.2,
-CMake local 4.2.3 y OpenSSL 3.5.5. Base Git
-`450cbb2e340a381bda01274eb86df0e05934e822`, rama `validation/ubuntu`, más
-las correcciones locales de portapapeles: `<signal.h>` → `<csignal>`, espera
-acotada de pipes no bloqueantes, vida de publicación y vaciado del log;
-acción GTK local y formato de archivos de Nautilus; preparación y salida
-local de la demostración de entrada, corrección del callback/resultado GDBus,
-tipo de sesión RemoteDesktop y ruta de recepción del atajo.
-Dependencias locales en `.local-state/ubuntu-validation/`,
-dentro del proyecto y excluidas de Git, sin instalación global. Se trasladaron
-desde `/tmp` y se repitieron las compilaciones y self-tests con las nuevas
-rutas. Para cargar el entorno desde la raíz:
-`source .local-state/ubuntu-validation/env.sh`.
-Configuración, compilación y self-tests finales de los tres experimentos:
-salida 0. Los informes detallan componentes realmente incluidos, comandos,
-versiones y los intentos iniciales que no validaban la variante completa.
+New environment: Ubuntu 26.04.1, inherited session GNOME Wayland, GCC 15.2, CMake local 4.2.3 and OpenSSL 3.5.5. Base Git `450cbb2e340a381bda01274eb86df0e05934e822`, branch `validation/ubuntu`, plus local clipboard corrections: `<signal.h>` → `<csignal>`, waiting for non-blocking pipes, publication life and log emptying; action GTK local and file format of Nautilus; preparation and local output of the input demo, callback/resultado GDBus correction, RemoteDesktop session type and shortcut path. Local units in `.local-state/ubuntu-validation/`, within the project and excluded from Git, without global installation. They moved since `/tmp` and repeated the compilations and self-tests with the new routes. To load the environment from root: `source .local-state/ubuntu-validation/env.sh`. Configuration, compilation and final self-tests of the three experiments: output 0. The reports detail components actually included, commands, versions and initial attempts that did not validate the full variant.
 
-Se han ejecutado sesiones locales del portal de portapapeles; el usuario
-observó el pegado en GNOME Text Editor y Nautilus. El diagnóstico de entrada
-ya consultó las interfaces reales. Solo se probó TLS de archivos en loopback;
-no hay conexión con Windows.
-Para los siguientes casos, preparar datos,
-presencia del usuario y recuperación;
-antes de conectar Windows, acordar revisión compartida, extremos, puerto,
-identidades y caso concreto. Rama de entrega: `validation/ubuntu`. La
-integración del producto permanece aplazada.
+Local sessions of the clipboard portal have been executed; the user observed the pasting in GNOME
+Text Editor and Nautilus. The input diagnosis already consulted the real interfaces. Only TLS was
+tested of files in loopback; there is no connection with Windows. For the following cases, prepare
+data, user presence and recovery; before connecting Windows, agree shared review, extremes, port,
+identities and specific case. Delivery branch: `validation/ubuntu`. The product integration remains
+postponed.
 
-| Experimento | Instrucciones manuales | Evidencia y limitaciones |
+| Experiment | Manual instructions | Evidence and limitations |
 | --- | --- | --- |
-| Portapapeles | [MANUAL.md](clipboard/MANUAL.md) | [RESULTS.md](clipboard/RESULTS.md) |
-| Archivos | [MANUAL.md](files/MANUAL.md) | [RESULTS.md](files/RESULTS.md) |
-| Teclado y ratón | [MANUAL.md](input/MANUAL.md) | [RESULTS.md](input/RESULTS.md) |
+| Clipboard | [MANUAL.md](clipboard/MANUAL.md) | [RESULTS.md](clipboard/RESULTS.md) |
+| Files | [MANUAL.md](files/MANUAL.md) | [RESULTS.md](files/RESULTS.md) |
+| Keyboard and Mouse | [MANUAL.md](input/MANUAL.md) | [RESULTS.md](input/RESULTS.md) |
 
-Orden recomendado: inventariar las máquinas reales, completar las compilaciones nativas pendientes y probar localmente texto, pegado de archivos y entrada; después repetir entre equipos. Los casos de identidad incorrecta y recuperación forman parte de cada validación. El objetivo de portapapeles sigue siendo funcionar con la captura de entrada inactiva.
+Recommended order: inventory the actual machines, complete the pending native compilations and
+locally test text, paste files and input; then repeat between computers. The wrong identity and
+recovery cases are part of each validation. The goal of clipboards remains to work with inactive
+input capture.
 
-Los problemas y verificaciones abiertos se mantienen en [TODO.md](../TODO.md).
+Problems and open checks are kept in [TODO.md](../TODO.md).
 
-## Modelo de trabajo
+## Working model
 
-Los agentes han trabajado en prototipos independientes y directorios exclusivos. La siguiente fase es la ejecución manual por el usuario en Windows y Ubuntu, un experimento cada vez. Las reglas siguientes siguen aplicándose a las correcciones y comprobaciones aisladas que se les encarguen.
+The agents have worked on independent prototypes and unique directories. The next stage is user
+manual execution on Windows and Ubuntu, an experiment every time. The following rules continue to
+apply to the individual corrections and checks that will be commissioned.
 
-**Los agentes no ejecutarán pruebas que lean o escriban el portapapeles real, capturen o inyecten entrada, abran sesiones de permisos del escritorio o publiquen archivos en el explorador.** Tampoco arrancarán escuchas de red o conectarán equipos durante esta fase. No necesitan coordinar turnos de uso del escritorio.
+** Agents will not run tests that read or write the actual clipboard, capture or inject input, open
+desktop permission sessions, or publish files in the browser.** They will also not boot network
+listeners or connect computers during this phase. They do not need to coordinate desktop usage
+shifts.
 
-| Encargo | Directorio exclusivo | Diseño |
+| Encargo | Dedicated directory | Design |
 | --- | --- | --- |
-| Portapapeles | `experiments/clipboard/` | [Encargo del agente](clipboard/README.md) |
-| Teclado y ratón | `experiments/input/` | [Encargo del agente](input/README.md) |
-| Archivos | `experiments/files/` | [Encargo del agente](files/README.md) |
+| Clipboard | `experiments/clipboard/` | [Charge of agent](clipboard/README.md) |
+| Keyboard and Mouse | `experiments/input/` | [Charge of agent](input/README.md) |
+| Files | `experiments/files/` | [Charge of agent](files/README.md) |
 
-Las [instrucciones comunes para agentes](AGENTS.md) forman parte de los tres encargos. La actualización documental no inicia agentes ni demostraciones.
+[Common instructions for agents](AGENTS.md) are part of the three commissions. The documentary
+update does not initiate agents or demonstrations.
 
-## Qué significa entregar un experimento completo
+## What it means to deliver a complete experiment
 
-El agente entregará código funcional del prototipo, construcción independiente, comprobaciones aisladas, un manual de ejecución y un informe de estado. No basta con dejar pseudocódigo o funciones que devuelvan éxito sin hacer nada.
+The agent will deliver functional code of the prototype, independent construction, isolated checks,
+an execution manual and a status report. It is not enough to leave pseudocode or functions that
+return success without doing anything.
 
-Completo para entrega no significa validado en ambos sistemas. Cada resultado separará:
+Complete delivery does not mean validated on both systems. Each result will separate:
 
 1. Implementado.
-2. Compilado, indicando plataforma y herramientas.
-3. Comprobado de forma aislada, sin escritorio ni red.
-4. Pendiente de ejecución manual.
-5. Bloqueado o no soportado, con explicación y evidencia.
+2. Built, with the platform and tools recorded.
+3. Checked in isolation, no desktop, no network.
+4. Pending manual execution.
+5. Blocked or unsupported, with explanation and evidence.
 
-Si falta un entorno Ubuntu o Windows, el agente continuará con lo que pueda implementar y verificar. No afirmará compilación o funcionamiento en el sistema ausente. Una limitación no se sustituirá por un backend simulado presentado como real.
+If an Ubuntu or Windows environment is missing, the agent will continue with what it can implement
+and verify. It will not affirm compilation or operation on the missing system. A limitation will not
+be replaced by a simulated backend presented as real.
 
-## Estructura de cada entrega
+## Structure of each delivery
 
-Los directorios ya contienen diseño, código, configuración de compilación, manual y resultados. Su organización general es:
+The directories already contain design, code, compilation configuration, manual and results. Your
+general organization is:
 
 ```text
 <experimento>/
-├── README.md           Diseño y decisiones propias del experimento
-├── RESULTS.md          Estado, evidencia y pruebas manuales pendientes
-├── MANUAL.md           Instrucciones exactas para el usuario
-├── CMakeLists.txt      Compilación independiente
-├── src/               Prototipo y adaptadores nativos necesarios
-├── tests/             Comprobaciones aisladas y datos sintéticos
+├── README.md           Experiment design and decisions
+├── RESULTS.md          Status, evidence, and pending manual checks
+├── MANUAL.md           Step-by-step instructions
+├── CMakeLists.txt      Standalone build
+├── src/               Prototype and required native adapters
+├── tests/             Isolated checks and synthetic data
 └── build/             Salida local ignorada
 ```
 
-La estructura interna concreta se explica en cada README. Los prototipos no dependen del CMake raíz, de `src/` del producto ni de otro experimento. Cualquier corrección mantendrá esa independencia y las responsabilidades de cada archivo.
+The specific internal structure is explained in each README. Prototypes do not depend on the root
+CMake, `src/` of the product or another experiment. Any correction will maintain that independence
+and the responsibilities of each file.
 
-Los prototipos utilizan C++17. Se han utilizado bibliotecas generales documentadas, no motores de otras aplicaciones. La elección final de dependencias del producto y su licencia sigue pendiente. Los agentes no instalarán herramientas globalmente ni modificarán otros proyectos para resolver dependencias; las instalaciones que indiquen los manuales son pasos explícitos del usuario.
+Prototyping uses C++17. Documented general libraries, not engines of other applications, have been
+used. The final choice of product dependencies and their license is still pending. Agents will not
+install tools globally or modify other projects to resolve dependencies; the facilities indicated in
+the manuals are explicit user steps.
 
-## Ejecución y comprobación separadas
+## Separate execution and verification
 
-El arranque sin argumentos y `--help` solo mostrarán ayuda. Cada prototipo ofrecerá `--self-test` o un ejecutable de pruebas equivalente que use datos sintéticos y dobles locales, sin inicializar el escritorio ni abrir red.
+Starting without arguments and `--help` will only show help. Each prototype will offer `--self-test`
+or an equivalent test executable that uses synthetic and double local data, without initializing the
+desktop or opening network.
 
-Las funciones reales se activarán mediante comandos explícitos documentados en `MANUAL.md`. El inventario del entorno también será un modo manual cuando requiera consultar una sesión gráfica. Los scripts de compilación no ejecutarán automáticamente demostraciones.
+The actual functions will be activated by explicit commands documented in `MANUAL.md`. The inventory
+of the environment will also be a manual mode when you need to consult a graphical session.
+Compilation scripts will not automatically run demonstrations.
 
-Los prototipos podrán incluir comunicación directa mínima por dirección explícita para pruebas entre equipos. Cada agente será dueño de esa implementación dentro de su carpeta. Usarán transporte estándar autenticado/cifrado y bibliotecas generales, sin construir descubrimiento, vinculación persistente o un protocolo común de producción. No habrá un archivo de red compartido que los tres deban editar.
+Prototypes may include minimal direct communication by explicit direction for testing between teams.
+Each agent will own that implementation within their folder. They will use standard
+autenticado/cifrado transport and general libraries, without building discovery, persistent linking
+or a common production protocol. There will be no shared network file that all three must edit.
 
-Los permisos del sistema, certificados o claves de prueba se prepararán explícitamente durante la ejecución manual y quedarán fuera del repositorio. El manual explicará la comprobación de identidad; no desactivará silenciosamente la validación del canal.
+System permissions, certificates or test keys will be explicitly prepared during manual execution
+and will be left out of the repository. The manual will explain the identity check; it will not
+quietly disable channel validation.
 
-## Contenido obligatorio del manual
+## Mandatory content of the manual
 
-- Herramientas y dependencias necesarias en cada sistema.
-- Comandos exactos de compilación y ejecución; nombres reales de binarios.
-- Preparación de una carpeta y datos desechables.
-- Pasos numerados para probar localmente y entre los dos equipos.
-- Permisos esperados, resultado observable y condiciones de fallo.
-- Forma de detener el prototipo y restaurar el estado.
-- Matriz donde el usuario pueda registrar resultados sin confundirlos con pruebas automáticas.
+- Tools and dependencies needed in each system.
+- Accurate compilation and execution commands; real binary names.
+- Preparation of a folder and disposable data.
+- Numbered steps to test locally and between the two teams.
+- Expected permissions, observable result and failure conditions.
+- Way to stop the prototype and restore the state.
+- Matrix where the user can record results without confusing them with automatic tests.
 
-El usuario realizará primero pruebas locales y después las de dos equipos. Solo habrá un experimento activo en una misma sesión gráfica durante esas pruebas.
+The user will first perform local tests and then two teams tests. There will be only one active
+experiment in the same graphical session during those tests.
 
-## Relación con el estudio preliminar
+## Relationship to the preliminary study
 
-- P0: cada manual recogerá el inventario relevante de su plataforma.
-- P1: experimento de entrada.
-- P2: experimento de portapapeles.
-- P3: experimento de archivos.
-- P4: casos de recuperación incluidos en los manuales de entrada y archivos.
-- P5: concurrencia entre transferencia y control, aplazada a la integración posterior; no requiere acoplar estos prototipos.
+- P0: Each manual will collect the relevant inventory of your platform.
+- P1: Input experiment.
+- P2: clipboard experiment.
+- P3: file experiment.
+- P4: Recovery cases included in the input manuals and files.
+- P5: congruence between transfer and control, postponed to subsequent integration; does not require
+  coupling of these prototypes.
 
-El código útil podrá trasladarse al producto después de validar resultados y revisar su diseño. La integración será un trabajo posterior, con un responsable único.
+The useful code can be moved to the product after validating results and reviewing its design.
+Integration will be a later work, with a single responsible.
 

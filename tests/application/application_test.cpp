@@ -31,9 +31,9 @@
 
 namespace oneintwo {
 
-// El producto todavía no contiene el módulo de avisos ni las fábricas nativas.
-// Este target comprueba el enlace real de Application; los dobles mantienen
-// fuera del núcleo esas dependencias pendientes.
+// The product still does not contain the notice module or the native factories.
+// This target checks the actual Application link; doubles maintain
+// out of the core those pending dependencies.
 struct SharedNotifications::Impl {};
 
 SharedNotifications::SharedNotifications(NotificationDependencies)
@@ -112,7 +112,7 @@ TEST_CASE(application_starts_with_pairing_dialog_linked) {
     options.storage_path = pathUnder(directory, "preferences.txt");
     options.identity_directory = pathUnder(directory, "identity");
     options.pairing_store_path = pathUnder(directory, "paired-devices.tsv");
-    options.peer_name = "Equipo de prueba";
+    options.peer_name = "Test equipment";
 
     oneintwo::Application application(std::move(options));
     application.start();
@@ -137,7 +137,7 @@ TEST_CASE(application_reuses_saved_pin_and_endpoint_on_start) {
     const std::string pin_b = pinFor(oneintwo_test::certificate_b);
     CHECK(!pin_b.empty());
 
-    // El extremo B escucha en un puerto efímero que solo conoce el par guardado.
+    // End B listens in an ephemeral port that only knows the saved pair.
     oneintwo::TlsTransportConfig server_config;
     server_config.mode = oneintwo::TlsTransportMode::listen;
     server_config.certificate_pem = oneintwo_test::certificate_b;
@@ -161,14 +161,14 @@ TEST_CASE(application_reuses_saved_pin_and_endpoint_on_start) {
     CHECK(pairing_store.lastError().empty());
     oneintwo::TrustedDevice peer;
     peer.device_id = "device-b";
-    peer.name = "Equipo B";
+    peer.name = "Equipment B";
     peer.host = "127.0.0.1";
     peer.port = server.listeningPort();
     peer.pins = {pin_b};
     CHECK(pairing_store.save(peer));
 
-    // Sin TLS explícito ni emparejamiento: Application debe leer este par y
-    // conectar al endpoint guardado con el pin guardado.
+    // Without explicit TLS or pairing: Application must read this pair and
+    // connect to the saved endpoint with the saved pin.
     oneintwo::ApplicationOptions options;
     options.storage_path = pathUnder(directory, "preferences.txt");
     options.identity_directory = identity_directory;
@@ -198,8 +198,8 @@ TEST_CASE(application_uses_primary_saved_pin_when_old_pin_is_backup) {
         return;
     }
 
-    // El peer B rota su certificado: la huella nueva será la principal y la
-    // anterior quedará guardada como respaldo.
+    // Peer B rotates its certificate: the new footprint will be the main and the
+    // previous will be saved as backup.
     const std::string identity_b_directory =
         pathUnder(directory, "identity-b");
     oneintwo::DeviceIdentityStore identity_b_store(identity_b_directory);
@@ -237,7 +237,7 @@ TEST_CASE(application_uses_primary_saved_pin_when_old_pin_is_backup) {
     CHECK(pairing_store.lastError().empty());
     oneintwo::TrustedDevice peer;
     peer.device_id = "device-b";
-    peer.name = "Equipo B";
+    peer.name = "Equipment B";
     peer.host = "127.0.0.1";
     peer.port = server.listeningPort();
     peer.pins = {new_pin, old_pin};
@@ -263,8 +263,8 @@ TEST_CASE(application_uses_primary_saved_pin_when_old_pin_is_backup) {
     CHECK(server.encrypted());
     CHECK_EQ(server.authenticated_peer_fingerprint(), identity_a->fingerprint);
 
-    // El handshake TLS ya autenticó la huella principal; Application debe
-    // retirar el respaldo una sola vez y dejarlo persistido.
+    // The handshake TLS already authenticated the main footprint; Application must
+    // remove the backup once and leave it persisting.
     CHECK(waitUntil([&] {
         oneintwo::PairingStore current(pairing_store_path);
         const auto current_peer = current.find("device-b");

@@ -39,8 +39,8 @@ inline bool check(bool condition, const char* expression, const char* file, int 
 #define CHECK(condition) ::oneintwo::test::check((condition), #condition, __FILE__, __LINE__)
 
 /*
- * Runtime de prueba: ModuleRuntime.post encola en orden FIFO y el hilo de
- * prueba drena la cola mientras avanza el bucle GLib del portal simulado.
+ * Test Runtime: ModuleRuntime.post glues in FIFO order and the test thread drains the tail as the
+ * GLib loop of the simulated portal advances.
  */
 struct TestRuntime {
     std::mutex mutex;

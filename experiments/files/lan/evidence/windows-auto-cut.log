@@ -1,5 +1,5 @@
-oferta 0188cc34…: 9 elementos (5 archivos), 5551150 bytes
-archivo 1/5 verificado (0 bytes)
-archivo 2/5 verificado (1024 bytes)
-archivo 3/5 verificado (307200 bytes)
-error: fallo de lectura TLS
+offer 0188cc34...: 9 items (5 files), 5551150 bytes
+1/5 file verified (0 bytes)
+2/5 file verified (1024 bytes)
+3/5 file verified (307200 bytes)
+error: reading failure TLS

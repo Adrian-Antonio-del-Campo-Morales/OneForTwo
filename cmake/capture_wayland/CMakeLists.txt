@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
-# Raíz del repositorio obtenida desde la ruta de este archivo, para funcionar
-# como proyecto independiente y como subdirectorio del raíz.
+# Derive the repository root from this file so the package can build
+# independently or as a subdirectory of the root project.
 get_filename_component(ONEINTWO_REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 
 set(ONEINTWO_CAPTURE_STANDALONE OFF)
@@ -24,7 +24,7 @@ set(ONEINTWO_CAPTURE_PARENT_SOURCES
     ${ONEINTWO_REPO_ROOT}/src/platform/linux/visual/parent_window_default.cpp)
 set(ONEINTWO_CAPTURE_PARENT_LIBRARIES "")
 set(ONEINTWO_CAPTURE_QT ON CACHE BOOL
-    "Usar Qt para el padre del selector cuando esté disponible")
+    "Use Qt for the picker parent window when available")
 if(ONEINTWO_CAPTURE_QT)
     find_package(Qt6 QUIET COMPONENTS Widgets)
     if(Qt6Widgets_FOUND)
@@ -34,7 +34,7 @@ if(ONEINTWO_CAPTURE_QT)
     endif()
 endif()
 
-# Núcleo probado con dobles: portal D-Bus real, protocolo y orquestación.
+# The core covers the real D-Bus portal, protocol, and orchestration and is tested with doubles.
 add_library(oneintwo_capture_wayland_core STATIC
     ${ONEINTWO_REPO_ROOT}/src/platform/linux/visual/portal_screencast.cpp
     ${ONEINTWO_REPO_ROOT}/src/platform/linux/visual/video_frame_convert.cpp
@@ -51,7 +51,7 @@ if(ONEINTWO_CAPTURE_PARENT_LIBRARIES)
 endif()
 set_target_properties(oneintwo_capture_wayland_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-# Backend público: fábrica seleccionada por plataforma y consumidor PipeWire.
+# Public backend with a platform-selected factory and a PipeWire consumer.
 add_library(oneintwo_capture_wayland STATIC
     ${ONEINTWO_REPO_ROOT}/src/platform/linux/visual_capture.cpp
     ${ONEINTWO_REPO_ROOT}/src/platform/linux/visual/pipewire_source.cpp
@@ -65,7 +65,7 @@ set_target_properties(oneintwo_capture_wayland PROPERTIES POSITION_INDEPENDENT_C
 
 if(NOT DEFINED ONEINTWO_BUILD_TESTS)
     set(ONEINTWO_BUILD_TESTS ${ONEINTWO_CAPTURE_STANDALONE} CACHE BOOL
-        "Construir las pruebas del paquete")
+        "Build the package tests")
 endif()
 
 if(ONEINTWO_BUILD_TESTS)

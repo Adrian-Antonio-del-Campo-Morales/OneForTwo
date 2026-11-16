@@ -1,4 +1,4 @@
-"""Prepara identidades y comandos para el ensayo LAN; no inicia red ni escritorio."""
+"""Prepare identities and commands for LAN testing; do not start network or desktop."""
 
 import argparse
 import hashlib
@@ -16,7 +16,7 @@ STATE = ROOT / ".local-state" / "lan-clipboard"
 
 
 def fingerprint(path):
-    """Calcula SHA-256 del certificado DER, compatible con el pin del prototipo."""
+    """Calculate SHA-256 of the DER certificate, compatible with the prototype pin."""
     return hashlib.sha256(ssl.PEM_cert_to_DER_cert(path.read_text(encoding="ascii"))).hexdigest()
 
 
@@ -29,18 +29,18 @@ def openssl_path(explicit=None):
     for candidate in candidates:
         if candidate and Path(candidate).is_file():
             return str(candidate)
-    raise ValueError("No se encuentra OpenSSL; indicar --openssl RUTA.")
+    raise ValueError("OpenSSL was not found. Specify --openssl PATH.")
 
 
 def prepare(name, openssl=None):
-    """Genera una identidad local sin sobrescribir otra; exporta solo el certificado."""
+    """Generates a local identity without overwriting another; exports only the certificate."""
     directory = STATE / name
     directory.mkdir(parents=True, exist_ok=True)
     if os.name != "nt":
         directory.chmod(0o700)
     cert, key = directory / "cert.pem", directory / "private.key"
     if cert.exists() != key.exists():
-        raise ValueError("Identidad incompleta: revisar la carpeta local; no se sobrescribe.")
+        raise ValueError("Incomplete identity: check the local folder; it is not overwritten.")
     tool = openssl_path(openssl)
     if not cert.exists():
         with tempfile.TemporaryDirectory(dir=directory) as temporary:
@@ -57,13 +57,13 @@ def prepare(name, openssl=None):
             shutil.copyfile(temp / "cert.pem", cert)
     subprocess.run([tool, "x509", "-in", str(cert), "-checkend", "3600", "-noout"],
                    check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
-    # Comprueba que el par existente corresponde antes de volver a exportarlo.
+    # Check that the existing pair corresponds before re-exporting it.
     cert_public = subprocess.run([tool, "x509", "-in", str(cert), "-pubkey", "-noout"],
                                  check=True, capture_output=True, timeout=10).stdout
     key_public = subprocess.run([tool, "pkey", "-in", str(key), "-pubout"],
                                 check=True, capture_output=True, timeout=10).stdout
     if cert_public.replace(b"\r\n", b"\n") != key_public.replace(b"\r\n", b"\n"):
-        raise ValueError("El certificado y la clave local no corresponden.")
+        raise ValueError("The certificate and the local key do not correspond.")
     PUBLIC.mkdir(exist_ok=True)
     exported = PUBLIC / (name + ".pem")
     shutil.copyfile(cert, exported)
@@ -73,11 +73,11 @@ def prepare(name, openssl=None):
 
 
 def command(name, role, host, port, binary=None):
-    """Construye argumentos del binario real y comprueba todos los archivos previos."""
+    """Build arguments from the real binary and check all previous files."""
     if not host or host.startswith("-") or any(c.isspace() for c in host):
-        raise ValueError("Indicar una dirección explícita sin espacios ni opciones.")
+        raise ValueError("Indicate an explicit address without spaces or options.")
     if not 1 <= port <= 65535:
-        raise ValueError("El puerto debe estar entre 1 y 65535.")
+        raise ValueError("The port must be between 1 and 65535.")
     if binary:
         executable = Path(binary).expanduser().resolve()
     elif os.name == "nt":
@@ -88,7 +88,7 @@ def command(name, role, host, port, binary=None):
     peer = PUBLIC / (("ubuntu" if name == "windows" else "windows") + ".pem")
     for path in (executable, own / "cert.pem", own / "private.key", peer):
         if not path.is_file():
-            raise ValueError("Falta el archivo: " + str(path))
+            raise ValueError("File missing: " + str(path))
     fingerprint(own / "cert.pem")
     fingerprint(peer)
     mode = ["--serve", "--bind", host] if role == "serve" else ["--connect", "--host", host]
@@ -97,7 +97,7 @@ def command(name, role, host, port, binary=None):
 
 
 def display(argv, windows=None):
-    """Muestra un comando literal para PowerShell o shell POSIX, sin ejecutarlo."""
+    """Show a literal PowerShell or POSIX shell command without executing it."""
     if windows is None:
         windows = os.name == "nt"
     if windows:
@@ -108,10 +108,10 @@ def display(argv, windows=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="action", required=True)
-    setup = commands.add_parser("prepare", help="Genera identidad y exporta certificado público.")
+    setup = commands.add_parser("prepare", help="It generates identity and exports public certificate.")
     setup.add_argument("--name", required=True, choices=("windows", "ubuntu"))
     setup.add_argument("--openssl")
-    plan = commands.add_parser("command", help="Muestra el comando; no lo ejecuta.")
+    plan = commands.add_parser("command", help="Shows the command; does not execute it.")
     plan.add_argument("--name", required=True, choices=("windows", "ubuntu"))
     plan.add_argument("--role", required=True, choices=("serve", "connect"))
     plan.add_argument("--host", required=True)
@@ -121,14 +121,14 @@ def main():
     try:
         if args.action == "prepare":
             exported, digest = prepare(args.name, args.openssl)
-            print("Certificado público:", exported.relative_to(ROOT))
+            print("Public certificate:", exported.relative_to(ROOT))
             print("SHA-256:", digest)
-            print("Clave privada conservada solo en .local-state/lan-clipboard/" + args.name)
+            print("Private key preserved only in .local-state/lan-clipboard/" + args.name)
         else:
             print(display(command(args.name, args.role, args.host, args.port, args.binary)))
         return 0
     except (ValueError, OSError, subprocess.SubprocessError) as error:
-        print("Preparación incompleta:", str(error))
+        print("Incomplete preparation:", str(error))
         return 1
 
 

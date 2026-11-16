@@ -1,12 +1,11 @@
 /*
- * OneInTwo — Entrada nativa Windows.
- * Estado: estructura documental; implementación pendiente.
+ * OneInTwo — Native Windows input. Status: documentary structure; pending implementation.
  *
- * Responsabilidades previstas:
- * - Capturar eventos de teclado/ratón y suprimir su efecto local cuando el control remoto esté activo.
- * - Inyectar eventos autorizados y convertir códigos, botones y coordenadas desde el contrato común.
- * - Distinguir eventos sintetizados para evitar bucles y mantener callbacks de captura cortos.
- * - Liberar captura y estados en el hilo adecuado; informar fallos o restricciones de privilegio.
- * - No ejecutar transferencias ni decidir qué equipo tiene permiso de control.
+ * Responsibilities envisaged:
+ * - Capture keyboard/mouse events and delete their local effect when remote control is active.
+ * - Inject authorized events and convert codes, buttons and coordinates from the common contract.
+ * - Distinguish synthesized events to avoid loops and keep capture callbacks short.
+ * - Release capture and states in the right thread; report bugs or privilege restrictions.
+ * - Do not execute transfers or decide which equipment has control permission.
  */
 

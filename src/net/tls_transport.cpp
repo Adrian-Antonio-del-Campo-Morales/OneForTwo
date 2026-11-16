@@ -68,7 +68,7 @@ struct QtTlsTransport::Impl final : QObject {
     explicit Impl(TlsTransportConfig config_in) : config(std::move(config_in)) {
         timer.setSingleShot(true);
         QObject::connect(&timer, &QTimer::timeout, this, [this] {
-            fail(QStringLiteral("tiempo de handshake TLS agotado"));
+            fail(QStringLiteral("handshake time TLS exhausted"));
         });
     }
 
@@ -85,7 +85,7 @@ struct QtTlsTransport::Impl final : QObject {
 
     bool start(std::string* error) {
         if (state != State::idle) {
-            setError(error, QStringLiteral("el transporte TLS ya se ha iniciado"));
+            setError(error, QStringLiteral("the transport TLS has already begun"));
             return false;
         }
         if (!prepare(error)) {
@@ -114,7 +114,7 @@ struct QtTlsTransport::Impl final : QObject {
         }
 
         if (config.peer_port == 0) {
-            setError(error, QStringLiteral("puerto TLS del par inválido"));
+            setError(error, QStringLiteral("port TLS of the invalid pair"));
             return false;
         }
         socket = std::make_unique<QSslSocket>();
@@ -134,23 +134,23 @@ struct QtTlsTransport::Impl final : QObject {
 
     bool prepare(std::string* error) {
         if (config.certificate_pem.empty() || config.private_key_pem.empty()) {
-            setError(error, QStringLiteral("faltan el certificado o la clave TLS"));
+            setError(error, QStringLiteral("certificate or key TLS missing"));
             return false;
         }
         if (!config.peer_fingerprint.empty()) {
             expected_pin = normalizePin(QString::fromStdString(config.peer_fingerprint));
             if (expected_pin.isEmpty()) {
-                setError(error, QStringLiteral("la huella TLS fijada no es un SHA-256 válido"));
+                setError(error, QStringLiteral("the fingerprint TLS fixed is not a SHA-256 valid"));
                 return false;
             }
         } else if (!config.allow_unverified) {
-            setError(error, QStringLiteral("falta la huella TLS fijada"));
+            setError(error, QStringLiteral("print TLS is missing"));
             return false;
         }
         const QList<QSslCertificate> certificates =
             QSslCertificate::fromData(QByteArray::fromStdString(config.certificate_pem), QSsl::Pem);
         if (certificates.isEmpty() || certificates.front().isNull()) {
-            setError(error, QStringLiteral("el certificado TLS no es válido"));
+            setError(error, QStringLiteral("certificate TLS is invalid"));
             return false;
         }
         const QByteArray key_data = QByteArray::fromStdString(config.private_key_pem);
@@ -159,7 +159,7 @@ struct QtTlsTransport::Impl final : QObject {
             key = QSslKey(key_data, QSsl::Ec, QSsl::Pem);
         }
         if (key.isNull()) {
-            setError(error, QStringLiteral("la clave TLS no es válida"));
+            setError(error, QStringLiteral("key TLS is invalid"));
             return false;
         }
         local_certificate = certificates.front();
@@ -207,7 +207,7 @@ struct QtTlsTransport::Impl final : QObject {
                              if (state == State::ready) {
                                  closeAfterRemoteDisconnect();
                              } else {
-                                 fail(QStringLiteral("conexión TLS cerrada durante el handshake"));
+                                 fail(QStringLiteral("connection TLS closed during handshake"));
                              }
                          });
         if (socket_to_attach->isEncrypted()) {
@@ -233,7 +233,7 @@ struct QtTlsTransport::Impl final : QObject {
             }
             attachSocket(ssl_socket);
         }
-        // Una sesión usa un único par; no se aceptan conexiones adicionales.
+        // A session uses a single pair; no additional connections are accepted.
         server->close();
     }
 
@@ -250,7 +250,7 @@ struct QtTlsTransport::Impl final : QObject {
             socket_with_errors->ignoreSslErrors(errors);
             return;
         }
-        fail(QStringLiteral("huella TLS del par no coincide con la fijada"));
+        fail(QStringLiteral("footprint TLS of the pair does not match the fixed"));
     }
 
     void onEncrypted(QSslSocket* socket_ready) {
@@ -261,7 +261,7 @@ struct QtTlsTransport::Impl final : QObject {
         const QString actual = certificatePin(socket_ready->peerCertificate());
         if (actual.isEmpty() ||
             (!expected_pin.isEmpty() && actual != expected_pin)) {
-            fail(QStringLiteral("huella TLS del par no coincide con la fijada"));
+            fail(QStringLiteral("footprint TLS of the pair does not match the fixed"));
             return;
         }
         verified_pin = actual;
@@ -279,7 +279,7 @@ struct QtTlsTransport::Impl final : QObject {
         }
         incoming.append(socket_reading->readAll());
         if (incoming.size() > max_transport_buffer) {
-            fail(QStringLiteral("búfer TLS de entrada desbordado"));
+            fail(QStringLiteral("TLS buffer overflowed inlet"));
             return;
         }
         while (incoming.size() >= 5) {
@@ -290,7 +290,7 @@ struct QtTlsTransport::Impl final : QObject {
                 (static_cast<quint32>(static_cast<quint8>(incoming.at(3))) << 8) |
                 static_cast<quint32>(static_cast<quint8>(incoming.at(4)));
             if (channel > 1 || length > max_frame_bytes) {
-                fail(QStringLiteral("trama TLS inválida"));
+                fail(QStringLiteral("Invalid TLS plot"));
                 return;
             }
             const qsizetype frame_size = static_cast<qsizetype>(length) + 5;
@@ -335,7 +335,7 @@ struct QtTlsTransport::Impl final : QObject {
         bytes.append(reinterpret_cast<const char*>(frame.data()),
                      static_cast<qsizetype>(frame.size()));
         if (active->write(bytes) != frame_size) {
-            fail(QStringLiteral("no se pudo escribir la trama TLS"));
+            fail(QStringLiteral("could not write plot TLS"));
             return TransportSendStatus::closed;
         }
         return TransportSendStatus::sent;

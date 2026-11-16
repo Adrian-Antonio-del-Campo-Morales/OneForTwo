@@ -1,7 +1,7 @@
-// Responsabilidad: adaptador Linux/Wayland. El origen autoriza InputCapture y
-// recibe la entrada por un contexto libei receptor; el destino autoriza
-// RemoteDesktop, inyecta con libei emisor y reserva Ctrl+Shift+F12 con
-// GlobalShortcuts. Solo se compila con gio-2.0 y libei-1.0.
+// Responsibility: adapter Linux/Wayland. Origin authorizes InputCapture and
+// receives entry by a receiving libei context; destination authorizes
+// RemoteDesktop, inject with libei emitter and reserve Ctrl+Shift+F12 with
+// GlobalShortcuts. It is only compiled with gio-2.0 and libei-1.0.
 #include "core/keymap.hpp"
 #include "platform/backend.hpp"
 #include "platform/ring.hpp"
@@ -68,15 +68,15 @@ uint16_t protocolButton(uint32_t evdev) {
   }
 }
 
-// Señales de los portales que el backend traduce a su estado interno.
-// Recibe una referencia propia al diccionario y devuelve (a{sv}), como callRaw.
+// Signals of the portals that the backend translates to its internal state.
+// It receives its own dictionary reference and returns (a{sv}), as callRaw.
 GVariant* portalResponseTuple(GVariant* dictionary) {
   GVariant* tuple = g_variant_ref_sink(g_variant_new_tuple(&dictionary, 1));
   g_variant_unref(dictionary);
   return tuple;
 }
 
-// RemoteDesktop conserva el tipo s por compatibilidad, aunque contiene una ruta.
+// RemoteDesktop retains the s type for compatibility, although it contains a path.
 bool remoteSessionHandle(GVariant* dictionary, std::string& session) {
   const gchar* handle = nullptr;
   if (!g_variant_lookup(dictionary, "session_handle", "&s", &handle) ||
@@ -209,7 +209,7 @@ bool PortalClient::connect(std::string& error) {
   GError* gerror = nullptr;
   bus_ = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &gerror);
   if (bus_ == nullptr) {
-    error = std::string("bus de sesión: ") + (gerror ? gerror->message : "no disponible");
+    error = std::string("Session bus: ") + (gerror ? gerror->message : "unavailable");
     if (gerror) g_error_free(gerror);
     return false;
   }
@@ -257,7 +257,7 @@ std::string PortalClient::requestPath(const std::string& token) const {
 GVariant* PortalClient::callRaw(const char* iface, const char* method, GVariant* parameters,
                                 const char* replyType, std::string& error, int timeoutMs) {
   if (bus_ == nullptr) {
-    error = "sin conexión al bus de sesión";
+    error = "no connection to the session bus";
     if (parameters != nullptr) g_variant_unref(g_variant_ref_sink(parameters));
     return nullptr;
   }
@@ -268,7 +268,7 @@ GVariant* PortalClient::callRaw(const char* iface, const char* method, GVariant*
       G_DBUS_CALL_FLAGS_NONE, timeoutMs, nullptr, &gerror);
   if (type != nullptr) g_variant_type_free(type);
   if (reply == nullptr) {
-    error = std::string(method) + ": " + (gerror ? gerror->message : "sin respuesta");
+    error = std::string(method) + ": " + (gerror ? gerror->message : "no response");
     if (gerror) g_error_free(gerror);
   }
   return reply;
@@ -298,14 +298,14 @@ bool PortalClient::request(const char* iface, const char* method, GVariant* para
                            const std::string& token, GVariant** results, std::string& error,
                            int timeoutMs) {
   if (bus_ == nullptr) {
-    error = "sin conexión al bus de sesión";
+    error = "no connection to the session bus";
     if (parameters != nullptr) g_variant_unref(g_variant_ref_sink(parameters));
     return false;
   }
   const std::string expected = requestPath(token);
   RequestWait wait;
   const auto subscribeResponse = [&](const std::string& path) {
-    // onResponse recibe RequestWait, no PortalClient como las señales de sesión.
+    // onResponse receives RequestWait, not PortalClient as session signals.
     return g_dbus_connection_signal_subscribe(
         bus_, kPortalService, "org.freedesktop.portal.Request", "Response",
         path.c_str(), nullptr, G_DBUS_SIGNAL_FLAGS_NONE, onResponse, &wait, nullptr);
@@ -316,7 +316,7 @@ bool PortalClient::request(const char* iface, const char* method, GVariant* para
       bus_, kPortalService, kPortalPath, iface, method, parameters, G_VARIANT_TYPE("(o)"),
       G_DBUS_CALL_FLAGS_NONE, 5000, nullptr, &gerror);
   if (reply == nullptr) {
-    error = std::string(method) + ": " + (gerror ? gerror->message : "sin respuesta");
+    error = std::string(method) + ": " + (gerror ? gerror->message : "no response");
     if (gerror) g_error_free(gerror);
     if (subscription != 0) g_dbus_connection_signal_unsubscribe(bus_, subscription);
     return false;
@@ -326,7 +326,7 @@ bool PortalClient::request(const char* iface, const char* method, GVariant* para
   const std::string returned = handle != nullptr ? handle : "";
   g_variant_unref(reply);
   if (returned.empty()) {
-    error = std::string(method) + ": el portal no devolvió un Request";
+    error = std::string(method) + ": the portal did not return a Request";
     if (subscription != 0) g_dbus_connection_signal_unsubscribe(bus_, subscription);
     return false;
   }
@@ -343,19 +343,19 @@ bool PortalClient::request(const char* iface, const char* method, GVariant* para
   if (subscription != 0) g_dbus_connection_signal_unsubscribe(bus_, subscription);
   if (!wait.done) {
     if (wait.results != nullptr) g_variant_unref(wait.results);
-    error = std::string(method) + ": el portal no respondió a tiempo";
+    error = std::string(method) + ": the portal did not respond in time";
     return false;
   }
   if (wait.response != 0) {
     if (wait.results != nullptr) g_variant_unref(wait.results);
-    error = wait.response == 1 ? "el usuario canceló la autorización"
-                               : "el portal rechazó la solicitud";
+    error = wait.response == 1 ? "the user cancelled the authorisation"
+                               : "the portal has rejected the request";
     return false;
   }
   GVariant* dict = wait.results != nullptr
       ? wait.results
       : g_variant_ref_sink(g_variant_new_array(G_VARIANT_TYPE("{sv}"), nullptr, 0));
-  // Mantener el contrato (a{sv}) que consumen todas las operaciones request.
+  // Maintain the contract (a{sv}) that consumes all the required operations.
   *results = portalResponseTuple(dict);
   return true;
 }
@@ -423,7 +423,7 @@ void PortalClient::subscribeRemote(const std::string& session) {
 void PortalClient::subscribeShortcuts(const std::string& session) {
   shortcutSession_ = session;
   shortcutClosed_ = false;
-  // Activated se emite en el objeto del portal; su primer argumento es la sesión.
+  // Activated is broadcast in the object of the portal; its first argument is session.
   shortcutSubs_.push_back(subscribe(kPortalPath, "org.freedesktop.portal.GlobalShortcuts",
                                    "Activated", onShortcutActivated));
   shortcutSubs_.push_back(subscribe(kPortalPath, "org.freedesktop.portal.GlobalShortcuts",
@@ -532,7 +532,7 @@ bool PortalClient::checkShortcutSignals() {
     void portalRemoteClosed() override {}
     void portalShortcutActivated() override { ++emergencies; }
   } events;
-  PortalClient client;  // Sin connect(): no abre el bus ni crea sesiones.
+  PortalClient client;  // No connect(): does not open the bus or create sessions.
   client.setEvents(&events);
   client.shortcutSession_ = "/org/freedesktop/portal/desktop/session/test";
   const auto signal = [&](bool activated, const char* session, const char* identifier) {
@@ -548,7 +548,7 @@ bool PortalClient::checkShortcutSignals() {
   const char* own = client.shortcutSession_.c_str();
   const char* other = "/org/freedesktop/portal/desktop/session/other";
   signal(true, other, wl::kEmergencyShortcutId);
-  signal(true, own, "oneintwo-emergency");  // Ignorar la concesión antigua.
+  signal(true, own, "oneintwo-emergency");  // Ignoring the ancient concession.
   if (events.emergencies != 0 || client.shortcutActivated_) return false;
   signal(true, own, wl::kEmergencyShortcutId);
   if (events.emergencies != 1 || !client.shortcutActivated_ || client.shortcutReleased_) return false;
@@ -585,7 +585,7 @@ void PortalClient::closeEis(int fd) {
 
 bool PortalClient::createInputSession(std::string& session, std::string& error) {
   if (bus_ == nullptr) {
-    error = "sin conexión al bus de sesión";
+    error = "no connection to the session bus";
     return false;
   }
   GVariantBuilder options;
@@ -603,7 +603,7 @@ bool PortalClient::createInputSession(std::string& session, std::string& error) 
   g_variant_unref(dict);
   g_variant_unref(reply);
   if (!ok || session.empty()) {
-    error = "CreateSession2 no devolvió session_handle";
+    error = "CreateSession2 did not return session_handle";
     return false;
   }
   subscribeInput(session);
@@ -632,7 +632,7 @@ bool PortalClient::startInputSession(const std::string& session, std::string& er
   g_variant_unref(results);
   const guint32 required = wl::kCapabilityKeyboard | wl::kCapabilityPointer;
   if ((granted & required) != required) {
-    error = "el escritorio no concedió teclado y puntero al InputCapture";
+    error = "desktop did not grant keyboard and pointer to InputCapture";
     return false;
   }
   return true;
@@ -641,7 +641,7 @@ bool PortalClient::startInputSession(const std::string& session, std::string& er
 bool PortalClient::connectEis(const char* iface, const std::string& session, int& fd,
                               std::string& error) {
   if (bus_ == nullptr) {
-    error = "sin conexión al bus de sesión";
+    error = "no connection to the session bus";
     return false;
   }
   GVariantBuilder options;
@@ -653,7 +653,7 @@ bool PortalClient::connectEis(const char* iface, const std::string& session, int
       g_variant_new("(oa{sv})", session.c_str(), &options), G_VARIANT_TYPE("(h)"),
       G_DBUS_CALL_FLAGS_NONE, 10000, nullptr, &outList, nullptr, &gerror);
   if (reply == nullptr) {
-    error = std::string("ConnectToEIS: ") + (gerror ? gerror->message : "sin respuesta");
+    error = std::string("ConnectToEIS: ") + (gerror ? gerror->message : "no response");
     if (gerror) g_error_free(gerror);
     return false;
   }
@@ -664,8 +664,8 @@ bool PortalClient::connectEis(const char* iface, const std::string& session, int
   if (outList != nullptr) g_object_unref(outList);
   g_variant_unref(reply);
   if (result < 0) {
-    error = std::string("ConnectToEIS no entregó un descriptor: ") +
-            (fdError ? fdError->message : "lista vacía");
+    error = std::string("ConnectToEIS did not deliver a descriptor: ") +
+            (fdError ? fdError->message : "empty list");
     if (fdError) g_error_free(fdError);
     return false;
   }
@@ -693,7 +693,7 @@ bool PortalClient::inputZones(const std::string& session, std::vector<wl::Zone>&
   GVariant* dict = g_variant_get_child_value(results, 0);
   GVariant* array = g_variant_lookup_value(dict, "zones", G_VARIANT_TYPE("a(uuii)"));
   if (array == nullptr) {
-    error = "GetZones no devolvió la lista de zonas";
+    error = "GetZones did not return the list of areas";
     g_variant_unref(dict);
     g_variant_unref(results);
     return false;
@@ -714,7 +714,7 @@ bool PortalClient::inputZones(const std::string& session, std::vector<wl::Zone>&
   g_variant_unref(dict);
   g_variant_unref(results);
   if (!haveSet) {
-    error = "GetZones no devolvió zone_set";
+    error = "GetZones did not return zone_set";
     return false;
   }
   zoneSet = set;
@@ -814,7 +814,7 @@ bool PortalClient::createRemoteSession(std::string& session, std::string& error)
   g_variant_unref(dict);
   g_variant_unref(results);
   if (!ok || session.empty()) {
-    error = "RemoteDesktop.CreateSession no devolvió session_handle";
+    error = "RemoteDesktop.CreateSession did not return session_handle";
     return false;
   }
   subscribeRemote(session);
@@ -885,13 +885,13 @@ bool PortalClient::createShortcutSession(std::string& session, std::string& erro
   }
   GVariant* dict = g_variant_get_child_value(results, 0);
   const gchar* handle = nullptr;
-  // El portal documenta este campo como s, no como o, por compatibilidad.
+  // The portal documents this field as s, not as o, by compatibility.
   const bool ok = g_variant_lookup(dict, "session_handle", "&s", &handle) != 0;
   if (ok && handle != nullptr) session = handle;
   g_variant_unref(dict);
   g_variant_unref(results);
   if (!ok || session.empty()) {
-    error = "GlobalShortcuts.CreateSession no devolvió session_handle";
+    error = "GlobalShortcuts.CreateSession did not return session_handle";
     return false;
   }
   subscribeShortcuts(session);
@@ -905,7 +905,7 @@ bool PortalClient::bindEmergencyShortcut(const std::string& session, bool& bound
   GVariantBuilder properties;
   g_variant_builder_init(&properties, G_VARIANT_TYPE_VARDICT);
   g_variant_builder_add(&properties, "{sv}", "description",
-                        g_variant_new_string("Devolver el control local (OneInTwo)"));
+                        g_variant_new_string("Return local control (OneInTwo)"));
   g_variant_builder_add(&properties, "{sv}", "preferred_trigger",
                         g_variant_new_string(wl::kEmergencyShortcutTrigger));
   g_variant_builder_add_value(
@@ -938,7 +938,7 @@ bool PortalClient::bindEmergencyShortcut(const std::string& session, bool& bound
         bound = true;
         const gchar* trigger = nullptr;
         g_variant_lookup(propertiesOut, "trigger_description", "&s", &trigger);
-        std::fprintf(stderr, "Atajo de salida concedido por el portal: %s\n",
+        std::fprintf(stderr, "Exit gate granted by the portal: %s\n",
                      trigger != nullptr ? trigger : "sin descripcion");
       }
       g_variant_unref(propertiesOut);
@@ -958,13 +958,13 @@ void PortalClient::closeShortcutSession(const std::string& session) {
 
 bool PortalClient::verifyEmergencyShortcut(const std::string& session, std::string& error) {
   if (session != shortcutSession_ || shortcutClosed_) {
-    error = "la sesión del atajo no está disponible";
+    error = "shortcut session is not available";
     return false;
   }
   checkingShortcut_ = true;
   shortcutActivated_ = false;
   shortcutReleased_ = false;
-  std::printf("Antes de abrir RemoteDesktop/EIS, pulse y suelte Ctrl+Shift+F12 (30 s).\n");
+  std::printf("Before opening RemoteDesktop/EIS, press and release Ctrl+Shift+F12 (30 s).\n");
   std::fflush(stdout);
   const gint64 deadline = g_get_monotonic_time() + 30 * G_USEC_PER_SEC;
   while (!shortcutClosed_ && !(shortcutActivated_ && shortcutReleased_) &&
@@ -974,13 +974,13 @@ bool PortalClient::verifyEmergencyShortcut(const std::string& session, std::stri
   }
   checkingShortcut_ = false;
   if (shortcutClosed_ || !shortcutActivated_ || !shortcutReleased_) {
-    error = "salida local no comprobada; no se abre RemoteDesktop ni EIS";
+    error = "unchecked local output; no RemoteDesktop or EIS opened";
     return false;
   }
   return true;
 }
 
-// === libei: receptor del origen ===
+// ===Libei: recipient of origin===
 
 class EiReceiver {
  public:
@@ -989,19 +989,19 @@ class EiReceiver {
   bool start(int fd, std::string& error) {
     ei_ = ei_new_receiver(nullptr);
     if (ei_ == nullptr) {
-      error = "no se pudo crear el contexto libei receptor";
+      error = "could not create host libei context";
       ::close(fd);
       return false;
     }
     ei_configure_name(ei_, "oneintwo-input-source");
     if (ei_setup_backend_fd(ei_, fd) != 0) {
-      error = "libei rechazó el descriptor EIS de InputCapture";
+      error = "libei rejected InputCapture descriptor EIS";
       ei_unref(ei_);
       ei_ = nullptr;
       ::close(fd);
       return false;
     }
-    // A partir de aquí libei es dueño del descriptor y lo cierra al liberarse.
+    // From here on, Libei owns the descriptor and closes it when he gets free.
     return true;
   }
 
@@ -1060,8 +1060,8 @@ class EiReceiver {
         break;
       }
       case EI_EVENT_DEVICE_START_EMULATING: {
-        // El ACK con la secuencia del portal es el punto de sincronización de
-        // InputCapture; hasta enviarlo el EIS no entrega eventos.
+        // The ACK with the portal sequence is the synchronization point of
+        // InputCapture; until you send it EIS does not deliver events.
         ei_device* device = ei_event_get_device(event);
         if (device != nullptr) {
           haveAbsolute_ = false;
@@ -1143,7 +1143,7 @@ class EiReceiver {
   double lastAbsoluteY_ = 0.0;
 };
 
-// === libei: emisor del destino ===
+// ===Libei: issuer of destiny ===
 
 class EiSender {
  public:
@@ -1152,7 +1152,7 @@ class EiSender {
   bool start(int fd, Geo& geo, std::string& error) {
     ei_ = ei_new_sender(nullptr);
     if (ei_ == nullptr) {
-      error = "no se pudo crear el contexto libei emisor";
+      error = "could not create issuing libei context";
       ::close(fd);
       return false;
     }
@@ -1161,12 +1161,12 @@ class EiSender {
       ei_log_set_priority(ei_, EI_LOG_PRIORITY_DEBUG);
     }
     if (ei_setup_backend_fd(ei_, fd) != 0) {
-      error = "libei rechazó el descriptor EIS de RemoteDesktop";
+      error = "libei rejected RemoteDesktop descriptor EIS";
       ei_unref(ei_);
       ei_ = nullptr;
       return false;
     }
-    // A partir de aquí libei es dueño del descriptor y lo cierra al liberarse.
+    // From here on, Libei owns the descriptor and closes it when he gets free.
     if (!waitForDevices(geo, error)) {
       close();
       return false;
@@ -1176,7 +1176,7 @@ class EiSender {
 
   void close() {
     if (ei_ != nullptr) {
-      // Liberar solo nuestros estados antes de cerrar la transacción y el FD.
+      // Release only our states before closing the transaction and the FD.
       if (contains(emulating_, keyboard_) && contains(resumed_, keyboard_)) {
         for (uint32_t key : pressedKeys_) ei_device_keyboard_key(keyboard_, key, false);
         if (!pressedKeys_.empty()) ei_device_frame(keyboard_, ei_now(ei_));
@@ -1207,7 +1207,7 @@ class EiSender {
 
   bool pump(std::string& error) {
     if (ei_ == nullptr) {
-      error = "el contexto libei emisor no existe";
+      error = "the libei sender context is missing";
       return false;
     }
     ei_dispatch(ei_);
@@ -1216,7 +1216,7 @@ class EiSender {
       ei_event_unref(event);
     }
     if (disconnected_ || deviceLost_) {
-      error = "EIS cerró, pausó o retiró un dispositivo del destino";
+      error = "EIS closed, paused or removed a device from the destination";
       return false;
     }
     return true;
@@ -1233,7 +1233,7 @@ class EiSender {
     if (!ready(error)) return false;
     const uint16_t code = hidToLinuxCode(usage);
     if (code == 0) {
-      error = "tecla sin conversión evdev";
+      error = "key without evdev conversion";
       return false;
     }
     if (!begin(keyboard_, error)) return false;
@@ -1252,7 +1252,7 @@ class EiSender {
     if (!ready(error)) return false;
     const uint32_t code = evdevButton(button);
     if (code == 0) {
-      error = "botón de ratón no soportado";
+      error = "mouse button not supported";
       return false;
     }
     if (!begin(pointer_, error)) return false;
@@ -1270,8 +1270,8 @@ class EiSender {
   bool injectWheel(int16_t dx, int16_t dy, std::string& error) {
     if (!ready(error)) return false;
     if (!begin(pointer_, error)) return false;
-    // EI usa evdev: el desplazamiento positivo es hacia abajo y la rueda
-    // discreta se expresa en múltiplos de 120.
+    // IE uses evdev: positive displacement is down and wheel
+    // discreetly expressed in multiples of 120.
     ei_device_scroll_discrete(pointer_, static_cast<int32_t>(dx) * 120,
                               static_cast<int32_t>(-dy) * 120);
     ei_device_frame(pointer_, ei_now(ei_));
@@ -1286,7 +1286,7 @@ class EiSender {
   bool begin(ei_device* device, std::string& error) {
     if (!ready(error)) return false;
     if (!contains(emulating_, device)) {
-      // No iniciar durante ADDED ni al preparar permisos: solo ante un evento real.
+      // Do not start during ADDED or when preparing permissions: only in front of a real event.
       ei_device_start_emulating(device, ++sequence_);
       emulating_.push_back(device);
     }
@@ -1300,11 +1300,11 @@ class EiSender {
 
   bool ready(std::string& error) const {
     if (disconnected_) {
-      error = "la conexión EIS del destino se cerró";
+      error = "the connection EIS of the destination is closed";
       return false;
     }
     if (deviceLost_ || !devicesReady()) {
-      error = "los dispositivos EIS no están reanudados o fueron retirados";
+      error = "EIS devices are not resumed or have been removed";
       return false;
     }
     return true;
@@ -1326,46 +1326,46 @@ class EiSender {
         }
       }
       if (disconnected_) {
-        error = "EIS se desconectó antes de ofrecer dispositivos";
+        error = "EIS disconnected before offering devices";
         return false;
       }
     }
     if (keyboard_ == nullptr) {
-      error = "el EIS no ofreció un dispositivo de teclado";
+      error = "the EIS did not offer a keyboard device";
       return false;
     }
     if (absolute_ == nullptr) {
       error =
-          "el EIS del escritorio no ofreció puntero absoluto "
-          "(EI_DEVICE_CAP_POINTER_ABSOLUTE); el destino Wayland no puede posicionar el "
-          "cursor de forma absoluta";
+          "the EIS desktop did not offer absolute pointer "
+          "(EI_DEVICE_CAP_POINTER_ABSOLUTE); the Wayland destination cannot position the "
+          "absolute cursor";
       return false;
     }
     if (pointer_ == nullptr) {
-      error = "el EIS no ofreció un dispositivo de puntero para botones y rueda";
+      error = "EIS did not offer a pointer device for buttons and wheel";
       return false;
     }
 
     if (deviceLost_ || !devicesReady()) {
-      error = "EIS no reanudó los dispositivos antes del límite de preparación";
+      error = "EIS did not resume devices before the preparation limit";
       return false;
     }
     ei_region* region = ei_device_get_region(absolute_, 0);
     if (region == nullptr) region = ei_device_get_region(pointer_, 0);
     if (region == nullptr) {
       error =
-          "el dispositivo EIS no expone una región de escritorio; sin ella el destino no "
-          "puede conocer su geometría";
+          "the device EIS does not expose a desktop region; without it the destination does not "
+          "you can know your geometry";
       return false;
     }
     if (ei_device_get_region(absolute_, 1) != nullptr ||
         ei_device_get_region(pointer_, 1) != nullptr) {
-      error = "el EIS expone varias regiones; el experimento solo admite un monitor";
+      error = "EIS exposes several regions; the experiment only admits one monitor";
       return false;
     }
     if (!wl::regionGeometry(ei_region_get_x(region), ei_region_get_y(region),
                             ei_region_get_width(region), ei_region_get_height(region), geo)) {
-      error = "la región EIS no tiene un tamaño utilizable";
+      error = "region EIS does not have a usable size";
       return false;
     }
     geo_ = geo;
@@ -1406,7 +1406,7 @@ class EiSender {
       case EI_EVENT_DEVICE_PAUSED: {
         ei_device* device = ei_event_get_device(event);
         resumed_.erase(std::remove(resumed_.begin(), resumed_.end(), device), resumed_.end());
-        // Nunca reanudar silenciosamente una transacción tras perder dispositivos.
+        // Never quietly resume a transaction after losing devices.
         if (device == keyboard_ || device == pointer_ || device == absolute_) deviceLost_ = true;
         break;
       }
@@ -1526,7 +1526,7 @@ class WaylandBackend : public Backend, public PortalEvents {
 
 bool WaylandBackend::init(std::string& error) {
   if (!isWaylandSession()) {
-    error = "la sesión actual no es Wayland";
+    error = "the current session is not Wayland";
     return false;
   }
   portal_.setEvents(this);
@@ -1558,18 +1558,18 @@ bool WaylandBackend::init(std::string& error) {
   caps_.targetLocalOverride = shortcutV;
 
   if (!connected) {
-    caps_.notes = "Sin bus de sesión (" + busError +
-                  "): no se puede autorizar ningún portal Wayland.";
+    caps_.notes = "No session bus (" + busError +
+                  "): No Wayland portal can be authorized.";
   } else {
     caps_.notes = "InputCapture v";
     caps_.notes += std::to_string(inputVersion);
-    caps_.notes += inputC ? " con teclado y puntero" : " sin todas las capacidades";
+    caps_.notes += inputC ? " with keyboard and pointer" : " without all capacities";
     caps_.notes += "; RemoteDesktop v" + std::to_string(remoteVersion);
     caps_.notes += "; GlobalShortcuts v" + std::to_string(shortcutVersion);
     caps_.notes +=
-        ". El destino exige que el EIS ofrezca POINTER_ABSOLUTE y una región de "
-        "escritorio; se comprueba al prepararlo. Wayland no permite consultar ni "
-        "deformar la posición global del cursor.";
+        ". Destination requires that EIS offer POINTER_ABSOLUTE and a region of "
+        "desktop; checked when preparing it. Wayland does not allow to consult or "
+        "deform the global position of the cursor.";
   }
 
   const char* session = std::getenv("XDG_SESSION_TYPE");
@@ -1587,7 +1587,7 @@ bool WaylandBackend::prepareSource(Edge edge, std::string& error) {
   }
   const int fd = capture_->takeEisFd();
   if (fd < 0) {
-    error = "el portal InputCapture no entregó un descriptor EIS";
+    error = "the portal InputCapture did not deliver a descriptor EIS";
     capture_->close();
     capture_.reset();
     return false;
@@ -1621,11 +1621,11 @@ bool WaylandBackend::prepareTarget(std::string& error) {
 
 bool WaylandBackend::startSource(std::string& error) {
   if (!capture_ || !receiver_) {
-    error = "prepareSource no se ejecutó para esta sesión Wayland";
+    error = "preparationSource was not executed for this session Wayland";
     return false;
   }
   if (sourceThread_.joinable()) {
-    error = "la observación Wayland ya está iniciada";
+    error = "Wayland observation is already under way";
     return false;
   }
   sourceRunning_.store(true);
@@ -1665,12 +1665,12 @@ void WaylandBackend::stopSource() {
 
 bool WaylandBackend::setCaptureActive(bool active, std::string& error) {
   if (!capture_) {
-    error = "la captura Wayland no está preparada";
+    error = "Wayland capture is not ready.";
     return false;
   }
   if (active) {
     if (!capture_->armed() && !capture_->active()) {
-      error = "la sesión InputCapture no está armada";
+      error = "InputCapture session is not armed";
       return false;
     }
     captureActive_.store(true, std::memory_order_relaxed);
@@ -1687,8 +1687,8 @@ bool WaylandBackend::setCaptureActive(bool active, std::string& error) {
 }
 
 void WaylandBackend::warpLocalCursor(int x, int y) {
-  // Wayland no permite deformar el puntero global; Release ya sugirió la
-  // posición de retorno al compositor. Se ignoran las coordenadas.
+  // Wayland does not allow to deform the global pointer; Release already suggested the
+  // position of return to the composer. The coordinates are ignored.
   (void)x;
   (void)y;
 }
@@ -1735,7 +1735,7 @@ void WaylandBackend::drainCaptureState() {
     if (!capture_->rearm(rearmError)) fatalReason_ = rearmError;
   }
   if (eiLost_.exchange(false, std::memory_order_relaxed)) {
-    fatalReason_ = "la conexión EIS del origen se interrumpió";
+    fatalReason_ = "the connection EIS of the origin was interrupted";
   }
 }
 
@@ -1747,7 +1747,7 @@ bool WaylandBackend::sourceFatal(std::string& reason) {
 
 bool WaylandBackend::startTarget(std::string& error) {
   if (remote_.stage() != wl::TargetStage::Ready || !sender_) {
-    error = "prepareTarget no se ejecutó para esta sesión Wayland";
+    error = "preTarget was not executed for this Wayland session";
     return false;
   }
   return true;
@@ -1795,7 +1795,7 @@ void WaylandBackend::drainTargetState() {
 
 bool WaylandBackend::injectMove(int x, int y, std::string& error) {
   if (!sender_) {
-    error = "la inyección Wayland no está preparada";
+    error = "Wayland injection is not ready";
     return false;
   }
   return sender_->injectMove(x, y, error);
@@ -1803,7 +1803,7 @@ bool WaylandBackend::injectMove(int x, int y, std::string& error) {
 
 bool WaylandBackend::injectKey(uint16_t usage, bool pressed, std::string& error) {
   if (!sender_) {
-    error = "la inyección Wayland no está preparada";
+    error = "Wayland injection is not ready";
     return false;
   }
   return sender_->injectKey(usage, pressed, error);
@@ -1811,7 +1811,7 @@ bool WaylandBackend::injectKey(uint16_t usage, bool pressed, std::string& error)
 
 bool WaylandBackend::injectButton(uint16_t button, bool pressed, std::string& error) {
   if (!sender_) {
-    error = "la inyección Wayland no está preparada";
+    error = "Wayland injection is not ready";
     return false;
   }
   return sender_->injectButton(button, pressed, error);
@@ -1819,15 +1819,15 @@ bool WaylandBackend::injectButton(uint16_t button, bool pressed, std::string& er
 
 bool WaylandBackend::injectWheel(int16_t dx, int16_t dy, std::string& error) {
   if (!sender_) {
-    error = "la inyección Wayland no está preparada";
+    error = "Wayland injection is not ready";
     return false;
   }
   return sender_->injectWheel(dx, dy, error);
 }
 
 bool WaylandBackend::cursorPosition(int& x, int& y) {
-  // Wayland no expone la posición global del cursor a un cliente. El destino
-  // no puede guardar ni restaurar la posición previa a la sesión.
+  // Wayland does not expose the overall cursor position to a client.
+  // cannot save or restore the pre-session position.
   (void)x;
   (void)y;
   return false;

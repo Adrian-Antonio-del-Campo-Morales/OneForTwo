@@ -1,5 +1,5 @@
-// Responsabilidad: exponer las comprobaciones aisladas al ejecutable principal
-// (--self-test). No inicializa escritorio, portapapeles ni red.
+// Liability: expose isolated checks to the main executable
+// (--self-test) does not initialize desktop, clipboard or network.
 #pragma once
 
 namespace o2f {

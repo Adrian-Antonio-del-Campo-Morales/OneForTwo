@@ -1,13 +1,14 @@
 /*
- * OneInTwo — Sesiones y permisos de los portales.
- * Estado: estructura documental; implementación pendiente.
+ * OneInTwo — Meetings and permissions for portals. Status: documentary structure; implementation
+ * pending.
  *
- * Responsabilidades previstas:
- * - Gestionar creación, autorización, restauración cuando proceda, cierre y señales de sesiones D-Bus.
- * - Compartir el ciclo de vida entre entrada y portapapeles cuando las APIs lo requieran.
- * - Mantener separadas las capacidades técnicas concedidas y los permisos funcionales de OneInTwo.
- * - Entregar conexiones EIS a input.cpp y avisar de pérdida de capacidad a desktop.cpp.
- * - No solicitar dispositivos innecesarios para encubrir la falta de portapapeles independiente.
- * - Versiones mínimas y estrategia concreta pendientes de P0, P1 y P2.
+ * Responsibilities envisaged:
+ * - Manage creation, authorization, restoration where appropriate, closing and D-Bus session
+ *   signals.
+ * - Share the life cycle between input and clipboards when APIs require it.
+ * - Keep the technical capabilities granted and the functional permissions of OneInTwo separate.
+ * - Deliver EIS connections to input.cpp and report loss of capacity to desktop.cpp.
+ * - Do not request unnecessary devices to cover up the lack of independent clipboards.
+ * - Minimum versions and specific strategy pending P0, P1 and P2.
  */
 

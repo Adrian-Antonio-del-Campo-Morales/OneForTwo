@@ -1,9 +1,9 @@
 #pragma once
 
-// Responsabilidad: adaptador Linux/Wayland basado en las interfaces oficiales
-// xdg-desktop-portal RemoteDesktop + Clipboard. Solicita una sesión con cero
-// dispositivos de entrada y nunca llama a métodos Notify* ni ConnectToEIS.
-// No hay fallback a X11: el llamador debe elegir esta vía sólo en Wayland.
+// Responsibility: Linux/Wayland adapter based on official interfaces
+// xdg-desktop-portal RemoteDesktop + Clipboard. Request a session with zero
+// Input devices and never calls Notify* or ConnectToEIS methods.
+// There is no failback to X11: the caller must choose this route only in Wayland.
 
 #include <string>
 
@@ -11,19 +11,19 @@
 
 namespace oit {
 
-// Capacidades declaradas por el adaptador. La concesión efectiva depende del
-// diálogo del portal; crear el puerto es lo que lo comprueba.
+// Capacities declared by the adapter. The effective concession depends on the
+// portal dialog; creating the port is what checks it.
 ClipboardCapabilities portal_clipboard_capabilities();
 
-// Crea la sesión de portal y solicita clipboard_access. Puede bloquearse
-// mientras el usuario decide; nunca se llama desde --inventory ni --self-test.
+// Create the portal session and request clipboard_access. It can be blocked
+// while the user decides; it is never called from --inventory or --self-test.
 PortCreation create_portal_clipboard_port();
 
-// Comprueba codificación/decodificación de mensajes D-Bus y selección de MIME
-// sin abrir una conexión, un bus, una sesión de permisos ni el portapapeles.
+// Check D-Bus message encoding and decoding and MIME type selection
+// without opening a connection, a bus, a permission session or the clipboard.
 bool run_portal_isolated_checks(std::string& detail);
 
-// Pipes sintéticos: llegada diferida, EOF y timeout, sin portapapeles ni bus.
+// Synthetic pipes: delayed arrival, EOF and timeout, without clipboard or bus.
 bool run_portal_pipe_isolated_checks(std::string& detail);
 
 }  // namespace oit

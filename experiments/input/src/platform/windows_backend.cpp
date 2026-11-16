@@ -1,6 +1,6 @@
-// Responsabilidad: adaptador Windows. Captura con WH_KEYBOARD_LL y
-// WH_MOUSE_LL, inyecta con SendInput y ofrece una salida local Ctrl+Alt+F12.
-// No se inicializa en self-tests; solo lo usan los modos manuales.
+// Responsibility: Windows adapter. Capture with WH_KEYBOARD_LL and
+// WH_MOUSE_LL, injects with SendInput and offers a local Ctrl+Alt+F12 output.
+// It is not initialized in self-tests; only manual modes use it.
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -54,7 +54,7 @@ class WinBackend : public Backend {
   BackendCaps caps() const override { return caps_; }
   std::string sessionType() const override { return sessionType_; }
 
-  // Windows instala sus hooks en startSource/startTarget; no hay autorización previa.
+  // Windows installs its hooks in startSource/startTarget; there is no prior authorization.
   bool prepareSource(Edge, std::string&) override { return true; }
   bool prepareTarget(std::string&) override { return true; }
 
@@ -124,7 +124,7 @@ bool WinBackend::init(std::string& error) {
   geo_.w = GetSystemMetrics(SM_CXVIRTUALSCREEN);
   geo_.h = GetSystemMetrics(SM_CYVIRTUALSCREEN);
   if (!geo_.valid()) {
-    error = "no se pudo obtener la geometría del escritorio virtual";
+    error = "could not get geometry from virtual desktop";
     return false;
   }
 
@@ -132,22 +132,22 @@ bool WinBackend::init(std::string& error) {
   EnumDisplayMonitors(nullptr, nullptr, countMonitorProc, reinterpret_cast<LPARAM>(&monitors));
   monitorCount_ = std::max(1, monitors);
   remoteSession_ = GetSystemMetrics(SM_REMOTESESSION) != 0;
-  sessionType_ = remoteSession_ ? "Windows, sesión remota" : "Windows, sesión local";
+  sessionType_ = remoteSession_ ? "Windows, remote session" : "Windows, local session";
 
   caps_.name = "Windows Win32 (hooks + SendInput)";
   caps_.capture = true;
   caps_.inject = true;
   caps_.targetLocalOverride = true;
   caps_.notes =
-      "Una instancia por proceso. Ventanas elevadas fuera del alcance por UIPI. "
-      "Se espera un monitor por equipo; la detección de actividad física del "
-      "destino solo está disponible en Windows.";
+      "One instance per process. Windows elevated out of reach by UIPI. "
+      "One monitor per team is expected; physical activity detection of "
+      "destination is only available on Windows.";
   return true;
 }
 
 bool WinBackend::startHooks(Role role, std::string& error) {
   if (hookThread_.joinable()) {
-    error = "los hooks ya están iniciados";
+    error = "Hooks are already in place.";
     return false;
   }
   role_ = role;
@@ -163,7 +163,7 @@ bool WinBackend::startHooks(Role role, std::string& error) {
   if (!hookReady_.load(std::memory_order_acquire)) {
     hookRunning_.store(false, std::memory_order_relaxed);
     stopHooks();
-    error = "tiempo de espera agotado instalando los hooks";
+    error = "used waiting time by installing hooks";
     return false;
   }
   if (!hookError_.empty()) {
@@ -182,7 +182,7 @@ void WinBackend::hookThreadMain() {
   if (keyboard == nullptr || mouse == nullptr) {
     if (keyboard) UnhookWindowsHookEx(keyboard);
     if (mouse) UnhookWindowsHookEx(mouse);
-    hookError_ = "no se pudieron instalar los hooks de entrada";
+    hookError_ = "input hooks could not be installed";
     hookReady_.store(true, std::memory_order_release);
     return;
   }
@@ -218,7 +218,7 @@ void WinBackend::stopSource() { stopHooks(); }
 
 bool WinBackend::setCaptureActive(bool active, std::string& error) {
   if (role_ != Role::Source) {
-    error = "la captura solo puede activarse en el origen";
+    error = "the catch can only be activated at source";
     return false;
   }
   resetMouse_.store(true, std::memory_order_relaxed);
@@ -292,7 +292,7 @@ LRESULT WinBackend::handleKey(int nCode, WPARAM wParam, LPARAM lParam) {
   }
 
   if (hotkey && captureActive_.load(std::memory_order_relaxed)) {
-    // Restaura la entrada local de inmediato; el bucle principal envía la liberación.
+    // Restores the local input immediately; the main loop sends the release.
     captureActive_.store(false, std::memory_order_relaxed);
     RawEvent event;
     event.kind = RawKind::Hotkey;
@@ -442,7 +442,7 @@ void WinBackend::warpLocalCursor(int x, int y) {
 
 bool WinBackend::sendMouseInput(const INPUT& input, std::string& error) {
   if (SendInput(1, const_cast<INPUT*>(&input), sizeof(INPUT)) != 1) {
-    error = "SendInput de ratón falló (¿ventana elevada o escritorio bloqueado?)";
+    error = "SendInput mouse failed (high window or locked desktop?)";
     return false;
   }
   return true;
@@ -450,7 +450,7 @@ bool WinBackend::sendMouseInput(const INPUT& input, std::string& error) {
 
 bool WinBackend::sendKeyInput(const INPUT& input, std::string& error) {
   if (SendInput(1, const_cast<INPUT*>(&input), sizeof(INPUT)) != 1) {
-    error = "SendInput de teclado falló (¿ventana elevada o escritorio bloqueado?)";
+    error = "Keyboard SendInput failed (high window or locked desktop?)";
     return false;
   }
   return true;
@@ -477,7 +477,7 @@ bool WinBackend::injectKey(uint16_t usage, bool pressed, std::string& error) {
   uint32_t scan = 0;
   bool extended = false;
   if (!hidToWinScan(usage, scan, extended)) {
-    error = "tecla sin conversión a Windows";
+    error = "unconverted key to Windows";
     return false;
   }
   INPUT input{};
@@ -510,7 +510,7 @@ bool WinBackend::injectButton(uint16_t button, bool pressed, std::string& error)
       input.mi.mouseData = button == 3 ? XBUTTON1 : XBUTTON2;
       break;
     default:
-      error = "botón de ratón no soportado";
+      error = "mouse button not supported";
       return false;
   }
   return sendMouseInput(input, error);

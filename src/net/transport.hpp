@@ -21,11 +21,11 @@ enum class TransportSendStatus {
 using TransportReceiver = std::function<void(SessionChannelKind, std::vector<std::uint8_t>)>;
 using TransportClosed = std::function<void()>;
 
-// Transporte ya conectado y autenticado. La implementación TLS (u otro canal
-// seguro mantenido) verifica el certificado del par antes de exponerlo aquí;
-// authenticated_peer_fingerprint devuelve vacío mientras no exista esa prueba.
-// Solo el canal temporal de emparejamiento (allow_unverified) expone la huella
-// observada antes de que la SAS la autentique.
+// Transport already connected and authenticated. TLS implementation (or other channel
+// insurance) checks the certificate of the pair before presenting it here;
+// authenticated_peer_fingerprint returns empty as long as that test does not exist.
+// Only the temporary pairing channel (allow_unverified) exposes the footprint
+// observed before SAS authenticates it.
 class SessionTransport {
 public:
     virtual ~SessionTransport() = default;

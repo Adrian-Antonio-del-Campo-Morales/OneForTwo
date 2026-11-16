@@ -1,5 +1,5 @@
-// Mismo ajuste que el backend: C++/WinRT incluye <experimental/coroutine>
-// cuando se compila en C++17 con el SDK 26100.
+// Same fit as the backend: C++/WinRT includes <experimental/coroutine>
+// when compiled in C++17 with SDK 26100.
 #if defined(_MSC_VER) && !defined(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
 #define _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
 #endif
@@ -18,9 +18,9 @@
 #include <vector>
 
 /*
- * Comprobación nativa sin empaquetar. El proceso no tiene identidad MSIX, así
- * que el adaptador debe rechazar el descubrimiento antes de tocar el listener:
- * discoverApplications completa con unavailable y nunca inicia la observación.
+ * Native check without packaging. The process has no MSIX identity, so the adapter must refuse
+ * discovery before touching the listener: discoverApplications complete with unavailable and never
+ * starts observation.
  */
 
 namespace {
@@ -48,14 +48,14 @@ int main() {
 
     auto desktop = makeWindowsNotifications(context);
     if (!desktop) {
-        std::fprintf(stderr, "fallo: makeWindowsNotifications devolvió null\n");
+        std::fprintf(stderr, "failure: makeWindowsNotifications returned null\n");
         return 1;
     }
 
     const NotificationCapabilities capabilities = desktop->notificationCapabilities();
     if (capabilities.observe) {
         std::printf(
-            "omitido: el proceso tiene identidad de paquete; esta prueba exige "
+            "omitted: the process has package identity; this test requires "
             "ejecutarse sin MSIX\n");
         return 77;
     }
@@ -68,27 +68,27 @@ int main() {
                 state->result.set_value(
                     std::make_pair(result, std::move(applications)));
             } catch (...) {
-                // Una segunda llamada no cambia el resultado esperado.
+                // A second call does not change the expected result.
             }
         });
 
     if (future.wait_for(std::chrono::seconds(15)) != std::future_status::ready) {
-        std::fprintf(stderr, "fallo: discoverApplications no completó\n");
+        std::fprintf(stderr, "failure: discoverApplications did not complete\n");
         return 1;
     }
 
     auto [result, applications] = future.get();
     if (result != DesktopResult::unavailable) {
-        std::fprintf(stderr, "fallo: descubrimiento sin paquete devolvió %d\n",
+        std::fprintf(stderr, "failure: discovery without package returned %d\n",
                      static_cast<int>(result));
         return 1;
     }
     if (!applications.empty()) {
-        std::fprintf(stderr, "fallo: descubrimiento sin paquete devolvió %zu aplicaciones\n",
+        std::fprintf(stderr, "failure: discovery without package returned %zu applications\n",
                      applications.size());
         return 1;
     }
 
-    std::printf("descubrimiento sin identidad de paquete: unavailable (0 aplicaciones)\n");
+    std::printf("discovery without package identity: unavailable (0 applications)\n");
     return 0;
 }

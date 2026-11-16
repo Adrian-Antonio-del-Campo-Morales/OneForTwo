@@ -24,8 +24,8 @@
 namespace oneintwo {
 namespace {
 
-// El coordinador se construye antes de que termine el handshake TLS. Este
-// proxy conserva perfil/permisos y los reenvía cuando aparece la sesión.
+// The coordinator is built before the handshake TLS ends.
+// proxy retains perfil/permisos and forwards them when the session appears.
 class SessionPortProxy final : public SessionPort {
 public:
     void setDelegate(SessionPort* delegate) {
@@ -203,7 +203,7 @@ struct Application::Impl {
         platform.events.capabilities_changed = [this] {
             if (window && capture && !capture->visualCapabilities().monitor &&
                 !capture->visualCapabilities().window) {
-                window->setError("La captura de escritorio no está disponible");
+                window->setError("Desktop capture is not available");
             }
         };
 
@@ -216,7 +216,7 @@ struct Application::Impl {
 #endif
         if (!capture) {
             capture = std::make_unique<UnavailableCapture>();
-            window->setError("La captura de escritorio no está disponible");
+            window->setError("Desktop capture is not available");
         }
         if (desktop_notifications) {
             NotificationDependencies dependencies{
@@ -257,7 +257,7 @@ struct Application::Impl {
         identity = identity_store->loadOrCreate(&error);
         if (!identity.has_value()) {
             window->setError(error.empty()
-                                 ? std::string("No se pudo cargar la identidad TLS")
+                                 ? std::string("Could not load identity TLS")
                                  : error);
         }
     }
@@ -265,8 +265,8 @@ struct Application::Impl {
     void beginPairing() {
         if (!identity.has_value() || pairing_store == nullptr) {
             window->setError(
-                "El emparejamiento no está disponible: falta la identidad TLS o el "
-                "almacén de equipos");
+                "Pairing is not available: the identity is missing TLS or the "
+                "equipment warehouse");
             return;
         }
         PairingDialog dialog(*identity, *pairing_store, window.get());
@@ -289,7 +289,7 @@ struct Application::Impl {
 
     void adoptPairing(PairingResult result) {
         if (!result.transport || result.peer.pins.empty()) {
-            window->setError("El emparejamiento no entregó un canal utilizable");
+            window->setError("The pairing did not deliver a usable channel");
             return;
         }
         if (session) {
@@ -325,25 +325,25 @@ struct Application::Impl {
         if (session) {
             session->start();
         }
-        window->setStatus(QStringLiteral("Emparejado; estableciendo sesión…").toStdString());
+        window->setStatus(QStringLiteral("Paired; setting session...").toStdString());
     }
 
     void buildSession() {
         if (options.create_transport) {
             transport = options.create_transport();
             if (!transport) {
-                window->setError("No se pudo crear el transporte de sesión");
+                window->setError("Could not create session transport");
                 return;
             }
             if (options.peer_fingerprint.empty()) {
-                window->setError("Falta la huella autenticada del par");
+                window->setError("Missing the authenticated print of the pair");
                 return;
             }
             createSession(*transport, options.peer_fingerprint);
             return;
         }
-        // En un arranque posterior, reutiliza el último equipo emparejado: su
-        // huella ya está autenticada y no hace falta volver a editar opciones.
+        // At a later start, reuse the last paired computer: your
+        // print is already authenticated and no re-editing options is required.
         if (options.tls.certificate_pem.empty() &&
             options.tls.private_key_pem.empty() &&
             options.peer_fingerprint.empty() && identity.has_value() &&
@@ -378,7 +378,7 @@ struct Application::Impl {
             config.peer_fingerprint = options.peer_fingerprint;
         }
         if (config.peer_fingerprint.empty()) {
-            window->setError("Falta la huella autenticada del par");
+            window->setError("Missing the authenticated print of the pair");
             return;
         }
         const std::string peer_pin = config.peer_fingerprint;
@@ -399,15 +399,15 @@ struct Application::Impl {
         });
         std::string error;
         if (!tls_transport->start(&error)) {
-            window->setError(error.empty() ? "No se pudo iniciar el transporte TLS" : error);
+            window->setError(error.empty() ? "Could not start transport TLS" : error);
             tls_transport.reset();
         }
     }
 
     void retireFallbackAfterAuthentication(const std::string& peer_pin) {
-        // createSession solo se alcanza con un transporte ya autenticado. Solo
-        // se retira el respaldo cuando la huella que funcionó es la principal;
-        // una autenticación con el respaldo no debe convertirla en la única.
+        // createSession is only achieved with an already authenticated transport.
+        // the backrest is removed when the print that worked is the main one;
+        // an authentication with the backup should not make it the only one.
         if (pairing_store == nullptr || options.peer_device_id.empty() ||
             !pairing_store->fallbackPin(options.peer_device_id).has_value() ||
             pairing_store->pinRole(options.peer_device_id, peer_pin) !=
@@ -431,7 +431,7 @@ struct Application::Impl {
         handlers.established = [this](SessionGeneration local, SessionGeneration) {
             if (coordinator) {
                 coordinator->sessionEstablished(local);
-                window->setStatus("Sesión establecida");
+                window->setStatus("Established meeting");
             }
         };
         handlers.failed = [this](SessionLinkError, std::string detail) {

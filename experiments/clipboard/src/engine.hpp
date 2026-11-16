@@ -1,8 +1,8 @@
 #pragma once
 
-// Responsabilidad: decidir qué cambios locales se envían, aplicar cambios
-// remotos, suprimir el eco de nuestras escrituras y rechazar operaciones
-// duplicadas, atrasadas o de otra generación. No conoce el escritorio ni la red.
+// Responsibility: deciding which local changes are sent, applying changes
+// remote, suppress the echo of our scriptures and reject operations
+// Duplicate, backward or other generation. You don't know the desktop or network.
 
 #include <cstdint>
 #include <deque>
@@ -44,20 +44,20 @@ struct EngineOptions {
   std::uint64_t generation = 0;
   std::size_t max_text_bytes = kMaxTextBytes;
   int echo_window_ms = kEchoWindowMs;
-  // Inyectable para las auto-pruebas; por defecto usa un reloj monótono.
+  // Injectable for self-tests; by default, use a monotonous clock.
   std::function<std::int64_t()> now_ms;
 };
 
 class SyncEngine {
  public:
-  // Devuelve false si el transporte no pudo entregar la operación.
+  // Returns false if the transport failed to deliver the operation.
   using SendFn = std::function<bool(const ClipboardUpdate&)>;
   using EventFn = std::function<void(const EngineEvent&)>;
 
   SyncEngine(ClipboardPort* port, EngineOptions options, SendFn send,
              EventFn event);
 
-  // Llamar sólo con una notificación real del portapapeles local.
+  // Call only with a real notification of the local clipboard.
   void on_local_clipboard(const ClipboardContent& content);
 
   ApplyResult apply_remote(const ClipboardUpdate& update);

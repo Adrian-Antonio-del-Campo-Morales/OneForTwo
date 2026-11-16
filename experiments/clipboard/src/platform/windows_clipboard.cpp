@@ -1,7 +1,7 @@
-// Responsabilidad: adaptador nativo de Windows.
-// Observa CF_UNICODETEXT con AddClipboardFormatListener en una ventana
-// oculta, y lee/escribe mediante Win32. No captura ni inyecta entrada.
-// El marcador de escritura propia usa un formato privado del portapapeles.
+// Responsibility: native Windows adapter.
+// Watch CF_UNICODETEXT with AddClipboardFormatListener in a window
+// Hidden, and lee/escribe by Win32. It does not capture or inject input.
+// The own writing marker uses a private clipboard format.
 
 #include "platform/clipboard.hpp"
 
@@ -286,7 +286,7 @@ Status WindowsClipboardPort::write_locked(std::string_view text,
     return {StatusCode::IoError,
             "SetClipboardData failed with error " + std::to_string(code)};
   }
-  handle = nullptr;  // El sistema es propietario de la memoria.
+  handle = nullptr;  // The system owns the memory.
 
   bool marker_stored = marker.empty();
   if (!marker.empty() && marker.size() <= kMaxMarkerBytes) {

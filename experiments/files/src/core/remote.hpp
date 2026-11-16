@@ -1,5 +1,5 @@
-// Responsabilidad: protocolo mínimo de oferta y transferencia entre dos equipos.
-// El servidor solo responde por identificadores incluidos en su oferta vigente.
+// Liability: minimum offer and transfer protocol between two teams.
+// The server only responds for identifiers included in its current offer.
 #pragma once
 
 #include "core/model.hpp"
@@ -21,14 +21,14 @@ class RemoteLink {
 public:
     ~RemoteLink();
 
-    // Conecta con TLS y realiza el saludo del protocolo.
+    // Connect with TLS and give the protocol greeting.
     static std::unique_ptr<RemoteLink> connect(const std::string& host, std::uint16_t port,
                                                const std::string& pin,
                                                const std::string& clientCertFile,
                                                const std::string& clientKeyFile,
                                                const std::string& mode, int timeoutMs,
                                                const Limits& limits);
-    // Adjunta un flujo ya establecido (solo self-tests o transporte ya cifrado).
+    // Attach an already established flow (only self-tests or already encrypted transport).
     static std::unique_ptr<RemoteLink> attach(std::unique_ptr<Stream> stream,
                                               const std::string& mode, const Limits& limits);
 
@@ -58,11 +58,11 @@ struct ServerOptions {
     int readTimeoutMs = 15000;
 };
 
-// Sirve la oferta a clientes sucesivos hasta que se cancele la espera.
+// It serves the offer to successive customers until the wait is cancelled.
 void serveOffer(const OfferStore& store, const ServerOptions& options, CancelToken& cancel,
                 const std::function<void(const std::string&)>& note);
 
-// Una sesión sobre un flujo ya autenticado. Expuesta para pruebas aisladas.
+// A session on an already authenticated flow. Exposed for isolated tests.
 void serveSession(const OfferStore& store, Stream& stream,
                   const std::function<void(const std::string&)>& note);
 

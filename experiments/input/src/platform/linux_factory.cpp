@@ -1,5 +1,5 @@
-// Responsabilidad: elegir el adaptador Linux según la sesión gráfica y lo que se
-// haya compilado. Wayland se selecciona solo en sesiones Wayland; X11, en Xorg.
+// Responsibility: choose the Linux adapter according to the graphical session and what you
+// Wayland is selected only in Wayland sessions; X11 in Xorg.
 #include "platform/backend.hpp"
 
 #include <cstdlib>
@@ -33,12 +33,12 @@ std::unique_ptr<Backend> makePlatformBackend(std::string& error) {
 #endif
   if (wayland) {
     error =
-        "sesión Wayland detectada, pero el binario no incluye el backend Wayland. "
-        "Compile con gio-2.0 y libei-1.0 (ONEINTWO_WAYLAND=AUTO) o use una sesión Xorg.";
+        "Wayland session detected, but binary does not include Wayland backend. "
+        "Compile with gio-2.0 and libei-1.0 (ONEINTWO_WAYLAND=AUTO) or use an Xorg session.";
   } else {
     error =
-        "sesión X11 detectada, pero el binario no incluye el backend X11. "
-        "Instale libx11-dev, libxi-dev y libxtst-dev, o use una sesión Wayland.";
+        "session X11 detected, but binary does not include backend X11. "
+        "Install libx11-dev, libxi-dev and libxtst-dev or use a Wayland session.";
   }
   return nullptr;
 }

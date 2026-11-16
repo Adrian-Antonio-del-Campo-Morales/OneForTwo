@@ -95,7 +95,7 @@ std::string sanitize_plain_text(std::string_view text) {
             length = 4;
         }
         if (index + length > text.size()) {
-            // El llamador valida antes; una secuencia truncada no se propaga.
+            // The caller validates before; a truncated sequence does not spread.
             break;
         }
         sanitized.append(text.substr(index, length));

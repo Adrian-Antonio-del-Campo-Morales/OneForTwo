@@ -31,8 +31,8 @@ void append_escaped(std::string& output, std::string_view text) {
     }
 }
 
-// Recorre puntos de código para descartar controles y no caracteres. El módulo
-// ya valida UTF-8; una secuencia truncada se corta en lugar de propagarse.
+// Run code points to rule out controls and not characters.
+// UTF-8 is already valid; a truncated sequence is cut rather than propagated.
 std::string sanitize_for_xml(std::string_view text) {
     std::string result;
     result.reserve(text.size());
@@ -105,12 +105,12 @@ std::string build_toast_xml(const ToastText& text) {
                 text.peer_name.size() + 320);
     xml.append("<toast activationType=\"foreground\"><visual><binding template=\"ToastGeneric\">");
     append_text_line(xml, text.title);
-    // El nombre visible de la aplicación origen solo existe en los reenviados.
+    // The visible name of the source application only exists in forwards.
     append_text_line(xml, text.app_name);
     append_text_line(xml, text.body);
     if (!text.peer_name.empty()) {
-        // Atribución explícita al equipo vinculado, en texto plano.
-        append_text_line(xml, "De " + sanitize_for_xml(text.peer_name));
+        // Explicit attribution to the linked team, in plain text.
+        append_text_line(xml, "From " + sanitize_for_xml(text.peer_name));
     }
     xml.append("</binding></visual></toast>");
     return xml;

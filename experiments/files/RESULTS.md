@@ -1,214 +1,155 @@
-# Resultados — Archivos
+# Results — Files
 
-## Estado vigente — pruebas LAN del 5 de noviembre de 2026
+## State in force — LAN tests of 5 November 2026
 
-Revisión de código común: `698a9a51e0de008d0bcdf9fa3fad9683d296e5de`.
-Sin cambios de código ni nuevas baterías. Este estado sustituye las afirmaciones
-históricas de pendiente que aparecen más abajo.
+Common code review: `698a9a51e0de008d0bcdf9fa3fad9683d296e5de`. No code changes or new batteries.
+This state replaces the historical slope statements below.
 
-| Caso | Resultado observado |
+| Caso | Observed result |
 | --- | --- |
-| T1 Windows → Ubuntu | Superado: TLS mutuo, cinco archivos/5.551.150 bytes, pegado humano en Nautilus sin `--to`, rutas/tamaños/SHA-256/directorios exactos. Receptor salida 0, servidor Windows cerrado y regla temporal retirada |
-| T2 Ubuntu → Windows | Recepción y copia CLI `--to` superadas: cinco archivos/5.551.150 bytes y estructura/hash exactos. Pegado Explorer pendiente; no se publicó portapapeles |
-| T0 pin servidor incorrecto | Salida 1, huella no coincide; sin descarga/caché |
-| T0 pin cliente incorrecto | Salida 1 en cliente (fallo lectura TLS); servidor registra certificado de cliente no autorizado; sin descarga/caché |
-| Colisión Windows | Segunda copia crea `datos (1)`; ambos árboles exactos e intactos |
-| Permisos Windows | ACL Write Deny solo en destino desechable; salida 1, destino vacío. ACL original restaurada en finally |
-| Corte LAN y reintento Windows | Relay TCP opaco local interrumpe tras 400.000 bytes cifrados. Salida 1; incoming/offers vacíos y cero .o2f-part. Reintento directo salida 0; cinco tamaños/SHA-256 coinciden |
-| Caché Windows | GC de caché propia elimina dos ofertas; lista posterior vacía. Copias de destino conservadas |
-| T3 bajo demanda / L2-L3 Explorer | No ejecutados: helper Computer Use falla antes de acceder al escritorio, incluso tras reset (setup refresh had errors / trusted Node process exited unexpectedly) |
+| T1 Windows → Ubuntu | Passed: mutual TLS, five files totaling 5,551,150 bytes, manual paste in Nautilus without `--to`, exact paths, sizes, SHA-256 hashes, and directories. The receiver exited with code 0. The Windows server stopped and the temporary firewall rule was removed |
+| T2 Ubuntu → Windows | Receive and CLI copy with `--to` passed. Five files totaling 5,551,150 bytes had matching structures and hashes. Paste through Explorer remains pending. No clipboard offer was published |
+| T0 incorrect server pin | Output 1, fingerprint mismatch. No download or cache entry |
+| T0 incorrect client pin | Output 1 on client (reading failure TLS); server records unauthorised client certificate; no download or cache entry |
+| Windows Collision | Second copy creates `data (1)`; both trees are accurate and intact |
+| Windows permissions | ACL Write Deny only in disposable destination; output 1, empty destination. Original ACL restored in finally |
+| LAN interruption and Windows retry | Local opaque relay TCP interrupts after 400.000 bytes encrypted. Output 1; empty incoming/offers and zero .o2f-part. Direct retry output 0; all five sizes and SHA-256 hashes match |
+| Windows cache | Own Cache GC removes two offers; empty back list. Saved destination copies |
+| T3 on demand / L2-L3 Explorer | Not executed: helper Computer Use fails before accessing desktop even after reset (setup refresh had errors / trued Node process existed unexpectedly) |
 
-Fuentes T1: `lan/evidence/ubuntu-t1-receiver.log` y
-`lan/evidence/ubuntu-t1-integrity.json`. Evidencia nueva Windows:
-`lan/evidence/windows-auto-*`; originales en
-`.local-state/lan-files/windows/automatic-01/` (datos sintéticos conservados).
-Servidor Ubuntu inicial PID 200354 cerrado con SIGINT; supervisores posteriores
-200657 y 200867 cerrados con SIGINT a su grupo tras verificar cmdline.
-Consulta final `ss -ltnp sport = :47654`: ninguna escucha. No se creó regla nueva
-ni se alteró el cortafuegos Ubuntu. Windows no inició servidor en esta ronda.
-Texto suspendido. T2 no acredita pegado Explorer; T3 sigue sin evidencia.
+Sources T1: `lan/evidence/ubuntu-t1-receiver.log` and `lan/evidence/ubuntu-t1-integrity.json`. New Windows evidence: `lan/evidence/windows-auto-*`; originals in `.local-state/lan-files/windows/automatic-01/` (conserved synthetic data). Initial Ubuntu server PID 200354 closed with SIGINT; Further supervisors 200657 and 200867 closed with SIGINT to their group after checking cmdline. Final consultation `ss -ltnp sport = :47654`: no listening. No new rule was created or the Ubuntu firewall altered. Windows did not start server in this round. Text suspended. T2 does not credit glued Explorer; T3 still has no evidence.
 
 
-## Reconstrucción Windows de la entrega Ubuntu — 5 de noviembre de 2026
+## Windows Reconstruction of Ubuntu Delivery — November 5, 2026
 
-Fuentes verificadas: `2ae444df56689dbaebe9b796daca26a55bd02917`, recibido
-desde `origin/validation/ubuntu`. Comprobación realizada en la rama local
-`validation/windows`, sin modificar fuentes ni repetir pruebas Ubuntu.
+Verified sources: `2ae444df56689dbaebe9b796daca26a55bd02917`, received from
+`origin/validation/ubuntu`. Check performed on the local branch `validation/windows`, without
+modifying sources or repeating Ubuntu tests.
 
-CMake de Visual Studio 18 2026, generador `Visual Studio 18 2026`, x64,
-configuración Release y OpenSSL habilitado. Reconstrucción completada, salida 0.
-Binario: `build/windows-ready/Release/oneintwo-files.exe`.
+CMake from Visual Studio 18 2026, `Visual Studio 18 2026` generator, x64, Release and OpenSSL
+configuration enabled. Reconstruction completed, output 0. Binary:
+`build/windows-ready/Release/oneintwo-files.exe`.
 
-Self-test Windows: **176 comprobaciones, 0 fallos**, salida 0.
-Se ejecutó el binario anterior con `--self-test`, sin escritorio ni red.
-El ejecutable principal también terminó correctamente con `--help`.
-No se accedió al portapapeles, se abrieron portales, se capturaron/inyectaron
-dispositivos ni se inició red de prueba.
+Self-test Windows: **176 checks, 0 bugs**, output 0. The previous binary was executed with
+`--self-test`, without desktop or network. The main executable also finished correctly with
+`--help`. The clipboard was not accessed, portals were opened, capturaron/inyectaron devices were
+opened and no test network was initiated.
 
-Evidencia local ignorada: `build/windows-ready/configure-ubuntu-sync.log`,
-`build-ubuntu-sync.log`, `self-test-ubuntu-sync.log` y `help-ubuntu-sync.log`.
-Esta evidencia cierra la reconstrucción Windows de esta revisión; no demuestra
-el funcionamiento real del escritorio o entre equipos. Se conserva a continuación
-la evidencia local Ubuntu y sus límites.
+Unknown local evidence: `build/windows-ready/configure-ubuntu-sync.log`,
+`build-ubuntu-sync.log`,`self-test-ubuntu-sync.log` and `help-ubuntu-sync.log`. This evidence closes
+the Windows reconstruction of this revision; it does not demonstrate the actual functioning of the
+desktop or between computers. The local evidence Ubuntu and its limits are preserved below.
 
-## Casos locales L6/L7/L8 completados — 5 de noviembre de 2026
+## Local cases L6/L7/L8 completed — November 5, 2026
 
-Base Git `450cbb2e340a381bda01274eb86df0e05934e822` más cambios locales.
-Se usaron los cinco archivos/5.551.150 bytes ya verificados, servidor y
-cliente reales con **TLS mutuo solo en 127.0.0.1**, huellas fijadas y pares
-de certificados de prueba de dos días, claves con modo 0600 dentro de la
-salida local ignorada. Sin portapapeles, permisos globales ni Windows.
+Base Git `450cbb2e340a381bda01274eb86df0e05934e822` plus local changes. The five already verified
+archivos/5.551.150 bytes, server and actual client were used with **TLS mutual only in 127.0.0.1**,
+fixed prints and pairs of two-day test certificates, 0600 mode keys within the ignored local output.
+No clipboard, global permissions or Windows.
 
-L6 descubrió un fallo de la CLI: `fetchFile` verificaba cada `.o2f-part`,
-pero `cmdReceive` no lo renombraba al nombre definitivo antes de publicar la
-oferta. Por eso `--to` fallaba con «falta un archivo verificado en la oferta
-de la caché». Se corrigió solo `cmdReceive` en `src/main.cpp`: renombrar tras
-la verificación, todavía dentro de `incoming`; un fallo abandona la recepción.
-No se cambió el contrato de `StagedFile`. Reconstrucción
-`source .local-state/ubuntu-validation/env.sh` y
-`cmake --build experiments/files/build/ubuntu -j4`, salida 0.
-Binario corregido SHA-256
-`35dd15ad8e2127f74453fa2e2a1e4f780c3fb7971be6d4c174de23914450b6cd`.
-Los casos reales siguientes constituyen la comprobación de la corrección;
-no se añadieron ni repitieron self-tests.
+L6 discovered a CLI failure: `fetchFile` verified every `.o2f-part`, but `cmdReceive` did not rename it to the final name before publishing the offer. That is why `--to` failed with "lack of a verified file in the cache offer". Corrected only `cmdReceive` in `src/main.cpp`: renamed after verification, still within `incoming`; a failure leaves the reception. The `StagedFile` contract was not changed. Reconstruction `source .local-state/ubuntu-validation/env.sh` and `cmake --build experiments/files/build/ubuntu -j4`, exit 0. Corrected binary SHA-256 `35dd15ad8e2127f74453fa2e2a1e4f780c3fb7971be6d4c174de23914450b6cd`. The following actual cases constitute proof of correction; no self-tests were added or repeated.
 
-| Caso | Resultado |
+| Caso | Result |
 | --- | --- |
-| L6 primera recepción y repetición | Salidas 0; `datos` y `datos (1)` con estructura y SHA-256 idénticos al origen, sin sobrescribir |
-| L6 destino sin escritura | Carpeta desechable modo 0500, salida 1, «no se pudo crear una carpeta en el destino»; destino vacío; modo restaurado a 0700 |
-| L7 cancelación | SIGINT después de observar 262.144 bytes en recepción parcial; salida 1, «transferencia cancelada»; `incoming` y `offers` vacíos, ningún `.o2f-part` |
-| L8 caché | Lista inicial con ofertas; `--cache-gc --max-age-hours 0`, salida 0; lista posterior vacía, originales y copia de destino intactos |
+| L6 first reception and repetition | Outputs 0; `data` and `data (1)` with structure and SHA-256 identical to origin, without overwriting |
+| L6 unwritable destination | Disposable folder mode 0500, output 1, "cannot create folder in destination"; empty destination; restored mode to 0700 |
+| L7 cancellation | SIGINT after observing 262.144 bytes in partial reception; exit 1, ‘transfer cancelled’; `incoming` and `offers` empty, no `.o2f-part` |
+| L8 cache | Initial list with offers; `--cache-gc --max-age-hours 0`, output 0; empty back list, originals and destination copy intact |
 
-Para poder interrumpir los 5 MiB a tiempo, L7 utilizó un relay TCP opaco de
-loopback que retrasó los bloques cifrados servidor→cliente (16 KiB/10 ms).
-No descifra ni altera TLS ni sustituye servidor/receptor por dobles. Solo
-se usó para L7. Servidor detenido normalmente, salida 0.
+To be able to interrupt the 5 MiB on time, L7 used a loopback opaque TCP relay that delayed server cipher blocks→client (16 KiB/10 ms). It does not decipher or alter TLS nor substitute servidor/receptor for doubles. It was only used for L7. Server normally stopped, output 0.
 
-Comando reproducible: `/usr/bin/python3
-experiments/files/manual-output/local-final-20261105-fixed/run.py`.
-`commands.json` conserva argumentos completos y puertos elegidos;
-`results.json`: **PASS**. Los logs L6/L7/L8 y el guion están en esa misma
-carpeta ignorada. Se conservó el primer intento en `local-final-20261105/`:
-error inicial del guion al incluir el prefijo impreso en la huella (corregido
-sin cambiar el prototipo) y, después, fallo real de nombres temporales.
+Reproducible command: `/usr/bin/python3
+experiments/files/manual-output/local-final-20261105-fixed/run.py`. `commands.json` retains complete
+arguments and selected ports; `results.json`: **PASS**. L6/L7/L8 logs and scripts are in the same
+folder ignored. The first attempt in `local-final-20261105/` was retained: initial script error by
+including the prefix printed on the print (corrected without changing the prototype) and then actual
+temporary name failure.
 
-La fase local disponible queda completada con la limitación de pegado
-asistido ya documentada. Publicación automática en segundo plano y bajo
-demanda Linux siguen como limitaciones de implementación; no se añadió
-trabajo de producto. Transferencias Windows/Ubuntu pendientes de coordinación.
+The local phase available is completed with the already documented supported glue limitation.
+Automatic publication in the background and on demand Linux continue as implementation limitations;
+no product work was added. Windows/Ubuntu transfers pending coordination.
 
-## Validación local de escritorio — 5 de noviembre de 2026
+## Local Desktop Validation — November 5, 2026
 
-**Pegado asistido en Nautilus verificado por el usuario y por comparación de
-estructura, tamaños y SHA-256: 5 archivos, 5.551.150 bytes, sin diferencias.**
-Se conservan los fallos previos y la evidencia Windows. No se ha probado red.
+**Petado asistido en Nautilus verified by the user and by comparison of structure, sizes and
+SHA-256: 5 files, 5.551.150 bytes, without differences.**Previous failures and Windows evidence are
+preserved. Network has not been tested.
 
-Base Git: `450cbb2e340a381bda01274eb86df0e05934e822`, rama
-`validation/ubuntu`, más las correcciones locales del adaptador GTK descritas
-abajo. Sin commit ni publicación. Ubuntu 26.04.1, GNOME Wayland, Nautilus
-`1:50.2.2-0ubuntu0.2`, GTK3 3.24.52; herramientas y dependencias de la
-compilación inicial que sigue. Se forzó `GDK_BACKEND=wayland` en las tres
-publicaciones: ninguna sustituye Wayland por X11.
+Git Base: `450cbb2e340a381bda01274eb86df0e05934e822`, branch `validation/ubuntu`, plus local adapter corrections GTK described below. No commit or publication. Ubuntu 26.04.1, GNOME Wayland, Nautilus `1:50.2.2-0ubuntu0.2`, GTK3 3.24.52; tools and dependencies of the initial compilation that follows. `GDK_BACKEND=wayland` was forced in all three publications: none substitute Wayland for X11.
 
-### Ejecuciones y correcciones necesarias
+### Runs and required fixes
 
-| Caso | Resultado observado | Estado |
+| Caso | Observed result | Estado |
 | --- | --- | --- |
-| L4, primer intento sin ventana | El usuario no puede pegar; destino vacío. La traza muestra `set_selection(..., 0)` sin evento local. Parada dirigida con SIGTERM, salida 0 | Fallo real |
-| L4, segundo intento con botón local | La oferta se publica con serial 55210 y el compositor pide `x-special/gnome-copied-files`, pero Nautilus no pega. Parada dirigida, salida 0 | Fallo real de formato |
-| L4, tercer intento corregido | Usuario pulsa Publicar archivos y confirma carpeta `datos` pegada. Comparación completa con origen correcta. Cierra ventana con X; proceso termina con código 0 | Superado como pegado asistido |
-| L5, bajo demanda Linux | Error explícito: solo rutas `file://` locales; B requiere un backend GIO/GVfs o FUSE no implementado; salida 1 | Comportamiento esperado; limitación de esta entrega |
+| L4, first attempt without window | User cannot paste; empty destination. Trace shows `set_selection(..., 0)` without local event. Stop directed with SIGTERM, output 0 | Actual failure |
+| L4, second try with local button | The offer is published with serial 55210 and the composer requests `x-special/gnome-copied-files`, but Nautilus does not paste. Directed stop, output 0 | Actual formatting failure |
+| L4, third attempt after correction | User press Post files and confirm `data` folder pasted. Full comparison with correct source. Close window with X; process ends with code 0 | Passed with assisted paste |
+| L5, on demand Linux | Explicit error: only local `file://` routes; B requires an unimplemented GIO/GVfs or FUSE backend; output 1 | Expected behavior; limitation of this delivery |
 
-Correcciones en `src/platform/linux/clipboard_linux.cpp`:
+Fixes in `src/platform/linux/clipboard_linux.cpp`:
 
-1. El proceso GTK sin ventana enviaba una selección con serial 0. En Wayland
-   ahora abre una ventana mínima de prueba y publica tras el botón local
-   **Publicar archivos**, conservando el proceso hasta cerrar la ventana o
-   recibir SIGINT/SIGTERM. No se instalan hooks ni se captura entrada global.
-2. `x-special/gnome-copied-files` se enviaba como `copy\n` seguido de URIs con
-   CRLF y salto final. El parser de Nautilus 50 separa por LF y rechaza líneas
-   vacías: ahora se emite `copy` más `\nURI` por elemento, sin salto final.
-   `text/uri-list` conserva sus CRLF. Se usó como referencia el
-   [parser publicado por GNOME para Nautilus 50.2.2](https://raw.githubusercontent.com/GNOME/nautilus/50.2.2/src/nautilus-clipboard.c).
+1. The GTK process without a window sent a selection with serial 0. In Wayland now opens a minimum
+   test window and publishes after the local button **Publish files**, preserving the process until
+   closing the window or receiving SIGINT/SIGTERM. No hooks are installed or global input is
+   captured.
+2. `x-special/gnome-copied-files` was sent as `copy\n` followed by URIs with CRLF and final jump. The Parser of Nautilus 50 separates by LF and rejects empty lines: `copy` plus `\nURI` is now issued per element, without final jump. `text/uri-list` retains its CRLF. The [parser published by GNOME for Nautilus 50.2.2](https://raw.githubusercontent.com/GNOME/nautilus/50.2.2/src/nautilus-clipboard.c) was used as a reference.
 
-La reconstrucción del adaptador con GTK/TLS terminó con código 0. El self-test
-posterior al cambio de formato dio **176 comprobaciones, 0 fallos**, sin
-inicializar GTK ni el portapapeles. La corrección posterior de la cabecera
-`<utility>` también se recompiló correctamente; no modifica ese comportamiento.
+Rebuilding the adapter with GTK/TLS ended with code 0. The self-test after format change gave **176
+checks, 0 failures**, without initializing GTK nor the clipboard. The rear correction of the
+`<utility>` header was also recompiled correctly; it does not modify that behavior.
 
-### Comandos y evidencia
+### Commands and evidence
 
-Desde la raíz, cargar `source .local-state/ubuntu-validation/env.sh`:
+From the root, load `source .local-state/ubuntu-validation/env.sh`:
 
 ```bash
-./experiments/files/build/ubuntu/oneintwo-files --make-fixtures experiments/files/manual-output/ubuntu-01/datos
-./experiments/files/build/ubuntu/oneintwo-files --inspect experiments/files/manual-output/ubuntu-01/datos
-GDK_BACKEND=wayland ./experiments/files/build/ubuntu/oneintwo-files --publish-cache experiments/files/manual-output/ubuntu-01/datos
-./experiments/files/build/ubuntu/oneintwo-files --publish-ondemand --root experiments/files/manual-output/ubuntu-01/datos
+./experiments/files/build/ubuntu/oneintwo-files --make-fixtures experiments/files/manual-output/ubuntu-01/data
+./experiments/files/build/ubuntu/oneintwo-files --inspect experiments/files/manual-output/ubuntu-01/data
+GDK_BACKEND=wayland ./experiments/files/build/ubuntu/oneintwo-files --publish-cache experiments/files/manual-output/ubuntu-01/data
+./experiments/files/build/ubuntu/oneintwo-files --publish-ondemand --root experiments/files/manual-output/ubuntu-01/data
 cmake --build experiments/files/build/ubuntu -j4
 ```
 
-El destino `manual-output/ubuntu-01/pegado` se creó vacío y el usuario lo abrió
-en Nautilus antes de publicar. El agente no copió archivos al destino: después
-del pegado del usuario, comparó los árboles con Python (`Path.rglob`, tamaño y
-`hashlib.sha256`), incluidos el nombre `ñandú-日本語.txt`, `empty.dat` de 0 B,
-la carpeta vacía y los 5 MiB de `large-5mb.bin`. Origen conservado y destino
-idéntico. El manifiesto inspeccionado tiene 9 entradas incluyendo raíz y
-directorios; las referencias históricas a 6 elementos no son ese recuento total.
+The `manual-output/ubuntu-01/paste` destination was created empty and the user opened it in
+Nautilus before publishing. The agent did not copy files to the target: after the user pasted, he
+compared the trees with Python (`Path.rglob`, size and `hashlib.sha256`), including the name
+`resume-日本語-🚀.txt`, `empty.dat` of 0 B, the empty folder and the 5 MiB of `large-5mb.bin`. Preserved
+origin and identical destination. The inspected manifest has 9 entries including root and
+directories; the historical references to 6 elements are not
 
-Logs locales ignorados en `manual-output/ubuntu-01/`: `fixtures.log`,
-`inspect.log`, `publish-cache-01.log`, `wayland-publish-debug.log`,
-`publish-cache-02.log` (traza Wayland), `publish-cache-03.log`, `integrity.log`
-(tamaños y hashes de los cinco archivos), `ondemand-linux.log`, logs de
-reconstrucción y `self-test-gnome-format.log`. Las publicaciones se supervisaron
-con `timeout --signal=TERM --kill-after=3s` (180/240 s); la prueba de diagnóstico
-duró 3 s. Los tres publicadores de escritorio terminaron con código 0 tras las
-paradas indicadas. No quedó ninguno activo al pasar al experimento de entrada.
+Ignored local logs in `manual-output/ubuntu-01/` include `fixtures.log`, `inspect.log`, `publish-cache-01.log`, `wayland-publish-debug.log`, `publish-cache-02.log` (Wayland trace), `publish-cache-03.log`, `integrity.log` (sizes and hashes of all five files), `ondemand-linux.log`, rebuild logs, and `self-test-gnome-format.log`. Publishing was supervised with `timeout --signal=TERM --kill-after=3s` (180/240 s). The diagnostic check ran for 3 s. All three desktop publishers exited with code 0 after the recorded stops. None remained active when the input experiment began.
 
-### Límites y siguientes casos
+### Limits and subsequent cases
 
-El éxito es **asistido por una acción local**: no se declara entrega automática
-en segundo plano en Wayland. Haría falta validar otra vía autorizada para ese
-contrato; no se integra el portal del otro experimento ni se amplía el producto.
-L6/L7/L8 con transporte TLS local y las transferencias Windows/Ubuntu continúan
-pendientes. No se generaron certificados ni se abrió una escucha. Los casos
-entre equipos requieren revisión común, identidad, roles, direcciones, puerto,
-observación y recuperación acordados previamente.
+The success is ** assisted by a local action**: it does not declare automatic delivery in the
+background in Wayland. It would be necessary to validate another authorized path for that contract;
+it does not integrate the portal of the other experiment nor expand the product. L6/L7/L8 with local
+transport TLS and Windows/Ubuntu transfers remain pending. Certificates were not generated nor a
+hearing was opened. Cases between teams require common review, identity, roles, addresses, port,
+observation and recovery agreed previously.
 
-## Compilación inicial Ubuntu nativa — 5 de noviembre de 2026
+## Initial compilation of native Ubuntu — November 5, 2026
 
-**Resultado actual: prototipo nativo GTK3 + TLS compilado; 176 comprobaciones,
-0 fallos, salida 0.** La evidencia Windows posterior se conserva íntegra.
-Las afirmaciones históricas de «Ubuntu sin compilar» quedan actualizadas por
-esta ejecución, sin dar por validado el pegado en Nautilus.
+**Current result: native prototype GTK3 + TLS compiled; 176 checks, 0 failures, output 0.** The
+evidence Windows posterior is preserved in its entirety. The historical statements of "Ubuntu
+uncompiled" are updated by this execution, without validating the paste in Nautilus.
 
-### Entorno, revisión y componentes
+### Environment, revision and components
 
-- Base Git: `450cbb2e340a381bda01274eb86df0e05934e822`, rama
-  `validation/ubuntu`, directorio `/home/pholtergate/DEV/OneForTwo`.
-  Sin cambios de código en este experimento; el único parche de código local
-  del conjunto afecta a la cabecera del transporte de portapapeles.
-- Fecha: 2026-11-05 (`Europe/Madrid`). Ubuntu 26.04.1 LTS,
-  Linux 7.0.0-42-generic x86_64; sesión heredada Wayland, `ubuntu:GNOME`.
-- GNOME Shell `50.1-0ubuntu1.5`, Mutter `50.1-0ubuntu2.4`,
-  Nautilus `1:50.2.2-0ubuntu0.2`.
-- GCC/G++ `15.2.0-16ubuntu1`, CMake 4.2.3 extraído localmente,
-  Make 4.4.1, pkg-config 2.5.1; GTK3 3.24.52 (`3.24.52-0ubuntu1`),
-  OpenSSL 3.5.5 (`3.5.5-1ubuntu3.7`), GLib/GIO 2.88.0.
-- Paquetes de portales: xdg-desktop-portal `1.21.1+ds-1ubuntu3.1`,
-  GNOME `50.0-0ubuntu1`, GTK `1.15.3-2ubuntu1`. No se consultó el bus
-  ni se negociaron capacidades o permisos.
+- Git base: `450cbb2e340a381bda01274eb86df0e05934e822`, `validation/ubuntu` branch,
+  `/home/pholtergate/DEV/OneForTwo` directory. No code changes in this experiment; the only local
+  code patch of the set affects the header of the clipboard transport.
+- Date: 2026-11-05 (`Europe/Madrid`). Ubuntu 26.04.1 LTS, Linux 7.0.0-42-generic x86_64; inherited session Wayland, `ubuntu:GNOME`.
+- GNOME Shell `50.1-0ubuntu1.5`, Mutter `50.1-0ubuntu2.4`, Nautilus `1:50.2.2-0ubuntu0.2`.
+- GCC/G++ `15.2.0-16ubuntu1`, CMake 4.2.3, locally extracted, Make 4.4.1, pkg-config 2.5.1; GTK3 3.24.52 (`3.24.52-0ubuntu1`), OpenSSL 3.5.5 (`3.5.5-1ubuntu3.7`), GLib/GIO 2.88.0.
+- Portal Packages: xdg-desktop-portal `1.21.1+ds-1ubuntu3.1`, GNOME `50.0-0ubuntu1`,GTK
+  `1.15.3-2ubuntu1`. The bus was not consulted or capabilities or permissions were negotiated.
 
-Inventario mediante `git status --short --branch`, `git rev-parse HEAD`,
-`cat /etc/os-release`, `uname -srmo`, variables de sesión, `c++ --version`,
-`dpkg-query -W` y `pkg-config --modversion gtk+-3.0 openssl gio-2.0`.
-Dependencias trasladadas desde `/tmp` a `.local-state/ubuntu-validation/`,
-dentro del proyecto y excluidas de Git, sin instalación global ni `sudo`:
-[preparación y variables exactas](../clipboard/RESULTS.md#dependencias-locales-de-esta-validación).
+Inventory using `git status --short --branch`, `git rev-parse HEAD`, `cat /etc/os-release`, `uname -srmo`, session variables `c++ --version`, `dpkg-query -W` and `pkg-config --modversion gtk+-3.0 openssl gio-2.0`. Units moved from `/tmp` to `.local-state/ubuntu-validation/`, within the project and excluded from Git, without global installation or `sudo`: [preparation and exact variables](../clipboard/RESULTS.md#local-dependencies-for-this-validation).
 
-### Comandos y resultados observados
+### Observed commands and results
 
-Desde la raíz del repositorio:
+From the root of the repository:
 
 ```bash
 source .local-state/ubuntu-validation/env.sh
@@ -220,87 +161,61 @@ cd experiments/files
 ./build/ubuntu/oneintwo-files --self-test
 ```
 
-Configuración, compilación y self-test finales: salida 0. CMake informa
-`TLS: OpenSSL 3.5.5` y `Found gtk+-3.0, version 3.24.52`.
-Se compiló `src/platform/linux/clipboard_linux.cpp`, con
-`O2F_WITH_GTK=1` y `O2F_WITH_TLS=1`; el ejecutable enlaza
-`libgtk-3.so.0`, `libssl.so.3` y `libcrypto.so.3`. `ldd` no detecta
-bibliotecas ausentes. No es la variante `clipboard_unavailable`.
-Tras el traslado se regeneró la caché con `--fresh`, se reconstruyó con las
-rutas persistentes y se repitió el self-test: **176/0**.
+Final configuration, compilation and self-test: output 0. CMake reports `TLS: OpenSSL 3.5.5` and `Found gtk+-3.0, version 3.24.52`. `src/platform/linux/clipboard_linux.cpp`, `O2F_WITH_GTK=1` and `O2F_WITH_TLS=1` were compiled; the executable links `libgtk-3.so.0`, `libssl.so.3` and `libcrypto.so.3`. `ldd` does not detect libraries missing. This is not variant `clipboard_unavailable`. After the transfer, the cache was re-registered with `--fresh`, reconstructed with persistent routes and repeated self-test: **176/0**.
 
 ```text
-176 comprobaciones, 0 fallos
-self-test correcto (sin portapapeles ni red)
+176 checks, 0 failures
+self-test passed (no clipboard or network)
 ```
 
-El temporal `.o2f-selftest-*` se creó dentro de `experiments/files` y se
-eliminó al terminar correctamente. No se inicializó GTK ni el portapapeles.
+Temporal `.o2f-selftest-*` was created within `experiments/files` and was removed when finished correctly. GTK and clipboard was not initialized.
 
-El primer intento omitió GTK porque el entorno local de pkg-config excluía
-los metadatos ya instalados de `zlib`, `expat` y `shared-mime-info`.
-Ese binario también dio 176/0, pero **no se usó para cerrar la compilación
-nativa**. Se añadieron las rutas de metadatos del sistema a `PKG_CONFIG_LIBDIR`,
-se reconfiguró, compiló el adaptador GTK y repitió el self-test.
-El núcleo emitió un aviso `-Wunused-function` en `src/core/cache.cpp:21`;
-no impide compilar y no se realizó limpieza ajena a la validación.
+The first attempt omitted GTK because the local environment of pkg-config excluded the already installed metadata of `zlib`, `expat` and `shared-mime-info`. That binary also gave 176/0, but **was not used to close the native compilation**. The system's metadata paths were added to `PKG_CONFIG_LIBDIR`, reconfigured, compiled the GTK adapter and repeated the self-test. The core issued a notice `-Wunused-function` in `src/core/cache.cpp:21`; does not prevent compiling and no cleaning was performed outside the validation.
 
-Logs locales ignorados en `build/ubuntu/`: `configure.log`, `build.log`,
-`self-test.log`, `libraries.log` y los intentos previos
-`configure-without-gtk.log`, `build-without-gtk.log`, `self-test-without-gtk.log`.
-La ejecución posterior al traslado queda en `configure-persistent.log`,
-`build-persistent.log`, `self-test-persistent.log` y `libraries-persistent.log`.
+Local logs ignored in `build/ubuntu/`: `configure.log`, `build.log`, `self-test.log`, `libraries.log` and previous attempts `configure-without-gtk.log`, `build-without-gtk.log`, `self-test-without-gtk.log`. The post-transfer execution is `configure-persistent.log`, `build-persistent.log`, `self-test-persistent.log` and `libraries-persistent.log`.
 
-### Pendientes y siguiente paso
+### Earrings and next step
 
-Por indicación del usuario se completó solo la etapa aislada: no se publicaron
-ofertas ni se abrió Nautilus. L1 Ubuntu queda superado; L4 pegado, L5 limitación
-bajo demanda, L6 colisiones/permisos con TLS, L7 cancelación y L8 caché/gc
-continúan pendientes de sus ejecuciones manuales. No se confunden los casos
-aislados del self-test con esas observaciones.
+By user indication, only the isolated stage was completed: no offers were published and no Nautilus
+was opened. L1 Ubuntu is exceeded; L4 glued, L5 limitation on demand, L6 colisiones/permisos with
+TLS, L7 cancellation and L8 cache and garbage collection are still pending manual executions. The isolated cases of
+self-test are not confused with these observations.
 
-Antes de L4: usuario presente, datos sintéticos del manual, destino nuevo,
-Ctrl+C preparado y comparación real de estructura/tamaños/SHA-256 tras pegar.
-Antes de T0/T1/T2/T3: acordar con Windows la revisión compartida, binarios,
-roles, IP y puerto 47654/TCP, certificados públicos y ambas huellas, carpetas,
-duración y parada; probar primero identidad rechazada/aceptada. No se ha
-iniciado red de prueba ni generado claves. La evidencia Windows no se ha
-repetido. No hay bloqueo pendiente de compilación GTK/TLS en esta máquina;
-el escritorio y la coordinación entre equipos siguen abiertos. Integración
-de la aplicación aplazada.
+Before L4: present user, synthetic manual data, new destination, Ctrl+C prepared and real comparison of structure, sizes, and SHA-256 hashes after pasting. Before T0/T1/T2/T3: agree with Windows the shared review, binary, roles, IP and port 47654/TCP, public certificates and both fingerprints, folders, duration and stop; first test identity rechazada/aceptada. No test network or key generated. Windows evidence has not been repeated. There is no lock pending compilation GTK/TLS on this machine; desktop and coordination between computers remain open. Integration of deferred application.
 
-## Evidencia histórica conservada — entrega y revisión anteriores
+## Historical evidence preserved — previous delivery and review
 
-Actualizado: 4 de noviembre de 2026.
+Updated November 4, 2026.
 
-Revisión documental: 5 de noviembre de 2026. Se conserva la evidencia de la entrega corregida del agente; no se han repetido sus compilaciones o comprobaciones ni realizado pruebas de escritorio o red. El estado consolidado figura en [experiments/README.md](../README.md).
+Documentary review: November 5, 2026. The evidence of the corrected delivery of the agent is
+preserved; his compilations or checks have not been repeated or carried out desktop or network
+tests. The consolidated status is shown in [experiments/README.md](../README.md).
 
-Responsabilidad de este archivo: registrar qué está implementado, qué se ha
-compilado y comprobado de forma aislada, y qué sigue pendiente de ejecución
-manual. Una compilación correcta no demuestra que el portapapeles o el
-explorador funcionen.
+Responsibility for this file: record what is implemented, what has been compiled and checked in
+isolation, and what is still pending manual execution. A correct compilation does not show that the
+clipboard or browser works.
 
 ## 1. Estado
 
-| Elemento | Estado | Evidencia o bloqueo |
+| Elemento | Estado | Evidence or blocker |
 | --- | --- | --- |
-| Transferencia, manifiesto, caché y protocolo | Implementado | `src/core/` (modelo, manifiesto, almacén, bloques, caché, tramas, TLS) |
-| Publicación de caché en Windows | Implementado | `src/platform/win/clipboard_win.cpp` (`CF_HDROP` + `OleFlushClipboard`) |
-| Entrega bajo demanda en Windows | Implementado, sin validar | `CFSTR_FILEDESCRIPTORW` + `CFSTR_FILECONTENTS` con `IStream` |
-| Publicación de caché en Ubuntu | Implementado, sin compilar | GTK3 con `x-special/gnome-copied-files` y `text/uri-list` |
-| Entrega bajo demanda en Ubuntu | No implementada (fuera de alcance) | Publica solo rutas `file://`; B requeriría backend GIO/GVfs o FUSE; evidencia en §5.1 |
-| Compilación Windows x64 | Ejecutada | MSVC 14.51.36231, CMake 3.24.3, OpenSSL 3.0.5, Windows 10.0.19045 |
-| Compilación Ubuntu | **No ejecutada** | No hay host Ubuntu en esta sesión; no se afirma |
-| Self-tests aislados | **Ejecutados: 176 comprobaciones, 0 fallos** | `oneintwo-files.exe --self-test` |
-| Autenticación TLS del cliente | Implementado, sin ejecutar | Certificado de cliente y huella fijada con `--client-pin`; handshake no ejercitado |
-| `MANUAL.md` | Entregado | Comandos, permisos, parada y matriz |
-| Pegado real en Explorer/Nautilus | **Pendiente de ejecución manual** | Requiere sesión gráfica |
-| Transferencia entre dos equipos | **Pendiente de ejecución manual** | Requiere certificados y dos hosts |
-| Pegado bajo demanda con red | **Pendiente de ejecución manual** | Requiere explorador y servidor |
+| Transfer, manifest, cache and protocol | Implementado | `src/core/` (model, manifest, warehouse, blocks, cache, plots, TLS) |
+| Cache publication on Windows | Implementado | `src/platform/win/clipboard_win.cpp` (`CF_HDROP` + `OleFlushClipboard`) |
+| On-demand delivery on Windows | Implemented, validation pending | `CFSTR_FILEDESCRIPTORW` + `CFSTR_FILECONTENTS` with `IStream` |
+| Cache publication in Ubuntu | Implemented, build pending | GTK3 with `x-special/gnome-copied-files` and `text/uri-list` |
+| On-demand delivery on Ubuntu | Unimplemented and outside scope | Publishes only `file://` routes; B would require GIO/GVfs or FUSE backend; evidence in §5.1 |
+| Compilation Windows x64 | Ejecutada | MSVC 14.51.36231, CMake 3.24.3, OpenSSL 3.0.5, Windows 10.0.19045 |
+| Compilation Ubuntu | **No ejecutada** | There is no host Ubuntu in this session; no claim |
+| Self-tests aislados | **Run: 176 checks, 0 failures** | `oneintwo-files.exe --self-test` |
+| Customer TLS Authentication | Implemented, not executed | Customer certificate and fingerprint fixed with `--client-pin`; unexercised handshake |
+| `MANUAL.md` | Delivered | Commands, permissions, shutdown, and test matrix |
+| Real paste in Explorer or Nautilus | **Pending manual implementation** | Graphical session required |
+| Transfer between two teams | **Pending manual implementation** | Requires certificates and two hosts |
+| On-demand paste over the network | **Pending manual implementation** | Requires browser and server |
 
-## 2. Evidencia de compilación y self-test
+## 2. Evidence of compilation and self-test
 
-Entorno exacto de la compilación realizada:
+Accurate compilation environment:
 
 ```text
 Windows 10.0.19045.7807 (x64)
@@ -310,7 +225,7 @@ OpenSSL 3.0.5 (Win64, C:\Program Files\OpenSSL-Win64)
 Generador: NMake Makefiles, CMAKE_BUILD_TYPE=Release
 ```
 
-Comandos equivalentes a los ejecutados (en «x64 Native Tools Command Prompt»):
+Commands equivalent to those executed (in ‘x64 Native Tools Command Prompt’):
 
 ```bat
 cd /d D:\DEVEL\OneInTwo\experiments\files
@@ -320,220 +235,190 @@ cmake --build build
 build\oneintwo-files.exe --self-test
 ```
 
-Salida relevante (última compilación):
+Relevant output (last compilation):
 
 ```text
 -- TLS: OpenSSL 3.0.5
 [100%] Built target oneintwo-files
-self-test aislado en ...\experiments\files\.o2f-selftest-<pid>
-176 comprobaciones, 0 fallos
-self-test correcto (sin portapapeles ni red)
+isolated self-test in ...\experiments\files\.o2f-selftest-<pid>
+176 checks, 0 failures
+self-test passed (no clipboard or network)
 ```
 
 - Binario: `build/oneintwo-files.exe` (Release x64, aproximadamente 368 KB).
-- Sin avisos del compilador en la última compilación completa.
-- El temporal del self-test se crea bajo el directorio actual y se elimina al
-  terminar correctamente.
-- `--fingerprint` sobre el certificado público sintético devolvió
-  `5b9e9ce5…b9d8`, idéntico al SHA-256 calculado con
-  `openssl x509 -outform DER | openssl dgst -sha256`.
+- No compiler notices in the last full compilation.
+- The self-test timer is created under the current directory and deleted when finished correctly.
+- `--fingerprint` on the synthetic public certificate returned `5b9e9ce5…b9d8`, identical to the
+  SHA-256 calculated with `openssl x509 -outform DER | openssl dgst -sha256`.
 
-Comprobaciones de línea de comandos ejecutadas además del self-test:
+Command line checks executed in addition to self-test:
 
-| Comando | Resultado observado |
+| Comando | Observed result |
 | --- | --- |
-| sin argumentos / `--help` | solo ayuda, código 0 |
-| `--make-fixtures test-data` | 6 elementos, 5 archivos, 5 551 150 bytes |
-| `--inspect test-data` | manifiesto con archivo vacío, carpeta vacía y nombre Unicode correctos |
-| `--fingerprint CERT.pem` | huella SHA-256 de un PEM público; coincide con OpenSSL |
+| no arguments / `--help` | only help, code 0 |
+| `--make-fixtures test-data` | 6 elements, 5 files, 5 551 150 bytes |
+| `--inspect test-data` | manifest with empty file, empty folder and correct Unicode name |
+| `--fingerprint CERT.pem` | SHA-256 footprint of a public PEM; matches OpenSSL |
 
-`test-data` era material desechable y se eliminó después.
+`test-data` was disposable material and was then removed.
 
-## 3. Qué cubren los self-tests
+## 3. What Self-tests Cover
 
-Sin escritorio, sin red y sin portapapeles (176 comprobaciones):
+No desktop, no network and no clipboard (176 checks):
 
-- SHA-256: vectores conocidos, texto vacío y cálculo incremental.
-- Rutas: Unicode aceptado; `..`, rutas absolutas, componentes vacíos, caracteres
-  de control, nombres reservados de Windows, punto/espacio final, profundidad y
-  longitud.
-- Manifiesto: archivo vacío, carpeta vacía, anidamiento, Unicode, límite de
-  elementos, límite de profundidad, nombres de primer nivel repetidos.
-- Manifiesto serializado: ida y vuelta, rechazo de rutas manipuladas e
-  identificadores inválidos, límite de elementos.
-- Autorización: lectura solo por identificador ofrecido; identificadores
-  desconocidos, de otra oferta, carpetas y desplazamientos fuera de rango.
-- Recepción: bloques de 64 KiB, tamaño y digest correctos, truncado, digest
-  alterado, escritura fuera de orden, exceso de bytes, ruta de escape.
-- Destino: colisión de archivo y de carpeta, originales intactos, carpetas no
-  fusionadas, destino inexistente.
-- Caché: publicación, manifiesto, listado, búsqueda, concesión de uso, gc por
-  edad, limpieza de recepciones abandonadas, identificador de oferta inválido.
-- Tramas: ida y vuelta, longitud excesiva, tipo desconocido, cuerpo truncado.
-- Certificado: huella SHA-256 de un PEM sintético embebido, longitud correcta y
-  rechazo de un PEM inválido.
-- Protocolo en memoria: manifiesto, descarga por bloques con digest, lectura por
-  rangos para bajo demanda, fin de archivo, cancelación en curso y rechazo de una
-  petición de un identificador ajeno.
-- Limpieza de `.o2f-part` huérfanos.
+- SHA-256: known vectors, empty text and incremental calculation.
+- Routes: Unicode accepted; `..`, absolute routes, empty components, control characters, Windows
+  reserved names, final punto/espacio, depth and length.
+- Manifesto: empty file, empty folder, nesting, Unicode, element limit, depth limit, first level
+  names repeated.
+- Serialized manifest: back and forth, rejection of manipulated paths and invalid identifiers, limit
+  of elements.
+- Authorization: read only by offered identifier; unknown identifiers, other offer, folders and
+  scrolls out of range.
+- Reception: 64 KiB blocks, correct size and digest, truncated, altered digest, off-order writing,
+  excess bytes, escape route.
+- Destination: file and folder collision, original intact, unfused folders, non-existent
+  destination.
+- Cache: publication, manifesto, list, search, concession of use, gc by age, cleaning of abandoned
+  receptions, invalid offer identifier.
+- Frames: round trip, excessive length, unknown type, and truncated body.
+- Certificate: SHA-256 imprint of a synthetic PEM embedded, correct length and rejection of an
+  invalid PEM.
+- Memory protocol: manifest, download by blocks with digest, read by ranges for on demand, end of
+  file, cancellation in progress and rejection of a request from a foreign identifier.
+- Cleaning of orphans `.o2f-part`.
 
-## 4. Qué NO está comprobado (no afirmar lo contrario)
+## 4. What is NOT proven (not to say otherwise)
 
-- **Pegado nativo**: no se ha publicado nada en el portapapeles real ni se ha
-  pegado en Explorer o Nautilus.
-- **Explorer/OLE**: no se ha comprobado que acepte `FileGroupDescriptorW` +
-  `FileContents`, ni el bloqueo del hilo STA mientras llega el contenido, ni los
-  tiempos de espera percibidos.
-- **Nautilus/GTK/Wayland**: el adaptador Linux no se ha compilado siquiera en
-  esta sesión; su sintaxis y comportamiento están sin verificar.
-- **TLS mutuo entre equipos**: el código se compiló con OpenSSL 3.0.5, pero no se
-  abrió ninguna escucha ni se realizó ningún handshake. El certificado de
-  cliente, el rechazo de huellas y los timeouts no están ejercitados en vivo.
-- **Transferencia real por red**: el protocolo solo se probó sobre un par de
-  flujos en memoria.
-- **Disco lleno**: hay camino de error, pero no se provocó la condición.
-- **Destino sin permiso de escritura**: cubierto por el manual, no ejecutado.
-- **Cortar/mover, reanudación, ACL/permisos POSIX, enlaces simbólicos**: fuera de
-  alcance o rechazados explícitamente.
-- **Múltiples clientes simultáneos**: el servidor atiende una sesión cada vez.
+- **Native paste**: nothing has been published on the actual clipboard or stuck in Explorer or
+  Nautilus.
+- **Explorer/OLE**: it has not been verified that it accepts `FileGroupDescriptorW` +
+  `FileContents`, nor the lock of the STA thread while the content arrives, nor the perceived
+  waiting times.
+- **Nautilus/GTK/Wayland**: The Linux adapter has not been compiled even in this session; its syntax
+  and behavior are unverified.
+- **TLS mutual between teams**: the code was compiled with OpenSSL 3.0.5, but no listening was
+  opened and no handshake was performed. Customer certificate, fingerprint rejection and timeouts
+  are not exercised live.
+- **Real network transfer**: the protocol was tested only on a couple of memory streams.
+- **Full disk**: there is a way of error, but the condition was not provoked.
+- **Destiny without writing permission**: covered by the manual, not executed.
+- **Cortar/mover, resumption, ACL/permisos POSIX, symbolic links**: out of reach or explicitly
+  rejected.
+- **Multiple simultaneous clients**: the server handles one session at a time.
 
-Cualquier fila de la matriz manual que no se haya observado queda «Pendiente»,
-aunque el self-test esté en verde.
+Any row in the manual matrix that has not been observed is ‘Pending’, even if the self-test is
+green.
 
-## 5. Decisiones del prototipo
+## 5. Prototyping decisions
 
-1. **A (caché) es la referencia funcional.** Se descarga, se verifica por archivo
-   (tamaño y SHA-256) en un directorio privado de recepción y solo entonces se
-   publica la oferta. El pegado entrega archivos locales, que es lo que ambos
-   exploradores consumen de forma documentada.
-2. **B (bajo demanda) se limita a Windows.** Se expone el manifiesto como
-   `FileGroupDescriptorW` y cada archivo como `IStream` bajo `FileContents`; el
-   stream pide rangos al origen cuando Explorer los lee. No se construye un
-   proveedor de sistema de archivos.
-3. **Linux no implementa B por alcance, no por imposibilidad demostrada.** El
-   adaptador publica únicamente rutas `file://` locales. Nautilus deserializa
-   `x-special/gnome-copied-files` aceptando cualquier URI válida y GVfs extiende
-   GIO con backends D-Bus, sin exigir FUSE; una entrega perezosa sería posible
-   con un backend GIO/GVfs propio o con un montaje FUSE, ambos fuera del encargo.
-   El modo devuelve un error explicativo y no se presenta como conclusión técnica.
-4. **El contenido nunca viaja por rutas absolutas.** El receptor recibe un
-   manifiesto con rutas relativas validadas e identificadores opacos; solo puede
-   pedir identificadores de la oferta vigente. Los identificadores usados como
-   nombre de carpeta se restringen a alfanuméricos, `-` y `_`.
-5. **Separación de responsabilidades.**
-   - `core/manifest` + `core/store`: qué se ofrece y con qué límites.
-   - `core/transfer`: recepción por bloques, `.o2f-part`, digest y colocación sin
-     sobrescritura.
-   - `core/cache`: ofertas verificadas, concesiones y limpieza.
-   - `core/wire` + `core/remote`: protocolo mínimo y autorización por elemento.
-   - `core/net`: TCP y TLS con fijado de huella.
-   - `platform/*/clipboard_*`: única capa que conoce los formatos nativos.
-   El motor de transferencia no conoce Explorer ni GTK; el adaptador no conoce el
-   protocolo de red.
-6. **TLS mutuo obligatorio en modo remoto**: certificados autofirmados y ambas
-   huellas SHA-256 comparadas fuera de banda. El cliente fija la del servidor
-   (`--pin`) y el servidor exige y fija la del cliente (`--client-pin`). Sin
-   OpenSSL, el modo remoto se bloquea; no hay caída silenciosa a texto plano.
-7. **Límites explícitos**: 4096 elementos, profundidad 32, 8 GiB por oferta,
-   bloques de 256 KiB, 259 caracteres por ruta en el descriptor de Windows.
-8. **Vida de la oferta**: la publicación bloquea hasta Ctrl+C. En Windows, la
-   caché se materializa con `OleFlushClipboard` y las rutas siguen disponibles
-   tras cerrar; Linux retira la selección al salir; la entrega bajo demanda
-   desaparece con el proceso porque no hay copia que materializar.
+1. **A (cache) is the functional reference.** It is downloaded, checked by file (size and SHA-256)
+   in a private receiving directory and only then the offer is published. Paste delivers local
+   files, which is what both explorers consume in a documented way.
+2. **B (on demand) is limited to Windows.** The manifest is displayed as `FileGroupDescriptorW` and
+   each file as `IStream` under `FileContents`; the stream requests ranges to the source when
+   Explorer reads them. A file system provider is not built.
+3. **Linux does not implement B by scope, not by proven impossibility.** The adapter publishes only local `file://` routes. Nautilus deserializes `x-special/gnome-copied-files` accepting any valid URI and GVfs extends GIO with D-Bus backends, without requiring FUSE; a lazy delivery would be possible with its own GIO/GVfs backend or with a FUSE mount, both out of order. The mode returns an explanatory error and is not presented as a technical conclusion.
+4. **Content never travels on absolute routes.**The recipient receives a manifest with validated
+   relative paths and opaque identifiers; he can only request identifiers of the current
+   offer.Identifiers used as folder name are restricted to alphanumerics, `-` and `_`.
+5. **Separation of responsibilities.**
+   - `core/manifest` + `core/store`: what is offered and with what limits.
+   - `core/transfer`: Block reception, `.o2f-part`, digest and placement without overwriting.
+   - `core/cache`: verified offers, leases, and cleanup.
+   - `core/wire` + `core/remote`: minimum protocol and element authorization.
+   - `core/net`: TCP and TLS with fingerprint fixation.
+   - `platform/*/clipboard_*`: only layer that knows native formats. The transfer engine does not
+     know Explorer or GTK; the adapter does not know the network protocol.
+6. **TLS mutual mandatory in remote mode**: self-signed certificates and both SHA-256 fingerprints
+   compared out of band. The client fixes the server's (`--pin`) and the server requires and fixes
+   the client's ( `--client-pin`). Without OpenSSL, the remote mode is blocked; there is no silent
+   drop to plain text.
+7. **Explicit limits**: 4096 elements, depth 32, 8 GiB per offer, blocks of 256 KiB, 259 characters
+   per path in the Windows descriptor.
+8. **Life of the offer**: publication blocks up to Ctrl+C. In Windows, cache materializes with
+   `OleFlushClipboard` and routes remain available after closing; Linux removes selection upon exit;
+   delivery on demand disappears with the process because there is no copy to materialize.
 
-### 5.1 Evidencia sobre Nautilus, GVfs y FUSE
+### 5.1 Evidence on Nautilus, GVfs and FUSE
 
-La afirmación «Nautilus exige FUSE» no se sostiene con las fuentes consultadas:
+The statement ‘Nautilus requires FUSE’ is not supported by the sources consulted:
 
-- `nautilus-clipboard.c` registra `x-special/gnome-copied-files` y
-  `GDK_TYPE_FILE_LIST`; al deserializar, valida cada línea con `g_uri_is_valid` y
-  construye un `NautilusFile` con `nautilus_file_get_by_uri`. No filtra a
-  `file://`: acepta cualquier URI válida.
-  <https://gitlab.gnome.org/GNOME/nautilus/-/raw/main/src/nautilus-clipboard.c>
-- La documentación de GVfs describe GIO como punto de extensión y los backends
-  como procesos D-Bus; el daemon FUSE es una pieza aparte, desactivable con
-  `GVFS_DISABLE_FUSE`. Un esquema propio puede servirse por GIO/GVfs sin FUSE.
-  <https://wiki.gnome.org/Projects/gvfs/doc>
-- El portal `org.freedesktop.portal.FileTransfer` exporta descriptores de archivo
-  ya existentes al almacén de documentos; no permite entregar contenido
-  perezoso. <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.FileTransfer.html>
+- `nautilus-clipboard.c` records `x-special/gnome-copied-files` and `GDK_TYPE_FILE_LIST`; when deserializing, validate each line with `g_uri_is_valid` and build a `NautilusFile` with `nautilus_file_get_by_uri`. Does not filter to `file://`: accepts any valid URI. <https://gitlab.gnome.org/GNOME/nautilus/-/raw/main/src/nautilus-clipboard.c>
+- The documentation of GVfs describes GIO as extension point and backends as D-Bus processes; the daemon FUSE is a separate piece, deactivated with `GVFS_DISABLE_FUSE`. An own scheme can be served by GIO/GVfs without FUSE. <https://wiki.gnome.org/Projects/gvfs/doc>
+- The `org.freedesktop.portal.FileTransfer` portal exports existing file descriptors to the document
+  warehouse; it does not allow delivering lazy content.
+  <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.FileTransfer.html>
 
-Conclusión: B en Linux no está implementado, no es técnicamente imposible. Esta
-entrega publica solo rutas `file://` locales. Una entrega perezosa requeriría un
-backend GIO/GVfs para un esquema propio (D-Bus) o un montaje FUSE que materialice
-los archivos; ambos quedan fuera del alcance del experimento.
+Conclusion: B in Linux is not implemented, it is not technically impossible. This delivery publishes
+only local `file://` routes. A lazy delivery would require a GIO/GVfs backend for an own scheme
+(D-Bus) or a FUSE mount that materializes the files; both are out of the scope of the experiment.
 
-## 6. Dependencias y procedencia
+## 6. Dependencies and sources
 
-| Dependencia | Versión usada o prevista | Procedencia y licencia | Uso |
+| Dependency | Used or planned version | Source and license | Use |
 | --- | --- | --- | --- |
-| OpenSSL | 3.0.5 (Windows) | openssl.org — Apache-2.0 | TLS del modo remoto |
-| GTK3 | 3.x (Ubuntu, `libgtk-3-dev`) | GNOME — LGPL-2.1-or-later | portapapeles en Linux |
+| OpenSSL | 3.0.5 (Windows) | openssl.org — Apache-2.0 | Remote mode TLS |
+| GTK3 | 3.x (Ubuntu, `libgtk-3-dev`) | GNOME — LGPL-2.1-or-later | clipboard on Linux |
 | Win32 / OLE / Shell | Windows SDK 10.0.26100 | Sistema Windows | `CF_HDROP`, `IDataObject`, `IStream` |
-| Biblioteca estándar C++17 | MSVC 14.51 / libstdc++ | implementación del estándar | archivos, hilos, contenedores |
-| SHA-256 | implementación propia | FIPS 180-4, código original | integridad de transferencias |
+| Standard library C++17 | MSVC 14.51 / libstdc++ | implementation of the standard | files, threads, containers |
+| SHA-256 | self-implementation | FIPS 180-4, original code | transfer integrity |
 
-No se ha incorporado código de aplicaciones de compartición ni motores de terceros.
-`std::filesystem` se usa con rutas UTF-8 (`u8path`) para conservar nombres Unicode.
+No code of sharing applications or third-party engines has been incorporated. `std::filesystem` is
+used with UTF-8 (`u8path`) routes to store Unicode names.
 
-## 7. Límites y trabajo pendiente
+## 7. Limits and outstanding work
 
-1. **Ubuntu sin compilar** por falta de host en esta sesión. Riesgo concreto:
-   errores de compilación o de API GTK3 no detectados. El manual indica cómo
-   compilar y qué dependencia instalar.
-2. **B en Linux no implementado**: no es una conclusión de inviabilidad. Requeriría
-   un backend GIO/GVfs por D-Bus o un montaje FUSE (evidencia en §5.1), fuera del
-   alcance de esta entrega.
-3. **B en Windows sin validar**: `GetData` es síncrono y se ejecuta en el hilo
-   STA; mientras llega el contenido, Explorer puede quedar bloqueado. No hay
-   cancelación desde el explorador, solo el timeout del socket. Medir en T3.
-4. **Un cliente a la vez** y sin reanudación: un corte obliga a repetir la
-   transferencia. El receptor no publica ofertas parciales.
-5. **Sin prueba de disco lleno** ni de cuota de caché: `--cache-gc` limpia por
-   edad, no por espacio.
-6. **Sin CA ni confianza persistente**: la huella se pasa en cada conexión. Para
-   el producto habría que decidir almacenamiento de identidad y revocación.
-7. **Metadatos**: no se conservan permisos POSIX, ACL, fechas ni atributos; solo
-   nombre, tipo y contenido.
-8. **Cambios comunes deseables** (fuera de mi directorio, no realizados): ninguna
-   solicitud. El experimento es autocontenido.
+1. **Ubuntu without compiling** due to lack of host in this session. Concrete risk: compilation
+   errors or API GTK3 not detected. The manual indicates how to compile and what dependency to
+   install.
+2. **B in Linux not implemented**: is not a conclusion of non-viability. It would require a GIO/GVfs
+   backend by D-Bus or a FUSE mount (evidence in §5.1), outside the scope of this delivery.
+3. **B on Windows unvalidated**: `GetData` is synchronous and runs on the STA thread; while content
+   arrives, Explorer can be locked. No cancellation from browser, only socket timeout. Measure in
+   T3.
+4. **One client at a time** and without resumption: one cut forces the transfer to be repeated. The
+   recipient does not publish partial offers.
+5. **No full disk proof** no cache fee: `--cache-gc` cleans by age, not by space.
+6. **Without CA or persistent confidence**: the footprint is passed on each connection. For the
+   product it would be necessary to decide identity storage and revocation.
+7. **Metadata**: POSIX, ACL, dates and attributes are not preserved; only name, type and content.
+8. **Required common changes** (outside my directory, not made): no request. The experiment is
+   self-contained.
 
-## 8. Conclusión provisional
+## 8. Provisional conclusion
 
-- Se puede afirmar: el motor de oferta, transferencia por bloques, verificación
-  SHA-256, caché con concesiones, resolución de colisiones, validación de rutas y
-  protocolo autorizado por identificadores está implementado y pasa 176
-  comprobaciones aisladas en Windows.
-- No se puede afirmar todavía: que Explorer o Nautilus peguen los archivos, que
-  el descriptor OLE funcione en esta versión de Windows, ni que la entrega bajo
-  demanda sea utilizable con red real.
-- La autenticación mutua está implementada y compila, pero no se ha ejecutado
-  ningún handshake: no se afirma que acepte o rechace certificados en vivo.
-- **Recomendación para el producto**: adoptar A como estrategia base, con estado
-  «preparado» visible y una carpeta de caché privada con cuota y limpieza. Tratar
-  B como optimización opcional exclusiva de Windows, solo si T3 demuestra pegado
-  correcto, bloqueo acotado y errores claros. No introducir un sistema de
-  archivos virtual para Linux en esta fase.
-- Responsabilidad propuesta de adaptadores: `file_clipboard` posee los formatos
-  nativos y su ciclo de vida; `files` posee ofertas, identificadores, bloques,
-  integridad y caché. El adaptador no debe decidir la confianza ni el protocolo.
+- It can be said: the offer engine, block transfer, SHA-256, cache with concessions, collision
+  resolution, route validation and protocol authorized by identifiers is implemented and passes 176
+  isolated checks on Windows.
+- It cannot be said yet: that Explorer or Nautilus paste files, that the OLE descriptor works on
+  this version of Windows, or that delivery on demand is usable with real network.
+- Mutual authentication is implemented and compiled, but no handshake has been executed: it is not
+  claimed to accept or reject live certificates.
+- **Recommendation for the product**: adopt A as a base strategy, with visible "prepared" status and
+  a private cache folder with quota and cleaning. Treat B as an optional Windows exclusive
+  optimization, only if T3 shows correct pasting, locked down and clear errors. Do not enter a
+  virtual file system for Linux at this stage.
+- Proposed responsibility for adapters: `file_clipboard` has native formats and their life cycle;
+  `files` has offers, identifiers, blocks, integrity and cache. The adapter must not decide the
+  trust or protocol.
 
-## 9. Matriz histórica de la entrega inicial (sustituida por el estado vigente)
+## 9. Historical matrix of initial delivery (replaced by current status)
 
-| Caso | Entorno exacto | Esperado | Observado | Resultado |
+| Caso | Exact environment | Esperado | Observado | Result |
 | --- | --- | --- | --- | --- |
-| L1 self-test |  | 0 fallos | 176/0 en Windows 10 19045 | Superado (aislado) |
-| L2 caché Explorer |  | pegado completo y hash igual | No ejecutado | Pendiente |
-| L3 bajo demanda Windows |  | pegado completo o bloqueo documentado | No ejecutado | Pendiente |
-| L4 caché Nautilus |  | pegado completo y hash igual | No ejecutado | Pendiente |
-| L5 bajo demanda Linux |  | error explícito: limitación de implementación, no inviabilidad | No ejecutado | Pendiente |
-| L6 colisiones / sin escritura |  | sufijos y error claro | No ejecutado | Pendiente |
-| L7 cancelación |  | sin oferta publicada ni temporales | No ejecutado | Pendiente |
-| L8 caché y gc |  | ofertas eliminadas por edad | No ejecutado | Pendiente |
-| T1 Windows→Ubuntu |  | pegado completo, hash igual | No ejecutado | Pendiente |
-| T2 Ubuntu→Windows |  | pegado completo, hash igual | No ejecutado | Pendiente |
-| T3 Windows←Ubuntu bajo demanda |  | pegado completo; corte con error | No ejecutado | Pendiente |
-| T0 TLS mutuo negativo |  | rechazo de huella de cliente o servidor | No ejecutado | Pendiente |
+| L1 self-test |  | 0 fallos | 176/0 en Windows 10 19045 | Passed (isolated) |
+| L2 cache Explorer |  | complete paste with matching hashes | Not run | Pending |
+| L3 on demand Windows |  | complete paste or a documented blocker | Not run | Pending |
+| L4 Nautilus cache |  | complete paste with matching hashes | Not run | Pending |
+| L5 on demand Linux |  | explicit error: implementation limitation, non-viability | Not run | Pending |
+| L6 collisions or unwritable destination |  | suffixes and a clear error | Not run | Pending |
+| L7 cancellation |  | no published offer or temporary files | Not run | Pending |
+| L8 cache and gc |  | offers removed after expiry | Not run | Pending |
+| T1 Windows→Ubuntu |  | complete paste with matching hashes | Not run | Pending |
+| T2 Ubuntu→Windows |  | complete paste with matching hashes | Not run | Pending |
+| T3 Windows←Ubuntu on demand |  | complete paste and an explicit error on interruption | Not run | Pending |
+| T0 mutual TLS rejection |  | client or server fingerprint rejected | Not run | Pending |
 
-La comparación de tiempos, espacio y bloqueo percibido entre A y B está definida
-en `MANUAL.md` §8 y queda vacía hasta la ejecución manual.
+The time, space and perceived lock comparison between A and B is defined in `MANUAL.md` §8 and
+remains empty until manual execution.

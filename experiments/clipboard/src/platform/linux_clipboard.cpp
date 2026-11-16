@@ -1,8 +1,8 @@
-// Responsabilidad: selección del adaptador Linux. En Wayland usa el portal
-// oficial RemoteDesktop + Clipboard (si libdbus está disponible al compilar).
-// En X11 no hay backend y no se sustituye Wayland por X11 en silencio.
-// El inventario sólo lee variables de entorno y /etc/os-release; no abre el
-// bus de sesión ni el portapapeles.
+// Responsibility: Selection of the Linux adapter. In Wayland uses the portal
+// official RemoteDesktop + Clipboard (if libdbus is available when compiling).
+// In X11 there is no backend and Wayland is not replaced by X11 silently.
+// The inventory only reads environment variables and /etc/os-release; does not open the
+// session bus or clipboard.
 
 #include "platform/clipboard.hpp"
 

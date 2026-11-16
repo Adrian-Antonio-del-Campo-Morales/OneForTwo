@@ -5,8 +5,8 @@
 
 namespace oneintwo {
 
-// Identidad TLS local. La clave privada nunca sale de este objeto salvo para
-// entregársela a QtSslSocket al abrir el canal.
+// Local identity TLS. The private key never leaves this object except for
+// Hand it over to QtSslSocket when opening the channel.
 struct DeviceIdentity {
     std::string device_id;
     std::string certificate_pem;
@@ -15,7 +15,7 @@ struct DeviceIdentity {
 };
 
 // Crea/lee identity.id, identity.crt e identity.key en un directorio privado.
-// La generación usa libcrypto enlazado; no depende de un binario externo.
+// The generation uses linked libcrypto; it does not depend on an external binary.
 class DeviceIdentityStore {
 public:
     struct Rotation {
@@ -30,8 +30,8 @@ public:
     std::optional<DeviceIdentity> load(std::string* error = nullptr) const;
     std::optional<DeviceIdentity> loadOrCreate(std::string* error = nullptr) const;
 
-    // Conserva device_id y reemplaza el par cert/clave. El llamador debe
-    // actualizar la confianza del par (volver a emparejar) con la huella nueva.
+    // Keeps device_id and replaces par cert/clave. The caller must
+    // update the confidence of the pair (repair) with the new footprint.
     std::optional<Rotation> rotate(std::string* error = nullptr);
 
 private:

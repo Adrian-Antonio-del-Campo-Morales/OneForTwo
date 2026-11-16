@@ -22,8 +22,8 @@ struct LinkOffer {
     std::string url;
 };
 
-// Entradas de diseño. El coordinador suministra la generación vigente al enviar.
-// El módulo valida, presenta y consume una sola oferta pendiente por sesión.
+// Design tickets. The coordinator supplies the current generation when sending.
+// The module validates, presents and consumes only one outstanding offer per session.
 class SharedLinks {
 public:
     void offerLink(SessionGeneration generation, const std::string& url);

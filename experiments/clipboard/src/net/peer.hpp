@@ -1,7 +1,7 @@
 #pragma once
 
-// Responsabilidad: ejecutar una sesión entre dos instancias por dirección
-// explícita. No incluye descubrimiento, vinculación persistente ni interfaz.
+// Responsibility: run a session between two instances by address
+// Explicit. It does not include discovery, persistent linkage or interface.
 
 #include <cstdint>
 #include <string>
@@ -20,8 +20,8 @@ struct PeerOptions {
   bool show_content = false;
 };
 
-// Devuelve 0 si la sesión de cliente terminó limpiamente, 3 si falló.
-// En modo servidor acepta conexiones sucesivas hasta que el usuario lo detiene.
+// Returns 0 if the client session ended cleanly, 3 if failed.
+// In server mode it accepts successive connections until the user stops it.
 int run_peer(const PeerOptions& options, ClipboardPort* clipboard,
              const ClipboardCapabilities& capabilities);
 

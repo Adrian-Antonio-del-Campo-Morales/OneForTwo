@@ -1,621 +1,481 @@
-# Problemas pendientes
-
-## VISUAL-WIN-01 — Cerrar el selector sin callbacks después de destruir CaptureModel
-
-Estado: pendiente, detectado al documentar `feature/share-window` el 15 de
-noviembre de 2026.
-
-[`CaptureModel::selectSource`](src/platform/windows/visual/capture_model.cpp)
-entrega al puerto un callback que captura `this`. Al destruir el modelo se
-resetea la selección y se llama a `cancelPrompt()`, pero el selector real sólo
-publica `WM_CLOSE`; la respuesta puede llegar después de que el modelo haya
-desaparecido. Ese callback ejecutaría `post()` sobre un objeto ya liberado. Las
-pruebas actuales cubren la cancelación mientras el modelo sigue vivo, no la
-destrucción con un prompt pendiente.
-
-Reproducción:
-
-1. Poner
-   [`FakeCapturePort`](tests/capture_windows/fake_port.hpp) en modo deferred y
-   llamar a `selectSource`.
-2. Drenar `ModuleRuntime.post`.
-3. Destruir `CaptureModel` sin completar el prompt.
-4. Completar el prompt pendiente.
-5. Repetir con ASan o instrumentación equivalente de vida de objetos.
-
-**Criterio de aceptación:** una prueba de regresión demuestra que la respuesta
-tardía a un selector ya destruido no ejecuta callbacks, no accede a estado
-liberado y no provoca fallo; mientras el modelo sigue vivo, `stopCapture`
-entrega exactamente un resultado terminal `cancelled` y ningún callback
-posterior.
-
-## VISUAL-WIN-02 — Invalidar el HWND del selector y el owner al cerrarse
-
-Estado: pendiente, detectado en la revisión de la rama el 15 de noviembre de
-2026.
-
-En [`win32_selector.cpp`](src/platform/windows/visual/win32_selector.cpp),
-`prompt_window_` sólo se pone a `nullptr` cuando se llama a `cancelPrompt()`.
-Si el usuario cierra el selector con la X o con Cancelar, `WM_DESTROY` entrega
-el resultado pero deja el `HWND` almacenado. Una llamada posterior a
-`cancelPrompt()` puede enviar `WM_CLOSE` a un handle reutilizado; además,
-`WM_DESTROY` reactiva el owner con `EnableWindow` sin comprobar que siga siendo
-una ventana válida. Destruir el `QWidget` padre con el selector abierto expone
-el mismo problema.
-
-Reproducción:
-
-1. Abrir un selector, cerrarlo normalmente y conservar la instancia del puerto.
-2. Reutilizar o simular la reutilización del `HWND` cerrado.
-3. Llamar a `cancelPrompt()` y comprobar si llega un mensaje a la ventana
-   equivocada.
-4. Destruir el widget padre con el selector todavía abierto y observar la
-   reactivación del owner.
-
-**Criterio de aceptación:** al cerrar el selector por cualquier vía, el puerto
-deja de conservar su `HWND`, `cancelPrompt()` es un no-op después del cierre y
-nunca envía mensajes a un handle reutilizado; el owner sólo se reactiva si
-`IsWindow` confirma que sigue siendo válido. Una prueba de regresión cubre el
-cierre normal seguido de `cancelPrompt()` y la destrucción del padre con el
-selector abierto.
-
-## VISUAL-WIN-03 — Publicar cierre ante fallos repetidos de copia de frames
-
-Estado: pendiente, detectado en la revisión de la rama el 15 de noviembre de
-2026.
-
-[`WinRtFrameCopier::copy`](src/platform/windows/visual/wgc_capture.cpp) devuelve
-`false` si la textura no es `DXGI_FORMAT_B8G8R8A8_UNORM` o si falla `Map`.
-[`WgcCaptureCore::poll`](src/platform/windows/visual/wgc_capture_core.cpp)
-simplemente descarta ese frame y sigue sondeando. No publica `closed` ni ningún
-otro estado, por lo que el consumidor puede ver una imagen congelada sin saber
-que la captura dejó de ser útil. Además, si `copy` falla después de `Map`, el
-camino de excepción no garantiza `Unmap`.
-
-Reproducción:
-
-1. Ejecutar `oneintwo_wgc_capture_tests` con un `WgcFrame` falso cuyo `copyTo`
-   devuelva `false` de forma consecutiva.
-2. Comprobar que no se entrega ningún frame y que tampoco se publica `closed`.
-3. Introducir un fallo después de `Map` y comprobar el estado de la textura de
-   staging.
-
-**Criterio de aceptación:** tras un umbral documentado y probado (propuesta:
-10 fallos de copia consecutivos o 2 segundos sin copia válida), el núcleo
-publica `closed`, detiene el hilo y no entrega más callbacks. Toda llamada
-`Map` que tenga éxito se compensa con `Unmap` en éxito y en excepción. La prueba
-con frames falsos cubre el umbral, la parada y la ausencia de callbacks tardíos.
-
-## VISUAL-WIN-04 — Probar la identidad ante handles de ventana reutilizados
-
-Estado: pendiente de endurecimiento y prueba; riesgo documentado el 15 de
-noviembre de 2026.
-
-[`WinRtWgcSource::available`](src/platform/windows/visual/wgc_capture.cpp)
-comprueba `IsWindow` y que el PID de la ventana siga siendo el mismo, y para un
-monitor compara `GetMonitorInfo` con el nombre de dispositivo. Esto reduce el
-riesgo, pero no hay una prueba que reutilice un `HWND` o un `HMONITOR` con el
-mismo valor numérico para otra fuente. Las pruebas actuales cubren el cierre y
-la reapertura con el mismo título, no la reutilización efectiva del handle.
-
-Reproducción:
-
-1. Seleccionar una ventana y arrancar su captura.
-2. Simular con el puerto falso que la fuente desaparece y que el mismo handle
-   numérico pasa a identificar otra ventana o la misma ventana con otro PID.
-3. Entregar frames de la fuente nueva a la captura antigua.
-4. Repetir para un monitor que desaparece y vuelve con el mismo nombre.
-
-**Criterio de aceptación:** una prueba determinista demuestra que la operación
-antigua no entrega ningún frame de la fuente nueva y termina en `closed` antes
-de aceptar el siguiente; una invitación nueva sí puede seleccionar la fuente
-nueva. El adaptador no vuelve a localizar la fuente por título. La prueba y la
-validación manual registran el caso de reutilización de handle probado.
-
-## VISUAL-WIN-05 — Validar la captura WGC real en Windows
-
-Estado: pendiente de ejecución manual; el smoke de CI puede devolver skip 77.
-
-Las pruebas portables y el smoke cubren partes del camino, pero la matriz de
-producto no se ha ejecutado en un escritorio Windows real con el binario de
-esta rama. El smoke sólo comprueba un frame válido, el cierre y la ausencia de
-callbacks después de `stop`; no verifica contenido, DPI, cursor, borde de
-captura ni contenido protegido.
-
-**Criterio de aceptación:** en una sesión Windows 10/11 interactiva y
-desbloqueada, `oneintwo_wgc_smoke` termina con código 0 (no 77) y se registra
-una matriz con, al menos: dos ventanas solapadas con patrones distintos, cambio
-de monitor, redimensionado, minimización/restauración, cierre y reapertura con
-el mismo título, cancelación del selector, DPI al 100 % y 150 % y ventana
-protegida o elevada con su resultado esperado. Se registran build de Windows,
-SDK, GPU, resultado de cursor/borde y cualquier skip; no se declara soporte si
-el smoke sólo se omitió.
-
-## VISUAL-WAYLAND-01 — Validar el backend Wayland con portal y PipeWire reales
-
-Estado: pendiente de validación nativa; las pruebas actuales usan portal y
-PipeWire simulados.
-
-El backend [`../../linux/visual`](src/platform/linux/visual) exige que el portal
-ScreenCast anuncie `WINDOW`, que la respuesta acredite el tipo de fuente y que
-el nodo PipeWire autorizado entregue frames convertibles a BGRA. Las pruebas
-con dobles cubren el flujo y la cancelación, pero no la variación real de
-versiones de portales, compositores y formatos de PipeWire.
-
-**Criterio de aceptación:** en Ubuntu/Wayland con un portal que anuncie
-`WINDOW`, seleccionar una sola ventana, recibir frames BGRA, cambiar su tamaño,
-minimizarla y restaurarla registrando si el portal suspende o mantiene el
-stream, cerrarla y cancelar una selección. Se comprueba que no se sustituye por
-un monitor ni se captura una región, y se registran compositor, versión del
-portal, formato PipeWire y resultado. Si el portal no acredita el tipo, la
-operación debe quedar `unavailable`, no “funcionar” por fallback.
-
-## VISUAL-INTEGRATION-01 — Conectar captura, VisualShare, codec, transporte y visor
-
-Estado: pendiente; [`visual_share.cpp`](src/features/visual_share.cpp) sigue
-siendo el stub del coordinador y el backend no se puede usar como producto
-autónomo.
-
-El contrato visual común debe mantener una operación, validar permisos,
-revisiones, secuencia y límites, codificar JPEG, transportar fragmentos y
-presentar en el visor. También debe cubrir la ausencia de frames, el bloqueo de
-sesión y el cierre de la fuente con la política de actividad ya documentada.
-
-**Criterio de aceptación:** dos instancias con backends reales completan el
-recorrido seleccionar → invitar → aceptar → ver imagen → detener, sin enviar
-vídeo antes de la aceptación. Minimizar y cerrar la fuente vacían el visor y
-terminan la operación; un bloqueo de sesión o una retirada de permiso la
-terminan sin reanudación automática. Una fuente que deja de entregar frames
-activa el temporizador de actividad y cierra o vacía el visor según el estado
-acordado. No se registran títulos, etiquetas de fuente ni frames. La prueba
-integrada y la manual registran plataformas, versiones y límites de lo
-comprobado.
-## FEATURE-SHARE-SCREEN — Pendientes de integración de la entrega P
-
-Proceden de [la documentación de la feature](docs/feature-share-screen/README.md) y
-se mantienen separados de los pendientes experimentales. Los criterios buscan
-resultados observables; no sustituyen la validación nativa de las ramas V y N.
-
-## PSS-01 — Persistir la generación del peer entre reinicios
-
-Estado: **pendiente**.
-
-`SessionLink` acepta `last_peer_generation` y `remember_peer_generation`, pero
-`Application` no los conecta a ningún almacén. La protección contra repetición
-de generaciones solo vive mientras dura el proceso.
-
-**Criterio de aceptación:** la última generación remota aceptada se guarda por
-`device_id` y se carga al construir `SessionLinkOptions`. Tras un reinicio de
-Application con el mismo almacén, una generación igual o inferior a la guardada
-debe rechazarse con `SessionLinkError::generation`; una superior debe aceptarse.
-Un intento rechazado no puede avanzar la marca persistida. Debe existir una
-prueba de integración con dos instancias secuenciales de Application, no solo
-una prueba unitaria de `SessionLink`.
-
-## PSS-02 — Hacer transaccional y atómico `LocalStore`
-
-Estado: **pendiente**.
-
-`LocalStore` todavía escribe en un temporal fijo (`path + ".tmp"`), no hace
-`fsync` y no devuelve el resultado de guardar. Un fallo puede dejar preferencias
-en memoria divergentes del archivo o perder el contenido anterior.
-
-**Criterio de aceptación:** `saveProfile` y `saveAllowedApplications` escriben
-con un temporal único y reemplazo atómico, hacen `fsync` en POSIX y solo
-actualizan el estado en memoria después de persistir. Un fallo forzado de
-escritura debe conservar el archivo y el estado en memoria anteriores, sin
-temporales residuales. Tras un guardado correcto y una nueva instancia de
-`LocalStore`, el perfil y las aplicaciones permitidas deben recuperarse. Debe
-existir una prueba con la ruta de destino bloqueada y otra de recarga.
-
-## PSS-03 — Seleccionar explícitamente entre varios pares guardados
-
-Estado: **pendiente**.
-
-`PairingStore` admite varios pares, pero `Application` reutiliza
-`devices().back()` al arrancar. Con más de un equipo guardado no hay selección y
-el orden del archivo decide de forma implícita.
-
-**Criterio de aceptación:** al arrancar con dos o más pares, Application no debe
-conectar silenciosamente con `devices().back()` ni dejar que el orden del TSV
-decida. Debe existir una selección explícita visible para el usuario y la
-elección debe persistirse. Una prueba con dos peers y endpoints distintos debe
-demostrar que solo se contacta el seleccionado y que la elección sobrevive al
-reinicio. Si el seleccionado ya no existe, la aplicación debe mostrarlo y no
-conectar con ningún otro par.
-
-## PSS-04 — Integrar la captura nativa de V y producir el ejecutable
-
-Estado: **pendiente de integración**.
-
-La captura nativa de monitor/ventana pertenece a `feature/share-window` (V) y no
-forma parte de la composición de esta rama. El target `oneintwo` se omite si no
-existen `oneintwo_capture_windows` o `oneintwo_capture_wayland`, por lo que hoy
-solo se prueba con `UnavailableCapture`/dobles.
-
-**Criterio de aceptación:** en Windows y Linux, CMake incorpora el target nativo
-de V y genera `oneintwo` sin fábricas de prueba. Una ejecución real debe abrir el
-selector nativo, compartir un monitor o ventana y entregar imágenes al visor;
-stop, cierre del visor y pérdida de la fuente deben liberar la captura. La
-prueba no puede declararse superada usando un adaptador simulado.
-
-## PSS-05 — Integrar notificaciones de N y retirar los dobles del producto
-
-Estado: **pendiente de integración**.
-
-Las notificaciones nativas pertenecen a `feature/notifications` (N). El núcleo de
-Application se prueba con `SharedNotifications` sustituido en
-`tests/application/application_test.cpp`; el ejecutable de producto todavía no
-enlaza `oneintwo_notifications`.
-
-**Criterio de aceptación:** el ejecutable de producto enlaza el target real de N
-y no contiene las implementaciones de prueba de notificaciones. Al menos un
-envío manual debe presentarse en Windows y Linux y un fallo del adaptador debe
-llegar a la UI sin bloquear la sesión. El binario final debe compilar y arrancar
-sin `oneintwo_notifications` simulado.
-
-## PSS-06 — Implementar descubrimiento y reconexión de peers
-
-Estado: **pendiente**.
-
-El emparejamiento exige host y puerto manuales. No hay descubrimiento en la LAN,
-resolución de cambios de dirección ni reconexión automática.
-
-**Criterio de aceptación:** dos instancias en la misma LAN deben poder localizar
-y seleccionar al peer sin introducir manualmente su dirección. Un cambio de IP o
-puerto del peer debe reflejarse sin crear una confianza nueva: la identidad se
-sigue comprobando con el pin y, si está en transición, con la SAS. Debe existir
-una prueba de descubrimiento y actualización de endpoint, además de una prueba
-de que un peer no autenticado no obtiene acceso a funciones.
-
-## PSS-07 — Definir y verificar el escritor único de `PairingStore`
-
-Estado: **pendiente**.
-
-`PairingStore` no tiene mutex ni bloqueo entre procesos. `QSaveFile` evita
-temporales compartidos y reemplazos parciales, pero dos instancias que cargan y
-guardan a la vez pueden perder una actualización.
-
-**Criterio de aceptación:** la aplicación debe imponer una instancia única de
-escritura o implementar un bloqueo que serialice las mutaciones. En cualquier
-caso, dos escritores independientes no pueden corromper el archivo ni perder un
-par confirmado; un fallo de escritura debe conservar el archivo anterior. La
-prueba debe cubrir dos `PairingStore` sobre la misma ruta, incluida una escritura
-fallida, y demostrar el comportamiento documentado.
-
-## PSS-08 — Recuperar un almacén de pares corrupto al arrancar
-
-Estado: **pendiente**.
-
-Si `paired-devices.tsv` está corrupto al construir Application, el almacén se
-deshabilita y se pierde la selección de pares en memoria. `reload()` conserva el
-último estado válido solo si la instancia ya estaba cargada.
-
-**Criterio de aceptación:** un archivo con cabecera inválida, línea truncada,
-puerto inválido o entrada duplicada no puede eliminar silenciosamente todos los
-pares ni sobrescribirse con un estado vacío. La aplicación debe conservar el
-archivo inválido en cuarentena o como copia, mostrar un error accionable y no
-continuar con un almacén vacío sin consentimiento. Si existe una copia válida,
-se restaura; si no, se ofrece reparar o volver a emparejar. La prueba debe
-demostrar que los pares válidos no se pierden sin consentimiento y que el estado
-anterior es recuperable.
-
-## PSS-09 — Validar compartir pantalla de extremo a extremo entre equipos
-
-Estado: **pendiente**.
-
-La suite actual valida protocolo, TLS, composición y arranque, pero no una
-captura real ni la cadena completa entre dos equipos.
-
-**Criterio de aceptación:** con los binarios integrados de P, V y N, realizar
-Windows → Linux y Linux → Windows sobre una LAN: seleccionar monitor o ventana,
-aceptar la invitación, ver imágenes en el visor y detener desde ambos extremos.
-Debe comprobarse aceptar, rechazar, caducidad, cierre del visor, pérdida de red y
-recuperación sin reanudación automática. La evidencia debe indicar revisión,
-plataformas y cualquier caso no ejecutado; `QT_QPA_PLATFORM=offscreen` o los
-dobles no cuentan como validación de escritorio.
-## NOTIF-WIN-01 — Validar presentación manual y retirada en Windows
-
-Estado: pendiente. Requiere un equipo Windows con MSIX instalable, identidad de
-paquete y usuario presente. La CI solo compila, instala y retira el paquete; no
-puede confirmar la presentación visual ni la atribución del equipo.
-
-Criterio de aceptación:
-
-- [ ] Instalar el MSIX firmado y arrancar la aplicación empaquetada.
-- [ ] Un aviso manual enviado desde el otro equipo aparece una sola vez, con
-      título, cuerpo Unicode y `De <equipo>`; no muestra botones, enlaces ni
-      acciones.
-- [ ] `withdrawNotices` retira el aviso propio activo.
-- [ ] Un aviso pendiente no reaparece después de bloquear, desconectar o
-      cambiar de generación.
-- [ ] Registrar versión de Windows, identidad del paquete y resultado.
-
-## NOTIF-WIN-02 — Validar consentimiento, descubrimiento y reenvío
-
-Estado: pendiente. La prueba nativa sin paquete ya cubre el rechazo cerrado;
-la observación real, el consentimiento y la lista de aplicaciones requieren un
-equipo Windows con MSIX y usuario presente.
-
-Criterio de aceptación:
-
-- [ ] Sin identidad de paquete, `notificationCapabilities().observe` es falso y
-      `discoverApplications` completa con `unavailable` sin pedir consentimiento.
-- [ ] Con paquete, `observe` refleja soporte técnico; el consentimiento se
-      comprueba al descubrir o iniciar y un rechazo produce `denied`, no
-      `unavailable`.
-- [ ] `discoverApplications` puede solicitar consentimiento, no inicia la
-      observación ni altera su línea base, devuelve aplicaciones únicas y
-      ordenadas, excluye OneInTwo y descarta identidades vacías.
-- [ ] Un aviso nuevo de una aplicación autorizada llega una sola vez con su
-      nombre visible; los avisos previos, las aplicaciones no autorizadas y los
-      avisos de OneInTwo no se reenvían.
-- [ ] Retirar el consentimiento en Configuración detiene la observación en menos
-      de cinco segundos y produce un error local recuperable.
-- [ ] Tras volver a conceder permiso y reiniciar la observación, la línea base es
-      nueva: no se reenvía el historial acumulado.
-- [ ] Registrar versión de Windows, identidad del paquete y resultado.
-
-## NOTIF-LINUX-01 — Validar presentación y retirada en Ubuntu real
-
-Estado: pendiente de comprobación visual. El adaptador se prueba con un bus de
-sesión privado, pero no se ha certificado la presentación en un escritorio
-gráfico real.
-
-Criterio de aceptación:
-
-- [ ] Con `org.freedesktop.Notifications` disponible, un aviso manual y uno
-      reenviado autorizado aparecen una sola vez, con el equipo de origen; el
-      reenviado incluye el nombre de la aplicación de origen.
-- [ ] El texto Unicode se conserva y no aparecen botones, enlaces ni acciones.
-- [ ] `withdrawNotices` retira los avisos propios activos.
-- [ ] `notificationCapabilities().observe` es falso, `discoverApplications`
-      devuelve `unavailable` y el envío manual sigue funcionando.
-- [ ] Registrar versión de Ubuntu, servicio de notificaciones y resultado.
-
-## NOTIF-RESUME-01 — Renovar la línea base al reanudar Windows
-
-Estado: pendiente de integración. El módulo no recibe por sí mismo un evento de
-reanudación; la observación debe reiniciarse para no reenviar avisos acumulados
-durante la suspensión.
-
-Criterio de aceptación:
-
-- [ ] El coordinador reinicia la observación con una suscripción nueva al volver
-      de suspensión, o el adaptador expone una señal equivalente y la prueba la
-      cubre.
-- [ ] Los avisos generados durante la suspensión no se reenvían al reanudar.
-- [ ] Un aviso nuevo generado después de reanudar llega exactamente una vez.
-- [ ] La prueba automatizada usa reloj y suscripción simulados; la comprobación
-      manual en Windows registra el caso y el resultado.
-
-## NOTIF-MSIX-01 — Completar la verificación de integridad APPX
-
-Estado: pendiente. La comprobación actual valida el PKCS#7 de
-`AppxSignature.p7x` y que el firmante sea el certificado efímero, pero no liga
-los digests `AXPC`, `AXCD`, `AXCT`, `AXBM` y `AXCI` (si existe) al paquete real.
-
-Criterio de aceptación:
-
-- [ ] Extraer y parsear el `SpcIndirectDataContent` firmado, incluido el
-      encabezado de digests APPX.
-- [ ] Recalcular los digests aplicables sobre el paquete sin su entrada de firma
-      y compararlos con los valores firmados.
-- [ ] Un paquete válido pasa; alterar el payload, el directorio central, el
-      block map, los content types o la firma provoca un fallo explícito.
-- [ ] El job `msix` registra `signature_integrity=verified` sin usar
-      `signtool verify` ni las API WinTrust/Appx.
-- [ ] La confianza de la cadena y la instalación quedan fuera de este criterio
-      y se validan por separado en el equipo Windows de comprobación.
-
-## EXP-FILES-LAN-01 — Completar pegado Explorer y bajo demanda
-
-Estado: T1 completo; T2 recepción/copia CLI e integridad completas. TLS negativo
-ambos sentidos de autenticación, corte/reintento, colisiones, permisos y GC
-Windows superados. Servidores cerrados; sin nuevas reglas. Evidencia y límites
-en experiments/files/RESULTS.md. Pendientes pegado real Explorer (T2/L2),
-bajo demanda Windows (T3/L3) y comportamiento de Explorer ante corte.
-Control de escritorio bloqueado por fallo de arranque del helper; no se pidió
-interacción humana ni se sustituyó pegado por copia CLI. Texto suspendido.
-
-## EXP-CLIP-LAN-02 — Contrastar ecos y selección inicial entre equipos
-
-Estado: pendiente de conclusión; experimento de texto suspendido por el usuario. No iniciar nuevas pruebas ni conexiones de texto mientras se avanza en archivos.
-
-TLS y saludo funcionaron y el usuario confirmó el pegado en ambos sentidos.
-El registro Windows incluye una actualización inicial Ubuntu de 48 bytes,
-reemisiones finitas, rechazos por orden y dos capturas locales de 147 bytes
-separadas por unos 277 ms. El agente Ubuntu informa de selección previa y
-reemisiones. Comparar tiempos relativos, origen, generación, contador lógico
-y acciones del usuario antes de concluir si hay ecos incorrectos o duplicación
-de notificaciones. No confundir ausencia de bucle infinito con política correcta.
-
-Log compartido: `experiments/clipboard/lan/evidence/windows-session-01.log`.
-No aplicar correcciones especulativas ni repetir pruebas de escritorio sin un
-caso acordado. Certificado incorrecto y reconexión siguen sin probar.
-
-## EXP-CLIP-TLS-01 — Fallo de lectura PEM al arrancar Windows
-
-Estado: **corregido y verificado en Windows**, 5 de noviembre de 2026.
-
-El servidor terminó por `no OPENSSL_Applink` antes de abrir el puerto. Se
-cambiaron ambas lecturas de certificados del transporte a BIO de memoria.
-Regresión aislada superada con los dos certificados públicos, rechazos
-correctos y self-test 149/0. El servidor llegó a escuchar y completó la primera
-sesión TLS con pegado en ambos sentidos, confirmado por el usuario. Después se
-cerró y retiró su regla temporal. Recompilación de esta corrección en Ubuntu
-pendiente de confirmar con su agente. Evidencia en
-`experiments/clipboard/RESULTS.md`.
-
-## EXP-LAN-01 — Completar la preparación de la primera conexión
-
-Estado: preparación completada y primera sesión terminada. Servidor Windows cerrado, cero escuchas y regla temporal retirada. TLS/saludo y pegado bidireccional confirmados; ecos, selección inicial, certificado incorrecto y reconexión pendientes de validación.
-
-El [paquete LAN de portapapeles](experiments/clipboard/lan/README.md) incluye
-asistente probado sin red/escritorio, muestras sintéticas y certificado público
-Windows. La clave privada queda solo en `.local-state/lan-clipboard/windows/`.
-El perfil Windows observado es Public. Se abrió una regla limitada al ensayo y
-una escucha en 47831; ambas se han cerrado al terminar la primera sesión.
-
-Ubuntu avanzó sin conflictos a `6c2ec07`, generó su identidad y exportó solo
-`public/ubuntu.pem` y `public/ubuntu.sha256`. Clave privada local ignorada;
-huellas de ambos certificados coherentes con sus archivos SHA-256. IP LAN
-Ubuntu consultada y comunicada al usuario fuera de Git. Sin recompilar C++
-ni repetir pruebas ya válidas: los commits Windows no cambiaron esas fuentes.
-Windows incorporó esa entrega, verificó la identidad y comunicó su IP. Para el
-siguiente intento volver a acordar revisión, identidades, arranque y regla
-temporal. La primera sesión no valida automáticamente todos los casos de la
-matriz; consultar EXP-CLIP-LAN-02 y el informe de portapapeles.
-
-## EXP-BUILD-01 — Completar la evidencia de compilación nativa
-
-Estado: **completado en Ubuntu/Wayland y Windows para la revisión de entrega; X11 sin evidencia nueva**. Actualizado: 5 de noviembre de 2026.
-
-Reconstrucción Windows realizada sobre `2ae444df56689dbaebe9b796daca26a55bd02917`
-en `validation/windows`: los tres prototipos compilan en Release x64 con OpenSSL.
-Self-tests: portapapeles 149/0, archivos 176/0 y entrada 579/0; ayuda de los
-tres ejecutables correcta. Sin pruebas Windows de escritorio ni red.
-
-Base verificada: `450cbb2e340a381bda01274eb86df0e05934e822`, rama local
-`validation/ubuntu`, más la corrección mínima `<signal.h>` → `<csignal>` en
-el transporte TLS de portapapeles y las correcciones locales de lectura de
-pipes, vida de publicación y vaciado del log; acción GTK y formato de Nautilus
-en archivos; preparación y salida local de la demostración de entrada.
-Rama de entrega de estas correcciones: `validation/ubuntu`.
-
-- Portapapeles: portal libdbus y TLS OpenSSL compilados en Ubuntu 26.04.1; **153/0**, salida 0, tras añadir la regresión de lectura diferida de pipes (151/0 iniciales). Corregidos `std::signal`, EAGAIN, vida de la oferta y vaciado de metadatos.
-- Archivos: adaptador GTK3 y TLS compilados, sin sustituir el adaptador por `clipboard_unavailable`; **176/0** previos. Reconstrucción posterior correcta tras finalizar los nombres recibidos; L6/L7/L8 reales superados sin repetir la batería.
-- Entrada: aplicación Wayland GDBus/libei y TLS compilada con X11 desactivado; **579/0** tras las regresiones de preparación segura (538/0 anteriores), más Response y señales del atajo en memoria. Corregidos callback/resultados, tipo de sesión, recepción del atajo y separación de la salida respecto al control EIS. R2/R9 locales superados; recuperación ante cortes entre equipos pendiente; X11 sin evidencia nueva.
-- Windows: reconstrucción de los tres experimentos y self-tests completados sobre el commit de entrega. Evidencia nueva al inicio de sus `RESULTS.md`; se conserva la evidencia anterior como histórica.
-
-Las dependencias se conservan en `.local-state/ubuntu-validation/`, dentro del
-proyecto y excluidas de Git, sin instalación global, `sudo` ni cambios de
-cortafuegos. Para usarlas desde la raíz del proyecto:
-`source .local-state/ubuntu-validation/env.sh`. Se trasladaron desde `/tmp` y
-se reconfiguraron las tres compilaciones para usar la ubicación persistente.
-Comandos, versiones, incidencias y logs se registran en los tres `RESULTS.md`.
-
-Usar las opciones explícitas de cada manual para evitar una compilación satisfactoria que omita el backend o TLS. No confundir los flujos con dobles con los adaptadores nativos. Registrar comandos, dependencias, versiones y errores.
-
-## EXP-MANUAL-01 — Validar capacidades en los equipos reales
-
-Estado: **fase local prevista completada en la configuración soportada; limitaciones registradas y casos entre equipos pendientes**.
-
-Portapapeles y pegado asistido de archivos ya tienen evidencia local. Tras
-la pausa solicitada se reanudó entrada: cancelación real de RemoteDesktop
-verificada después de corregir Response y el tipo de `session_handle`.
-La preparación requiere identidad de aplicación y un solo monitor activo.
-El usuario confirmó pulsar Ctrl+Alt+F12, observar todo el PC congelado y
-**necesitar reiniciar para recuperarlo**.
-El proceso no recibió la emergencia y terminó por tiempo; no queda activo.
-El nuevo atajo, sin EIS, pasó después con la guía y el temporizador de 30 s:
-salida 0 y escritorio respondiendo, confirmado por el usuario.
-Después pasó la demostración local EIS: movimiento breve y texto `oneintwo`,
-salida 0 y escritorio respondiendo, confirmados por el usuario. Después pasaron
-R2 (emergencia con EIS activo) y R9 (retirada desde GNOME), ambas salida 0 y
-escritorio operativo. Cortes y estados retenidos entre equipos siguen pendientes.
-
-El 5 de noviembre, el usuario reanudó la validación con presencia confirmada
-después de la etapa aislada. Se probaron lectura, publicación/pegado,
-observación y cancelación del portal de portapapeles en GNOME Wayland.
-Los fallos encontrados y las repeticiones se conservan en los informes.
-También se probó el pegado asistido de archivos en Nautilus, con integridad
-correcta, el diagnóstico y la inyección local de entrada. No se ha iniciado
-captura ni conexión con Windows. La única red de prueba ha sido TLS de
-archivos en loopback para L6/L7/L8.
-
-- Portapapeles: lectura, pegado, observación y cancelación verificados, `devices=0`. Copia aislada posterior: una acción humana, una notificación de la muestra y 12 s sin repeticiones. Pendientes entre equipos: ecos, reconexión y sincronización real.
-- Archivos: pegado asistido en Nautilus correcto, 5 archivos/5.551.150 bytes íntegros. L6/L7/L8 con TLS mutuo local superados tras corregir el renombrado de `.o2f-part` verificados en la CLI: colisiones sin sobrescritura, error de permisos, cancelación sin restos y caché limpia. Publicación automática y bajo demanda Linux son limitaciones registradas; pendientes Explorer y transferencias Windows/Ubuntu.
-- Entrada: diagnóstico real con InputCapture v1, RemoteDesktop v2 y GlobalShortcuts v1. Origen Ubuntu bloqueado por requisito v2; no se habilitó captura ni X11. Las primeras preparaciones fallaron antes del diálogo; se corrigieron Response y el tipo de `session_handle`. Cancelación real verificada. Se corrigió también la ruta de recepción de GlobalShortcuts; se alcanzó la espera con identidad de aplicación y un monitor. El usuario comunica congelación al pulsar el atajo; recuperación fallida. Se preparó el nuevo `--check-target` solo de GlobalShortcuts y Ctrl+Shift+F12, con 579/0 aisladas. El atajo aislado y la demostración local EIS pasaron con guía de 30 s, texto, movimiento y escritorio respondiendo; R2/R9 locales superados con salida 0 y escritorio operativo. Cruce/retorno y cortes entre equipos pendientes.
-- Red: comprobar aceptación y rechazo de identidades en los prototipos y transferencias reales.
-
-Seguir los tres `MANUAL.md`, un experimento cada vez, y registrar resultados observados en sus `RESULTS.md`. Los self-tests y la presencia de código no cierran estos puntos.
-
-Para reanudar escritorio: usuario presente, datos/ventana desechables y salida
-preparada; comprobar el atajo local antes de habilitar captura. Antes de cada
-caso Windows/Ubuntu, acordar una revisión común que incluya la corrección,
-binarios, roles, IP/puerto, huellas públicas, duración, observación y
-recuperación. El usuario ha autorizado publicar la rama de validación; todavía no
-se ha conectado con Windows. La integración de la aplicación sigue siendo
-trabajo posterior.
-
-## EXP-INPUT-01 — Conciliar la entrega Wayland y su documentación
-
-Estado: **resuelto en documentación**, 5 de noviembre de 2026.
-
-`experiments/input/README.md`, `MANUAL.md` y `RESULTS.md` ya describen la implementación Wayland, sus requisitos, las pruebas manuales y los límites de la evidencia. La comprobación aislada del binario Windows dio 538/0; los 403/0 anteriores quedan identificados como históricos. Las verificaciones nativas y manuales permanecen abiertas en los puntos anteriores.
-
-## EXP-INPUT-02 — Congelación observada al probar la salida local
-
-Estado: **correcciones comprobadas localmente con R2/R9; recuperación ante cortes entre equipos pendiente**, 5 de noviembre de 2026.
-
-En GNOME Wayland, con un monitor activo y RemoteDesktop/EIS autorizados,
-el usuario pulsó Ctrl+Alt+F12 durante `--check-target --max-seconds 60` y
-observó que todo el PC quedó congelado. El proceso no recibió la señal de
-emergencia y terminó por tiempo, salida 1. No se enviaron eventos de
-movimiento, botones ni teclas, pero sí se preparó una sesión EIS real.
-El usuario confirmó que **tuvo que reiniciar para recuperarse**. Nuevo
-arranque a las 13:10:57 CET; no queda el prototipo activo. Se conservaron
-los registros del arranque afectado: hubo actividad posterior de servicios,
-una suspensión y un error DRM a las 13:08:10, sin causa concluyente del fallo.
-La consulta inicial sin mensajes correspondía ya al arranque nuevo.
-
-Por petición posterior del usuario se preparó una corrección: destino Wayland
-con Ctrl+Shift+F12 e identificador nuevo, prueba `--check-target` solo de
-GlobalShortcuts, pulsación y liberación obligatorias antes de RemoteDesktop/EIS,
-emulación diferida hasta el primer evento y cierre del estado propio.
-El atajo anterior coincide con VT 12 de Mutter; esto confirma un conflicto,
-pero no determina toda la causa de la congelación. Compilación nativa,
-**579/0** y regresiones de señales en memoria superadas sin bus ni escritorio.
-Después se intentó solo GlobalShortcuts por petición del usuario, con
-`RuntimeMaxSec=60s`, `TimeoutStopSec=3s` y `timeout 60s` más 3 s. El gestor
-cerró la prueba a los 63 s, salida 137 y ningún prototipo restante. No llegó
-a registrarse la espera del atajo; falta confirmar qué vio el usuario.
-El límite del proceso está comprobado, la recuperación gráfica no. El caso
-antiguo sigue fallido.
-
-El nuevo atajo aislado y la demostración RemoteDesktop/EIS ya pasaron con
-recuperación independiente preparada y usuario presente. R2/R9 también
-superados: emergencia durante control y retirada desde GNOME. Pendientes:
-liberación de estados retenidos y recuperación ante cortes en la fase entre
-equipos. La nueva gestión EIS tiene evidencia local real de movimiento,
-letras, cierre normal y ambas salidas.
-No se considera resuelto el incidente por cambiar la combinación. Detalles,
-comandos y límites en `experiments/input/RESULTS.md`.
-
-Preparación adicional de EXP-INPUT-02: guía con pasos y botones en pantalla,
-Inicio manual, temporizador independiente que cierra solo el ensayo y reactiva
-la sesión gráfica a los 30 s. Supervisor probado con `sleep` (cierre y
-`activate_exit=0`); no es prueba de recuperación de imagen congelada. Tres
-regresiones imprescindibles del supervisor superadas. No ampliar ni repetir
-la batería general para esta preparación. Tras regresar el usuario se abrió
-la guía. Primer intento sin «AHORA» visible, salida 124; se llevó estado y
-cuenta atrás arriba. Repetición `guided-20261105-140927-fa41253e7d58`:
-atajo recibido, salida 0, temporizador a los 30 s y reactivación salida 0.
-El usuario vio los mensajes y confirmó el escritorio respondiendo durante
-toda la prueba. Solo GlobalShortcuts, sin EIS. No demuestra retorno desde
-otra VT ni reparación de una imagen congelada; el incidente sigue abierto.
-
-Demostración posterior solicitada por el usuario:
-`guided-20261105-141528-30d8de65e4b9`, `--inject-demo --arm-seconds 5`,
-temporizador independiente de 30 s. Atajo comprobado antes de RemoteDesktop,
-EIS preparado, movimiento breve y `oneintwo`, salida 0. El usuario confirmó
-texto correcto, movimiento y escritorio respondiendo. Temporizador ejecutado
-a las 14:15:58 CET, reactivación salida 0; el prototipo ya había terminado.
-No se observó congelación en esta ejecución. No prueba recuperar una imagen
-congelada ni estados retenidos; no se cierra el incidente por este único caso.
-
-Intento previo: `guided-20261105-192232-74937ef202aa`, modo R2 preparado
-con `--inject-demo --wait-for-stop`. Preparación rechazada por varias regiones
-EIS/monitores, salida 1 antes de inyectar; supervisor de 30 s y activación de
-la sesión correctos. El usuario decidió dejar R2 y R9 pendientes en lugar de
-desactivar otro monitor. No repetir ni iniciar R9 hasta que lo solicite.
-El usuario reanudó después con un monitor activo. R2:
-`guided-20261105-192937-e3dd65eea268`, emergencia recibida durante EIS activo,
-salida 0. R9: `guided-20261105-193129-20e181ab3953`, permiso retirado desde
-el indicador de GNOME, desconexión EIS y salida 0. En ambos confirmó salida
-recibida y escritorio respondiendo; en R9 también indicador retirado. Cierres
-antes del temporizador, que actuó después con activación salida 0.
-No quedan R2/R9 locales pendientes. No se afirma reparación de un compositor
-congelado ni causa completa del incidente histórico. No añadir esa prueba
-como condición nueva de cierre local. Siguiente fase: coordinación Windows.
+# Challenges ahead
+
+## VISUAL-WIN-01 — Close selector without callbacks after destroying CaptureModel
+
+State: pending, detected when documenting `feature/share-window` on November 15, 2026.
+
+[`CaptureModel::selectSource`](src/platform/windows/visual/capture_model.cpp) delivers to the port a callback that captures `this`. When the model is destroyed, the selection is reset to `cancelPrompt()`, but the real selector only publishes `WM_CLOSE`; the answer may arrive after the model has disappeared. That callback would execute `post()` on an already liberated object. Current tests cover cancellation while the model is still alive, not destruction with a pending prompt.
+
+Reproduction:
+
+1. Put [`FakeCapturePort`](tests/capture_windows/fake_port.hpp) in ferred mode and call
+   `selectSource`.
+2. Drain `ModuleRuntime.post`.
+3. Destroy `CaptureModel` without completing the prompt.
+4. Complete the pending prompt.
+5. Repeat with ASan or equivalent instrumentation of life of objects.
+
+**Acceptance criterion:** a regression test shows that the late response to a already destroyed
+selector does not execute callbacks, does not access a liberated state and does not cause failure;
+while the model is still alive, `stopCapture` delivers exactly a terminal result `cancelled` and no
+subsequent callback.
+
+## VISUAL-WIN-02 — Invalid selector HWND and owner when closed
+
+Status: pending, detected in the branch review on November 15, 2026.
+
+In [`win32_selector.cpp`](src/platform/windows/visual/win32_selector.cpp), `prompt_window_` is only placed at `nullptr` when called `cancelPrompt()`. If the user closes the selector with the X or Cancel, `WM_DESTROY` delivers the result but leaves the `HWND` stored. A call after `cancelPrompt()` can send `WM_CLOSE` to a reused handle; In addition, `WM_DESTROY` reactivates the owner with `EnableWindow` without checking that it remains a valid window. Destroying the `QWidget` parent with the open selector exposes the same problem.
+
+Reproduction:
+
+1. Open a selector, close it normally and keep the port instance.
+2. Reuse or simulate the reuse of the enclosed `HWND`.
+3. Call `cancelPrompt()` and check if a message arrives at the wrong window.
+4. Destroy the parent widget with the selector still open and observe the reactivation of the owner.
+
+**Criteria of acceptance:** when closing the selector by any means, the port ceases to retain its
+`HWND`, `cancelPrompt()` is a non-op after closing and never sends messages to a reused handle; the
+owner is only reactivated if `IsWindow` confirms that it is still valid. A regression test covers
+the normal closure followed by `cancelPrompt()` and the destruction of the father with the selector
+open.
+
+## VISUAL-WIN-03 — Publish closure for repeated frame copy failures
+
+Status: pending, detected in the branch review on November 15, 2026.
+
+[`WinRtFrameCopier::copy`](src/platform/windows/visual/wgc_capture.cpp) returns `false` if the texture is not `DXGI_FORMAT_B8G8R8A8_UNORM` or if it fails `Map`. [`WgcCaptureCore::poll`](src/platform/windows/visual/wgc_capture_core.cpp) He simply discards that frame and keeps probing. `closed` or any other state, so the consumer can see a frozen image without knowing that the capture was no longer useful. `copy` failure after `Map`the path of exception does not guarantee `Unmap`.
+
+Reproduction:
+
+1. Run `oneintwo_wgc_capture_tests` with a fake `WgcFrame` whose `copyTo` returns `false`
+   consecutively.
+2. Check that no frames are delivered and that no `closed` are published.
+3. Enter a bug after `Map` and check the status of the tagging texture.
+
+**Criteria of acceptance:** after a documented and proven threshold (proposed: 10 consecutive copy
+failures or 2 seconds without valid copy), the kernel publishes `closed`, stops the thread and does
+not deliver more callbacks. Any successful call `Map` is compensated with `Unmap` in success and in
+exception. The false frame test covers the threshold, stop and absence of late callbacks
+
+## VISUAL-WIN-04 — Test identity before reused window handles
+
+State: pending hardening and testing; documented risk on November 15, 2026.
+
+[`WinRtWgcSource::available`](src/platform/windows/visual/wgc_capture.cpp) checks `IsWindow` and that PID of the window remains the same, and for a monitor compares `GetMonitorInfo` with the device name. This reduces the risk, but there is no test that reuses a `HWND` or a `HMONITOR` with the same numerical value for another source. Current tests cover closing and reopening with the same title, not the effective reuse of the handle.
+
+Reproduction:
+
+1. Select a window and start your capture.
+2. Simulate with the false port that the source disappears and that the same numerical handle goes
+   on to identify another window or the same window with another PID.
+3. Deliver frames from the new source to the old catch.
+4. Repeat for a monitor that disappears and returns with the same name.
+
+**Criteria of acceptance:** a deterministic test shows that the old operation does not deliver any
+new source frames and ends at `closed` before accepting the following; a new invitation can select
+the new source. The adapter does not re-find the source by title. The test and manual validation
+record the case of proven handle reuse.
+
+## VISUAL-WIN-05 — Validate real catch WGC on Windows
+
+Status: manual execution pending; IC smoke can return skip 77.
+
+The portable tests and the smoke cover parts of the way, but the product matrix has not been
+executed on a real Windows desktop with the binary of this branch. The smoke only checks a valid
+frame, closure and absence of callbacks after `stop`; it does not check content, DPI, cursor,
+capture edge or protected content.
+
+**Criteria of acceptance:** in a Windows session 10/11 interactive and unlocked, `oneintwo_wgc_smoke` ends with code 0 (no 77) and registers a matrix with, at least: two overlapping windows with different patterns, monitor change, resized, minimizing and restoring, closing and reopening with the same title, cancellation of the selector, DPI 100% and 150 % and window protected or elevated with its expected result. Windows build is registered, SDK, GPU, result of cursor/borde and any skip; no support is declared if the smoke was only omitted.
+
+## VISUAL-WAYLAND-01 — Validate Wayland backend with real PipeWire portal
+
+Status: native validation pending; current tests use simulated PipeWire and portal.
+
+The backend [`../../linux/visual`](src/platform/linux/visual) requires that the ScreenCast portal
+announce `WINDOW`, that the response attests the type of source and that the authorized PipeWire
+node deliver convertible frames to BGRA. Double tests cover the flow and cancellation, but not the
+actual variation of PipeWire portal, composer and format versions.
+
+**Acceptance criterion:** in Ubuntu/Wayland with a portal announcing `WINDOW`, select a single
+window, receive BGRA frames, change its size, minimize it and restore it by registering if the
+portal suspends or maintains the stream, close it and cancel a selection. It is verified that it is
+not replaced by a monitor or captured a region, and composer, version of the portal, PipeWire format
+and result are recorded. If the portal does not credit the type, the operation must remain
+`unavailable`, not “function” by fallback.
+
+## VISUAL-INTEGRATION-01 — Connect Capture, VisualShare, Codec, Transport and Viewer
+
+Status: pending; [9`visual_share.cpp`](src/features/visual_share.cpp) remains the coordinator's stub
+and the backend cannot be used as a standalone product.
+
+The common visual contract must maintain an operation, validate permissions, revisions, sequence and
+limits, encode JPEG, transport fragments and present in the viewer. It must also cover the absence
+of frames, session blocking and closing of the source with the already documented activity policy.
+
+**Acceptance criterion:** two instances with real backends complete the route select → invite →
+accept → view image → stop, without sending video before acceptance. Minimize and close the source
+empty the viewer and finish the operation; a session lock or a withdrawal of permission terminates
+it without automatic resumption. A source that stops delivering frames activates the activity timer
+and closes or empties the viewer according to the agreed status. No titles, source tags or frames
+are recorded. The integrated test and manual record platforms, versions and limits of the checked.
+## FEATURE-SHARE-SCREEN — Delivery integration earrings P
+
+They come from [the documentation of the feature](docs/feature-share-screen/README.md) and remain
+separate from the experimental slopes.The criteria seek observable results; they do not replace the
+native validation of branches V and N.
+
+## PSS-01 — Persisting peer generation between restarts
+
+Status: **pending**.
+
+`SessionLink` accepts `last_peer_generation` and `remember_peer_generation`, but `Application` does
+not connect them to any warehouse. Protection against repeat generations only lives for the duration
+of the process.
+
+**Acceptance criterion:**The last remote generation accepted is saved by `device_id` and loaded
+when constructing `SessionLinkOptions`. After a reboot of Application with the same warehouse, a
+generation equal to or less than the saved one must be rejected with `SessionLinkError::generation`;
+a superior one must be accepted. A rejected attempt cannot advance the persistent brand. There must
+be an integration test with two sequential instances of Application, not only a unitary test of
+`SessionLink`.
+
+## PSS-02 — Make transactional and atomic `LocalStore`
+
+Status: **pending**.
+
+`LocalStore` still writes in a fixed time (`path + ".tmp"`), does not do `fsync` and does not return
+the save result. A bug may leave diverging memory preferences of the file or lose the previous
+content.
+
+**Acceptance criterion:** `saveProfile` and `saveAllowedApplications` write with a single
+temporary and atomic replacement, do `fsync` in POSIX and update the memory status only after
+persisting. A forced write failure must keep the previous file and memory status, without residual
+temporary. After a correct save and a new instance of `LocalStore`, the profile and permitted
+applications must be recovered. There must be a test with the target path locked and another one of
+recharge.
+
+## PSS-03 — Select explicitly between several saved pairs
+
+Status: **pending**.
+
+`PairingStore` supports multiple pairs, but `Application` reuses `devices().back()` when booting.
+With more than one saved computer there is no selection and the order of the file implicitly
+decides.
+
+**Criteria of acceptance:** when booting with two or more pairs, Application must not connect
+silently with `devices().back()` or let the order of the TSV decide. There must be an explicit
+selection visible to the user and the choice must persist. A test with two different peer and
+endpoints must demonstrate that only the selected one is contacted and that the choice survives the
+restart. If the selected one no longer exists, the application must display it and not connect to
+any other pair.
+
+## PSS-04 — Integrate native capture of V and produce executable
+
+Status: **to be integrated**.
+
+The native catch of monitor/ventana belongs to `feature/share-window` (V) and is not part of the
+composition of this branch. Target `oneintwo` is omitted if there are no `oneintwo_capture_windows`
+or `oneintwo_capture_wayland`, so today it is only tested with `UnavailableCapture`/dobles..
+
+**Criteria of acceptance:** on Windows and Linux, CMake incorporates the native target of V and
+generates `oneintwo` without test factories. A real execution must open the native selector, share a
+monitor or window and deliver images to the viewer; stop, viewfinder closure and source loss must
+release the capture. The test cannot be declared exceeded using a simulated adapter.
+
+## PSS-05 — Integrate N notifications and remove doubles from product
+
+Status: **to be integrated**.
+
+The native notifications belong to `feature/notifications` (N). The Application kernel is tested
+with `SharedNotifications` replaced in `tests/application/application_test.cpp`; the product
+executable does not yet link `oneintwo_notifications`.
+
+**Criteria of acceptance:** the product executable links the actual N target and does not contain
+the notifications test implementations. At least a manual shipment must be submitted on Windows and
+Linux and an adapter failure must reach the UI without blocking the session. The final binary must
+compile and boot without simulating `oneintwo_notifications`.
+
+## PSS-06 — Implement Peers discovery and reconnection
+
+Status: **pending**.
+
+Pairing requires manual host and port. There is no discovery in the LAN, resolution of direction
+changes or automatic reconnection.
+
+**Criteria of acceptance:** two instances in the same LAN must be able to locate and select the peer
+without manually entering its address. A change of IP or peer port must be reflected without
+creating a new confidence: identity is still checked with the pin and, if it is in transition, with
+SAS. There must be an endpoint discovery and update test, in addition to a proof that an
+unauthenticated peer does not gain access to functions.
+
+## PSS-07 — Define and verify the unique writer of `PairingStore`
+
+Status: **pending**.
+
+`PairingStore` does not have mutex or interprocess block. `QSaveFile` avoids timeshares and partial
+replacements, but two instances that load and save at the same time may lose an update.
+
+**Criteria of acceptance:** the application must impose a single instance of writing or implementing
+a block that serializes mutations. In any case, two independent writers cannot corrupt the file or
+lose a confirmed pair; a write failure must keep the previous file. The test must cover two
+`PairingStore` on the same path, including a failed script, and demonstrate documented behavior.
+
+## PSS-08 — Recovering a corrupt pair store when booting
+
+Status: **pending**.
+
+If `paired-devices.tsv` is corrupt when building Application, the warehouse is disabled and the
+selection of pairs in memory is lost. `reload()` retains the last valid state only if the instance
+was already loaded.
+
+**Acceptance criterion:** a file with invalid header, truncated line, invalid port or duplicate
+entry cannot quietly delete all pairs or overwrite with an empty state. The application must keep
+the invalid file in quarantine or as a copy, display an actionable error and not continue with an
+empty warehouse without consent. If a valid copy exists, it is restored; if not, it is offered to
+repair or re-matched. The proof must show that valid pairs are not lost without consent and that the
+previous state is recoverable.
+
+## PSS-09 — Validate end-to-end screen sharing between computers
+
+Status: **pending**.
+
+The current suite validates protocol, TLS, composition and boot, but not a real capture nor the
+entire chain between two teams.
+
+**Acceptance criterion:** with the P, V and N integrated binaries, perform Windows → Linux and
+Linux → Windows on a LAN: select monitor or window, accept the invitation, view images in the viewer
+and stop from both ends. You must check accept, reject, expiration, viewfinder closure, network loss
+and recovery without automatic restart. The evidence should indicate review, platforms and any
+non-executed case; `QT_QPA_PLATFORM=offscreen` or doubles do not count as desktop validation.
+## NOTIF-WIN-01 — Validate manual presentation and removal on Windows
+
+Status: pending. Requires a Windows computer with MSIX installable, package identity and user
+present. The IC only compiles, installs and removes the package; it cannot confirm the visual
+presentation or attribution of the computer.
+
+Acceptance criterion:
+
+- [ ] Install the MSIX signed and start the packaged application.
+- [ ] A manual notice sent from the other computer appears only once, with title, Unicode body and
+      `From <device>`; it does not show buttons, links or actions.
+- [ ] `withdrawNotices` withdraws the active own warning.
+- [ ] A pending notice does not reappear after blocking, disconnecting or switching generation.
+- [ ] Register Windows version, package identity and result.
+
+## NOTIF-WIN-02 — Validate consent, discovery and forwarding
+
+Status: pending. The native test without package already covers closed rejection; real observation,
+consent and list of applications require a Windows computer with MSIX and user present.
+
+Acceptance criterion:
+
+- [ ] No package identity, `notificationCapabilities().observe` is fake and `discoverApplications`
+      complete with `unavailable` without asking for consent.
+- [ ] With package, `observe` reflects technical support; consent is checked upon discovery or
+      initiation and a rejection produces `denied`, no `unavailable`.
+- [ ] `discoverApplications` may request consent, does not initiate observation or alter its
+      baseline, returns unique and orderly applications, excludes OneInTwo and discards empty
+      identities.
+- [ ] A new notice of an authorized application comes only once with its visible name; previous
+      notices, unauthorized applications and OneInTwo notices are not forwarded.
+- [ ] Withdraw consent in Settings stops observation in less than five seconds and produces a
+      recoverable local error.
+- [ ] After re-granting permission and restarting the observation, the baseline is new: the
+      accumulated history is not forwarded.
+- [ ] Register Windows version, package identity and result.
+
+## NOTIF-LINUX-01 — Validate presentation and withdrawal in Ubuntu real
+
+Status: visual check pending. The adapter is tested with a private session bus, but the presentation
+has not been certified on a real graphic desktop.
+
+Acceptance criterion:
+
+- [ ] With `org.freedesktop.Notifications` available, a manual notice and an authorized forwarding
+      appear only once, with the source equipment; the forwarding includes the name of the source
+      application.
+- [ ] The Unicode text is preserved and no buttons, links or actions appear.
+- [ ] `withdrawNotices` withdraws own asset notices.
+- [ ] `notificationCapabilities().observe` is fake, `discoverApplications` returns `unavailable` and
+      manual shipping continues to work.
+- [ ] Register version of Ubuntu, notification service and result.
+
+## NOTIF-RESUME-01 — Renew the base line when Windows resumes
+
+Status: pending integration. The module does not itself receive a restart event; the observation
+must be restarted in order not to forward notices accumulated during suspension.
+
+Acceptance criterion:
+
+- [ ] The coordinator restarts the observation with a new subscription upon return from suspension,
+      or the adapter displays an equivalent signal and the test covers it.
+- [ ] Warnings generated during suspension are not forwarded upon resumption.
+- [ ] A new warning generated after resuming arrives exactly once.
+- [ ] The automated test uses simulated watch and subscription; the manual check in Windows records
+      the case and the result.
+
+## NOTIF-MSIX-01 — Complete integrity check APPX
+
+Status: pending. The current check validates PKCS#7 of `AppxSignature.p7x` and that the signatory is
+the ephemeral certificate, but does not link the digests `AXPC`, `AXCD`, `AXCT`, `AXBM` and `AXCI`
+(if any) to the actual package.
+
+Acceptance criterion:
+
+- [ ] Extract and parse the `SpcIndirectDataContent` signed, including the digest header APPX.
+- [ ] Recalculate the applicable digests on the package without its signature entry and compare them
+      with the signed values.
+- [ ] A valid package passes; altering the payload, central directory, block map, content types or
+      signature causes an explicit bug.
+- [ ] The job `msix` record `signature_integrity=verified` unused `signtool verify` and the API WinTrust/Appx.
+- [ ] The confidence of the chain and installation are outside this criterion and are validated
+      separately on the Windows checking machine.
+
+## EXP-FILES-LAN-01 — Complete glued Explorer and on demand
+
+Status: T1 complete; T2 CLI receive and copy and complete integrity. TLS negative both authentication
+senses, corte/reintento, collisions, permissions and GC Windows exceeded. Closed servers; no new
+rules. Evidence and limits in experiments/files/RESULTS.md. Earrings pasted real Explorer (T2/L2),
+on demand Windows (T3/L3) and behavior of Explorer in court. Desktop control blocked by helper boot
+failure; no human interaction requested nor replaced pasted by copy CLI. Text suspended.
+
+## EXP-CLIP-LAN-02 — Contrast echoes and initial team selection
+
+Status: Pending conclusion; text experiment suspended by the user. Do not start new tests or text
+connections while advancing in files.
+
+TLS and greeting worked and the user confirmed the pasting in both directions. The Windows registry
+includes an initial update Ubuntu of 48 bytes, finite re-emissions, rejections by order and two
+local 147 bytes catches separated by about 277 ms. The agent Ubuntu reports prior selection and
+re-emitting. Compare relative times, origin, generation, logical counter and user actions before
+concluding if there are incorrect echoes or duplicate notifications. Do not confuse absence of
+infinite loop with correct policy.
+
+Shared log: `experiments/clipboard/lan/evidence/windows-session-01.log`. Do not apply speculative
+fixes or repeat desktop tests without an agreed case. Incorrect certificate and reconnection are
+still untested.
+
+## EXP-CLIP-TLS-01 — Reading failure PEM on Windows startup
+
+Status: **corrected and verified on Windows**, November 5, 2026.
+
+The server ended by `no OPENSSL_Applink` before opening the port. Both transport certificate
+readings were changed to BIO of memory. Insulated regression exceeded with the two public
+certificates, correct rejections and self-test 149/0. The server came to listen and completed the
+first TLS session with pasted in both directions, confirmed by the user. Then its temporary rule was
+closed and withdrawn. Recompiling this correction in Ubuntu pending confirmation with its agent.
+Evidence in `experiments/clipboard/RESULTS.md`.
+
+## EXP-LAN-01 — Complete the preparation of the first connection
+
+Status: preparation completed and first session completed. Windows server closed, zero listens and
+time rule removed. TLS/saludo and two-way pasted confirmed; echoes, initial selection, incorrect
+certificate and reconnect pending validation.
+
+The [package LAN clipboard](experiments/clipboard/lan/README.md) includes tested assistant without red/escritorio, synthetic samples and public certificate Windows. The private key remains only in `.local-state/lan-clipboard/windows/`. The observed Windows profile is Public. A limited rule was opened to the trial and a listener in 47831; both have been closed at the end of the first session.
+
+Ubuntu advanced without conflict to `6c2ec07`, generated his identity and exported only `public/ubuntu.pem` and `public/ubuntu.sha256`. Local private key ignored; prints of both certificates consistent with their archives SHA-256. IP LAN Ubuntu consulted and communicated to the user outside Git. Without recompiling C++ or repeating valid tests: Windows commits did not change those sources. Windows incorporated that delivery, verified the identity and communicated its IP. For the next attempt re-agreed review, identities, boot and time rule. The first session does not automatically validate all matrix cases; see EXP-CLIP-LAN-02 and the clipboard report.
+
+## EXP-BUILD-01 — Complete evidence of native compilation
+
+Status: **completed in Ubuntu/Wayland and Windows for delivery review; X11 without new evidence**.
+Updated: November 5, 2026.
+
+Windows reconstruction performed over `2ae444df56689dbaebe9b796daca26a55bd02917` in
+`validation/windows`: the three prototypes compile in Release x64 with OpenSSL. Self-tests: 149/0
+clipboard, 176/0 files and 579/0 input; help of the three correct executables. Without Windows
+desktop or network testing.
+
+Verified base: `450cbb2e340a381bda01274eb86df0e05934e822`, local branch `validation/ubuntu`, plus
+the minimum correction `<signal.h>` → `<csignal>` in the transport TLS of clipboards and local
+corrections of pipe reading, publication life and emptying of the log; action GTK and format of
+Nautilus in files; preparation and local output of the input demonstration. Branch of delivery of
+these corrections: `validation/ubuntu`.
+
+- Clipboards: libdbus portal and TLS OpenSSL compiled in Ubuntu 26.04.1; **153/0**, output 0, after
+  adding the regression of deferred reading of pipes (151/0 initials).Corrected `std::signal`,
+  EAGAIN, life of the supply and emptying of metadata.
+- Files: GTK3 and TLS adapter compiled, without replacing the adapter with `clipboard_unavailable`;
+  **176/0** previous. Back reconstruction correct after finishing the received names; R$L6/L7/L8
+  exceeded without repeating the battery.
+- Input: Wayland GDBus/libei and TLS compiled with X11 disabled; **579/0** after safe preparation
+  regressions (538/0 above), plus Response and memory shortcut signals. Corrected
+  callback/resultados, session type, reception of shortcut and separation of output from control
+  EIS, R2/R9 premises exceeded; recovery from pending equipment cuts; X11 without new evidence.
+- Windows: reconstruction of the three experiments and self-tests completed on the commission of
+  delivery. New evidence at the beginning of its `RESULTS.md`; the previous evidence is preserved as
+  historical.
+
+The dependencies are conserved in `.local-state/ubuntu-validation/`, within the project and excluded
+from Git, without global installation, `sudo` nor firewall changes. To use them from the root of the
+project: `source .local-state/ubuntu-validation/env.sh`. They moved from `/tmp` and reconfigured the
+three compilations to use the persistent location. Commands, versions, incidents and logs are
+recorded in the three `RESULTS.md`.
+
+Use the explicit options of each manual to avoid a satisfactory compilation that omits the backend
+or TLS. Do not confuse streams with doubles with native adapters. Register commands, dependencies,
+versions and errors.
+
+## EXP-MANUAL-01 — Validate capabilities on actual equipment
+
+Status: **Intended local phase completed in supported configuration; recorded limitations and cases
+between outstanding equipment**.
+
+Clipboards and file assist pasted already have local evidence. After the requested pause entry resumed: actual cancellation of RemoteDesktop verified after correcting Response and the type of `session_handle`. Preparation requires an application identity and a single active monitor. The user confirmed to press Ctrl+Alt+F12, observe the entire frozen PC and **need to restart to recover it**. The process did not receive the emergency and ended for time; It's not active. The new shortcut, without EIS, passed later with the guide and 30 s timer: output 0 and desktop responding, confirmed by the user. Then passed the local demonstration EIS: short movement and text `oneintwo`, output 0 and desktop responding, confirmed by the user. Then they passed R2 (emergency with EIS active) and R9 (withdrawn from GNOME), both output 0 and operating desktop. Courts and states held between teams are still pending.
+
+On November 5, the user resumed the validation with confirmed presence after the isolated stage.
+Reading, publishing and pasting, observation and cancellation of the clipboard portal in GNOME Wayland
+were tested. The faults found and repetitions are preserved in the reports. Also the supported
+pasting of files in Nautilus, with correct integrity, diagnosis and local injection input. No
+capture or connection with Windows has been initiated. The only test network has been TLS files in
+loopback for L6/L7/L8.
+
+- Clipboards: reading, pasting, observation and cancellation verified, `devices=0`. Back isolated
+  copy: a human action, a sample notification and 12 s without repetitions. Earrings between teams:
+  echoes, reconnection and real synchronization.
+- Archives: pasted assisted in correct Nautilus, 5 archivos/5.551.150 bytes. L6/L7/L8 with TLS local
+  mutual overcome after correcting the renamed `.o2f-part` verified in the CLI: collisions without
+  overwriting, permission error, cancellation without remains and clean cache. Automatic publication
+  and on demand Linux are recorded limitations; pending Explorer and transfers Windows/Ubuntu.
+- Entry: real diagnosis with InputCapture v1, RemoteDesktop v2 and GlobalShortcuts v1. Ubuntu origin blocked by requirement v2; no capture or capture enabled X11. The first preparations failed before the dialogue; response and type of `session_handle`. Verified actual cancellation. The GlobalShortcuts reception route was also corrected; the wait was reached with application identity and a monitor. The user communicates freeze when pressing the shortcut; recovery failed. The new one was prepared `--check-target` GlobalShortcuts and Ctrl+Shift+ onlyF12with 579/0 isolated. The isolated shortcut and local demonstration EIS passed with 30 s guide, text, movement and desktop responding; R2/R9 exceeded premises with output 0 and operating desktop. Cruce/retorno and cuts between pending teams.
+- Network: verify acceptance and rejection of identities in prototypes and real transfers.
+
+Follow the three `MANUAL.md`, one experiment at a time, and record results observed in its
+`RESULTS.md`. Self-tests and the presence of code do not close these points.
+
+To resume desktop: present user, datos/ventana disposables and ready output; check the local
+shortcut before enabling capture. Before each case Windows/Ubuntu, agree to a common review
+including correction, binary, roles, IP/puerto, public footprints, duration, observation and
+recovery. The user has authorized publishing the validation branch; it has not yet been connected to
+Windows. The application integration remains work later.
+
+## EXP-INPUT-01 — Conciliate Wayland delivery and documentation
+
+Status: **resolved in documentation**, November 5, 2026.
+
+`experiments/input/README.md`, `MANUAL.md` and `RESULTS.md` already describe Wayland implementation,
+its requirements, manual testing and the limits of evidence. The isolated check of the Windows
+binary gave 538/0; the above 403/0 are identified as historical. Native and manual verifications
+remain open at the above points.
+
+## EXP-INPUT-02 — Freezing observed when testing local output
+
+Status: **Locally proven corrections with R2/R9; recovery from court between teams pending**,
+November 5, 2026.
+
+In GNOME Wayland, with an active monitor and RemoteDesktop/EIS authorized, the user pressed Ctrl+Alt+F12 during `--check-target --max-seconds 60` and observed that the entire PC was frozen. The process did not receive the emergency signal and ended in time, exit 1. No movement events, buttons or keys were sent, but a real EIS session was prepared. The user confirmed that ** had to restart to recover**. Restart at 13:10:57 CET; There is no active prototype left. The records of the affected start were kept: there was subsequent service activity, a suspension and a DRM error at 13:08:10, without conclusive cause of the failure. The initial query without messages already corresponded to the new boot.
+
+Upon subsequent request of the user a correction was prepared: Wayland destination with Ctrl+Shift+F12 and new identifier, test `--check-target` GlobalShortcuts only, mandatory pulse and release before RemoteDesktop/EIS, delayed emulation to the first event and closure of the state itself. The above shortcut matches Mutter's VT 12; this confirms a conflict, but does not determine the whole cause of freezing. Native compilation, **579/0** and memory signal regressions exceeded without bus or desktop. Then only GlobalShortcuts was attempted by user request, with `RuntimeMaxSec=60s`, `TimeoutStopSec=3s` and `timeout 60s` plus 3 s. The manager closed the test at 63 s, output 137 and no remaining prototype. The wait for the shortcut was not recorded; it is necessary to confirm what the user saw. The process limit is checked, the graphical recovery is not. The old case is still failed.
+
+The new isolated shortcut and the RemoteDesktop/EIS demonstration have already passed with
+independent recovery prepared and user present. R2/R9 also overcome: emergency during control and
+withdrawal since GNOME. Pending: release of retained states and recovery before cuts in the
+inter-team phase. The new EIS management has real local evidence of movement, letters, normal
+closure and both outputs. The incident by changing the combination is not considered solved.
+Details, commands and limits in `experiments/input/RESULTS.md`.
+
+Additional preparation of EXP-INPUT-02: guide with on-screen steps and buttons, manual start, independent timer that closes only the test and reactivates the graphic session at 30 s. Supervisor tested with `sleep` (close and `activate_exit=0`); is not evidence of frozen image recovery. Three essential regressions of the supervisor overcome. Do not expand or repeat the general battery for this preparation. Upon return the user opened the guide. First attempt without ‘AHORA’ visible, exit 124; He took state and countdown up. Repeat `guided-20261105-140927-fa41253e7d58`: shortcut received, output 0, timer at 30 s and reactivation output 0. The user saw the messages and confirmed the desktop responding throughout the test. Only GlobalShortcuts, no EIS. does not demonstrate return from another VT or repair of a frozen image; The incident is still open.
+
+Later demo requested by the user: `guided-20261105-141528-30d8de65e4b9`, `--inject-demo --arm-seconds 5`, independent 30 s timer. Checked shortcut before RemoteDesktop, EIS ready, short movement and `oneintwo`, output 0. The user confirmed correct text, movement and desktop responding. Timer executed at 14:15:58 CET, reactivation output 0; The prototype was already finished. No freeze was observed in this execution. It does not prove to recover a frozen image or states held; the incident is not closed because of this only case.
+
+Previous attempt: `guided-20261105-192232-74937ef202aa`, R2 mode prepared with `--inject-demo --wait-for-stop`. Preparation rejected by several regions EIS/monitores, exit 1 before injecting; 30 s supervisor and session activation correct. The user decided to leave R2 and R9 pending instead of deactivating another monitor. Do not repeat or start R9 until requested. The user then resumed with an active monitor. R2: `guided-20261105-192937-e3dd65eea268`, emergency received during EIS active, output 0. R9: `guided-20261105-193129-20e181ab3953`, permission withdrawn from indicator GNOME, disconnect EIS and output 0. In both confirmed output received and desk responding; in R9 also indicator removed. Closings before the timer, which then acted with output 0 activation. There are no outstanding R2/R9 premises. No repair of a frozen composer or full cause of the historical incident is alleged. Do not add that test as a new condition of local closure. Next phase: Windows coordination.

@@ -11,10 +11,9 @@
 #include <optional>
 
 /*
- * Modelo portable del adaptador de captura Windows: selección local, respuesta
- * terminal única, identidad de la fuente, orden de estados y descarte de
- * callbacks tardíos. Se compila y se prueba sin Windows mediante un puerto
- * falso; el puerto real usa Windows Graphics Capture.
+ * Portable model of the Windows capture adapter: local selection, single terminal response, source
+ * identity, state order and late callback discard. It is compiled and tested without Windows using
+ * a fake port; the real port uses Windows Graphics Capture.
  */
 
 namespace oneintwo::windows {

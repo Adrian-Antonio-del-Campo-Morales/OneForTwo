@@ -1,94 +1,60 @@
-# Resultados — Teclado y ratón
+# Results — Keyboard and Mouse
 
-## Reconstrucción Windows de la entrega Ubuntu — 5 de noviembre de 2026
+## Windows Reconstruction of Ubuntu Delivery — November 5, 2026
 
-Fuentes verificadas: `2ae444df56689dbaebe9b796daca26a55bd02917`, recibido
-desde `origin/validation/ubuntu`. Comprobación realizada en la rama local
-`validation/windows`, sin modificar fuentes ni repetir pruebas Ubuntu.
+Verified sources: `2ae444df56689dbaebe9b796daca26a55bd02917`, received from
+`origin/validation/ubuntu`. Check performed on the local branch `validation/windows`, without
+modifying sources or repeating Ubuntu tests.
 
-CMake de Visual Studio 18 2026, generador `Visual Studio 18 2026`, x64,
-configuración Release y OpenSSL habilitado. Reconstrucción completada, salida 0.
-Binario: `build/windows-ready/Release/input_experiment.exe`.
+CMake from Visual Studio 18 2026, `Visual Studio 18 2026` generator, x64, Release and OpenSSL
+configuration enabled. Reconstruction completed, output 0. Binary:
+`build/windows-ready/Release/input_experiment.exe`.
 
-Self-test Windows: **579 comprobaciones, 0 fallos**, salida 0.
-Se ejecutó `input_self_test.exe`, que no inicializa los adaptadores nativos.
-El ejecutable principal también terminó correctamente con `--help`.
-No se accedió al portapapeles, se abrieron portales, se capturaron/inyectaron
-dispositivos ni se inició red de prueba.
+Self-test Windows: **579 checks, 0 bugs**, output 0. `input_self_test.exe` was executed, which does
+not initialize native adapters. The main executable also finished correctly with `--help`. The
+clipboard was not accessed, portals were opened, capturaron/inyectaron devices were opened and no
+test network was initiated.
 
-Evidencia local ignorada: `build/windows-ready/configure-ubuntu-sync.log`,
-`build-ubuntu-sync.log`, `self-test-ubuntu-sync.log` y `help-ubuntu-sync.log`.
-Esta evidencia cierra la reconstrucción Windows de esta revisión; no demuestra
-el funcionamiento real del escritorio o entre equipos. Se conserva a continuación
-la evidencia local Ubuntu y sus límites.
+Unknown local evidence: `build/windows-ready/configure-ubuntu-sync.log`,
+`build-ubuntu-sync.log`,`self-test-ubuntu-sync.log` and `help-ubuntu-sync.log`. This evidence closes
+the Windows reconstruction of this revision; it does not demonstrate the actual functioning of the
+desktop or between computers. The local evidence Ubuntu and its limits are preserved below.
 
-## R2 y R9 superados en Ubuntu — 5 de noviembre de 2026
+## R2 and R9 exceeded in Ubuntu — 5 November 2026
 
-El usuario reanudó expresamente ambas comprobaciones. Antes de abrirlas,
-`org.gnome.Mutter.DisplayConfig.GetCurrentState` confirmó una sola pantalla
-lógica activa, HDMI-1 (la integrada conectada estaba desactivada).
-Se usó la misma base Git `450cbb2e340a381bda01274eb86df0e05934e822` más
-cambios locales, y el binario
-`47c3afafab7cd8d860565b51f930107cb01d914209f9dad8dbe855ebaecb8d97`.
-No se modificó ni reconstruyó C++ ni se repitieron tests. Solo se aclaró la
-presentación de la guía: títulos R2/R9, primera/segunda pulsación y no usar
-el atajo como sustituto de retirar permisos. Sintaxis Python correcta.
-El manifiesto anterior confirmó fuente C++ y binario; su hash del helper ya
-no coincide por esos textos. Snapshot actualizado: `resume-build.sha256`.
+The user explicitly resumed both checks. Before opening them, `org.gnome.Mutter.DisplayConfig.GetCurrentState` confirmed one active logical display, HDMI-1, with the built-in connected display disabled. The checks used the same Git baseline `450cbb2e340a381bda01274eb86df0e05934e822` plus local changes and the same binary `47c3afafab7cd8d860565b51f930107cb01d914209f9dad8dbe855ebaecb8d97`. The C++ sources and binary stayed as built, and no tests were rerun. The guide clarified its R2/R9 titles, first and second presses, and that the shortcut does not revoke permissions. Python syntax passed. The previous manifest matched the C++ sources and binary. The guide text changes superseded its helper hash. The updated snapshot is `resume-build.sha256`.
 
-Desde la raíz se ejecutó primero la guía con `--emergency-check` y, tras
-confirmar el usuario escritorio operativo, otra ejecución con `--revoke-check`:
+From the root, the guide was first executed with `--emergency-check` and, after confirming the
+operating desktop user, another run with `--revoke-check`:
 
 ```bash
 env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py --emergency-check
 env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py --revoke-check
 ```
 
-Ambas verificaron Ctrl+Shift+F12 antes de RemoteDesktop/EIS, autorizaron
-teclado/puntero sin pantalla y enviaron la demostración breve antes de esperar
-la salida. Sin botones ni teclas deliberadamente retenidos y sin red.
+Both verified Ctrl+Shift+F12 before RemoteDesktop/EIS, authorized keyboard and pointer without screen and
+sent the short demo before waiting for output. No buttons or keys deliberately retained and no
+network.
 
-| Caso | Evidencia nativa y de la guía | Observación del usuario |
+| Caso | Native Evidence and Guide | User Observation |
 | --- | --- | --- |
-| R2 — `guided-20261105-192937-e3dd65eea268` | Temporizador armado 19:29:37.705 CET; EIS activo, segunda pulsación solicitada 19:30:00.071; «Control detenido por emergencia local», salida 0; guía confirmó cierre a las 19:30:04.875 | «Sí, salida recibida y escritorio respondiendo» |
-| R9 — `guided-20261105-193129-20e181ab3953` | Temporizador armado 19:31:29.269 CET; EIS activo, retirada solicitada 19:31:39.636; «Disconnected by EIS» y «Control detenido por cierre del escritorio o dispositivo», salida 0; guía confirmó cierre 19:31:43.690 | «Sí: salida recibida, indicador retirado y escritorio respondiendo» tras pulsar el indicador de GNOME, sin usar el atajo ni Cancelar |
+| R2 — `guided-20261105-192937-e3dd65eea268` | 19:29:37.705 CET armed timer; EIS active, second click requested 19:30:00.071; ‘Local emergency stop control’, exit 0; guide confirmed closure to 19:30:04.875 | «Yes, output received and desktop responding» |
+| R9 — `guided-20261105-193129-20e181ab3953` | Armed timer 19:31:29.269 CET; EIS active, required withdrawal 19:31:39.636; ‘Disconnected by EIS’ and ‘Control stopped by desktop or device closure’ output 0; guide confirmed closure 19:31:43.690 | ‘Yes: output received, indicator removed and desktop responding’ after pressing the GNOME indicator, without using the shortcut or Cancel |
 
-Los supervisores independientes actuaron a las 19:30:07.756–19:30:07.771 y
-19:31:59.384–19:31:59.400 CET, respectivamente: `activate_exit=0`, sesión 1,
-VT 2, `Active=yes`. En ambos `kill_exit=1` porque el prototipo ya había
-cerrado normalmente. El cierre correcto ocurrió **antes** del temporizador.
-Los casos guardan `case.json`, `prototype.log`, `guide-events.log`,
-`process.json` y los JSON de recuperación; logs de lanzamiento en
-`manual-output/local-final-20261105/{emergency-resume-ui,revoke-ui}.log`.
+The independent supervisors ran at 19:30:07.756–19:30:07.771 and 19:31:59.384–19:31:59.400 CET, respectively. Both recorded `activate_exit=0`, session 1, VT 2, and `Active=yes`. Both returned `kill_exit=1` because the prototype had already exited normally. The orderly shutdown occurred **before** the timer. Each case preserves `case.json`, `prototype.log`, `guide-events.log`, `process.json`, and the recovery JSON files. Launch logs are in `manual-output/local-final-20261105/{emergency-resume-ui,revoke-ui}.log`.
 
-Resultado: **R2 y R9 locales superados** con EIS realmente activo y
-confirmación humana. Con los casos de portapapeles y archivos ya cerrados,
-la fase local prevista en esta configuración soportada queda completada.
-Se conserva el incidente anterior y no se afirma que el temporizador repare
-un compositor congelado ni que esté demostrada toda la causa del bloqueo.
-Cortes con estados retenidos, cruce/retorno, teclado completo y ambos sentidos
-pertenecen a la fase entre equipos pendiente. Origen Ubuntu sigue bloqueado
-por InputCapture v1; no se inició Windows ni integración del producto.
+Result: **R2 and R9 locals exceeded** with EIS really active and human confirmation. With cases of
+clipboards and files already closed, the local phase foreseen in this supported configuration is
+completed. The previous incident is preserved and it is not claimed that the timer repairs a frozen
+composer or that the whole cause of the blocking is proven. Cuts with retained states,
+cruce/retorno, complete keyboard and both senses belong to the phase between pending equipment.
+Origin Ubuntu remains blocked by InputCapture v1; Windows was not initiated nor product integration.
 
-## R2/R9 preparados; pendientes por decisión del usuario — 5 de noviembre de 2026
+## R2/R9 prepared; pending by user decision — 5 November 2026
 
-Se preparó solo la conexión necesaria para comprobar salida con EIS activo:
-`--inject-demo --wait-for-stop` conserva la sesión después de la demostración
-y espera un `TargetSignal` de emergencia o cierre; registra cuál recibió y
-cierra el backend. Tiempo agotado o interrupción externa no informan éxito.
-Sin ese argumento la demostración anterior conserva su comportamiento.
-La guía reutiliza la recuperación independiente de 30 s, añade los modos
-`--emergency-check` y `--revoke-check` y muestra la acción en su ventana.
-No hay teclas o botones deliberadamente retenidos ni conexión con Windows.
+Only the necessary connection was prepared to check output with EIS active: `--inject-demo --wait-for-stop` retains the session after the demonstration and waits for an emergency `TargetSignal` or closure; records which received and closed the backend. Exhausted time or external interruption do not report success. Without that argument the previous demonstration retains its behavior. The guide reuses independent recovery of 30 s, adds `--emergency-check` and `--revoke-check` modes and displays the action in your window. There are no deliberately retained keys or buttons or connection to Windows.
 
-Base Git `450cbb2e340a381bda01274eb86df0e05934e822` más cambios locales.
-`source .local-state/ubuntu-validation/env.sh` y
-`cmake --build experiments/input/build/ubuntu-wayland -j4`: salida 0.
-Nuevo binario SHA-256
-`47c3afafab7cd8d860565b51f930107cb01d914209f9dad8dbe855ebaecb8d97`.
-Las mismas **3 regresiones esenciales** del supervisor siguen pasando; no se
-añadieron tests ni se repitió la batería general. La ejecución real afectada
-iba a proporcionar la evidencia del nuevo modo, que continúa pendiente.
+Git base `450cbb2e340a381bda01274eb86df0e05934e822` plus local changes. `source .local-state/ubuntu-validation/env.sh` and `cmake --build experiments/input/build/ubuntu-wayland -j4`: output 0. New binary SHA-256 `47c3afafab7cd8d860565b51f930107cb01d914209f9dad8dbe855ebaecb8d97`. The same **3 essential regressions** of the supervisor continue to pass; no tests were added or the general battery repeated. The actual execution affected was to provide evidence of the new mode, which remains pending.
 
 Comando R2:
 
@@ -96,210 +62,124 @@ Comando R2:
 env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py --emergency-check
 ```
 
-Caso `manual-output/guided-20261105-192232-74937ef202aa/`:
-atajo previo concedido y comprobado, pero la preparación EIS rechazó con
-«el EIS expone varias regiones; el experimento solo admite un monitor».
-Salida **1**, antes de la demostración y de la espera de salida. No se
-inyectó. Temporizador armado 19:22:32.526 CET; recuperación
-19:23:02.580–19:23:02.597, `activate_exit=0`, sesión 1/VT 2 activa.
-El prototipo ya había terminado; no había ámbito vivo que matar.
+Case `manual-output/guided-20261105-192232-74937ef202aa/`: previous shortcut granted and tested, but preparation EIS rejected with “EIS exposes several regions; the experiment only admits one monitor”. Exit **1**, before demonstration and output waiting. It was not injected. Armed timer 19:22:32.526 CET; recovery 19:23:02.580–19:23:02.597, `activate_exit=0`, session 1/VT 2 active. The prototype was already finished; there was no living scope to kill.
 
-Se pidió dejar un único monitor y repetir solo R2/R9. El usuario decidió
-**«Prefiero dejar las dos pruebas de entrada pendientes»**. No se repitió R2
-ni se inició R9. Se cerraron las ayudas propias que siguieran abiertas.
-La demostración local anterior conserva su éxito; no se presenta este rechazo
-como regresión de inyección ni como prueba de recuperación.
+It was asked to leave a single monitor and repeat only R2/R9. The user decided **"I prefer to leave
+the two entrance tests pending"**. R2 was not repeated nor R9 was started. The own aids that
+remained open were closed. The previous local demonstration remains successful; this rejection is
+not presented as injection regression or as a recovery test.
 
-Para reanudar, usuario presente y un monitor activo. R2: seguir AHORA para
-comprobar el atajo y, tras el texto, AHORA SALIDA para pulsarlo otra vez.
-R9: mismo guion con `--revoke-check`; tras el texto, pulsar el indicador
-superior de GNOME «Stop Screen Sharing». Se contrastó esa acción con el
-`remoteAccess.js` instalado (`gresource extract
-/usr/lib/gnome-shell/libshell-18.so /org/gnome/shell/ui/status/remoteAccess.js`):
-el clic ejecuta `handle.stop()`. No se sustituyó por matar el prototipo o
-cerrar su propia sesión mediante API. R9 no tiene resultado de ejecución.
+To resume, present user and an active monitor. R2: follow NOW to check the shortcut and, after the text, EXIT NOW to press it again. R9: same script with `--revoke-check`; after the text press the top indicator of GNOME Stop Screen Sharing. That action was contrasted with the `remoteAccess.js` installed (`gresource extract /usr/lib/gnome-shell/libshell-18.so /org/gnome/shell/ui/status/remoteAccess.js`): the click runs `handle.stop()`. It was not replaced by killing the prototype or closing its own session by API. R9 has no result of execution.
 
-Comandos, log de la guía y manifiesto SHA-256 en
-`manual-output/local-final-20261105/`; el caso conserva `case.json`,
-`prototype.log`, `guide-events.log`, `process.json` y las recuperaciones.
+Commands, guide log and manifest SHA-256 in `manual-output/local-final-20261105/`; the case retains
+`case.json`, `prototype.log`, `guide-events.log`,`process.json` and recoveries.
 
-## Inyección local Wayland verificada — 5 de noviembre de 2026
+## Local Wayland injection verified — 5 November 2026
 
-El usuario solicitó y realizó la demostración local supervisada. Confirmó
-**texto exacto `oneintwo`, movimiento del puntero y escritorio respondiendo**.
-Se usó el recuadro desechable de la guía, sin clics sintetizados, captura,
-red ni conexión con Windows. Esta ejecución abrió RemoteDesktop/EIS después
-de comprobar físicamente Ctrl+Shift+F12; no se observó la congelación anterior.
+The user requested and performed the supervised local demonstration. He confirmed **exact text
+`oneintwo`, pointer and desktop movement responding**. The disposable guide box was used, without
+synthesized clicks, capture, network, or Windows connection. This execution opened RemoteDesktop/EIS
+after physically checking Ctrl+Shift+F12; the above freeze was not observed.
 
-Misma base Git `450cbb2e340a381bda01274eb86df0e05934e822` más cambios
-locales; mismo binario SHA-256
-`b0d8e9ebedde3d9cd98cfd11e3843ac009beab9c30bb3525d8eae06168b398d8`.
-Antes del arranque se comprobaron las seis fuentes y el ejecutable con
-`sha256sum -c experiments/input/manual-output/ubuntu-local-20261105/recovery-hardening.sha256`:
-todo correcto. No se modificó ni reconstruyó C++ para esta demostración.
+Same Git base `450cbb2e340a381bda01274eb86df0e05934e822` plus local changes; same binary SHA-256 `b0d8e9ebedde3d9cd98cfd11e3843ac009beab9c30bb3525d8eae06168b398d8`. Before booting the six fonts and executable were tested with `sha256sum -c experiments/input/manual-output/ubuntu-local-20261105/recovery-hardening.sha256`: all correct. C++ was not modified or reconstructed for this demonstration.
 
-Se reutilizó la guía y el supervisor independiente de 30 s con un modo
-explícito `--inject-demo`, instrucciones de autorización, recuadro desechable
-y aviso para enfocarlo durante la cuenta atrás de 5 s. El modo por defecto
-sigue probando solo el atajo. La guarda exige temporizador activo y plazo
-vigente también para inyección. Se amplió esa comprobación dentro de las
-**mismas 3 regresiones esenciales** del helper; comando
-`/usr/bin/python3 experiments/input/tests/test_shortcut_check.py`: **3 tests,
-OK**, sin GTK ni comandos reales. `git diff --check` correcto; no se repitió
-la batería general.
+The 30 s independent monitor and guide were reused with an explicit `--inject-demo` mode,
+authorization instructions, disposable box and warning to focus it during the 5 s countdown. The
+default mode continues to test only the shortcut. The save requires active timer and current timer
+also for injection. This check was extended within the **same 3 essential regressions** of the
+helper; command `/usr/bin/python3 experiments/input/tests/test_shortcut_check.py`: **3 tests, OK**,
+without GTK or real commands. `git diff --check` correct; the general battery was not repeated.
 
-Comando desde la raíz:
+Command from the root:
 
 ```bash
 env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py --inject-demo
 ```
 
-La guía lanzó dentro de su ámbito propio el binario con `--inject-demo
---arm-seconds 5 --max-seconds 30`, limitado además por `timeout` al plazo
-restante del temporizador. Evidencia en
+The guide launched within its own scope the binary with `--inject-demo --arm-seconds 5 --max-seconds
+30`, also limited by `timeout` to the remaining timer. Evidence in
 `manual-output/guided-20261105-141528-30d8de65e4b9/`:
 
-- Sesión propia 1, UID 1000, VT 2; preflight independiente salida 0.
-- Temporizador armado **14:15:28.737 CET**. La guía anunció AHORA a las
-  **14:15:28.958** y ZONA DE PRUEBA a las **14:15:44.432**.
-- `prototype.log`: atajo Ctrl+Shift+F12 concedido, verificación previa,
-  cuenta atrás 5…1 y «Demostracion finalizada. Revise el texto y el cursor».
-  `process.json`: **salida 0**; guía registró final a las **14:15:50.888**.
-- Recuperación independiente ejecutada **14:15:58.796–14:15:58.812**:
-  `activate_exit=0`, `VTNr=2`, `Active=yes`. `kill_exit=1` porque el ámbito
-  ya había terminado normalmente. La guía confirmó cierre a las 14:15:58.849.
-- Observación humana: **«Sí: texto correcto, movimiento y escritorio
-  respondiendo.»** El agente no inspeccionó visualmente el escritorio.
+- Own session 1, UID 1000, VT 2; independent preflight output 0.
+- The timer was armed at **14:15:28.737 CET**. The guide displayed NOW at **14:15:28.958** and TEST AREA at **14:15:44.432**.
+- `prototype.log`: shortcut Ctrl+Shift+F12 granted, precheck, countdown 5...1 and "Develop
+  completed. Check text and cursor". `process.json`: **exit 0**; guide recorded final at
+  **14:15:50.888**.
+- Independent recovery executed **14:15:58.796–14:15:58.812**: `activate_exit=0`, `VTNr=2`,
+  `Active=yes`. `kill_exit=1` because the scope had already finished normally. The guide confirmed
+  closure to the 14:15:58.849.
+- Human observation: **"Yes: correct text, movement and desk responding."** The agent did not
+  visually inspect the desktop.
 
-Resultado: preparación RemoteDesktop/EIS, movimiento absoluto breve,
-pulsación/liberación de las letras de `oneintwo` y cierre normal validados
-localmente en esta ejecución. El temporizador actuó cuando el prototipo ya
-había acabado y la sesión seguía activa; no demuestra recuperación de una
-imagen congelada, de otra VT, ni con teclas/botones retenidos. No se han
-probado clics, rueda, modificadores, retirada de permisos, cruce/retorno ni
-entrada entre equipos. EXP-INPUT-02 conserva esos límites; origen Ubuntu
-sigue bloqueado por InputCapture v1 frente al requisito v2.
+Result: preparation RemoteDesktop/EIS, short absolute movement, press and release of the letters of `oneintwo` and normal closure validated locally in this execution. The timer acted when the prototype had already finished and the session was still active; it does not show recovery of a frozen image, of another VT, nor with teclas/botones retained. No clicks, wheel, modifiers, withdrawal of permissions, cruce/retorno nor entry between equipment. EXP-INPUT-02 retains these limits; origin Ubuntu remains blocked by InputCapture v1 compared to the
 
-## Atajo aislado verificado con guía y temporizador de 30 s
+## Insulated cut verified with 30 s guide and timer
 
-5 de noviembre de 2026, sesión Wayland 1, VT 2. Base Git
-`450cbb2e340a381bda01274eb86df0e05934e822` más cambios locales, binario
-`b0d8e9ebedde3d9cd98cfd11e3843ac009beab9c30bb3525d8eae06168b398d8`.
-Se repitió únicamente `--check-target`: GlobalShortcuts, sin RemoteDesktop,
-EIS, captura, inyección ni conexión con Windows.
+November 5, 2026, Wayland Session 1, VT 2. Git Base `450cbb2e340a381bda01274eb86df0e05934e822` plus
+local changes, `b0d8e9ebedde3d9cd98cfd11e3843ac009beab9c30bb3525d8eae06168b398d8` binary.
+`--check-target` was repeated only: GlobalShortcuts, no RemoteDesktop, EIS, capture, injection or
+Windows connection.
 
-Comando desde la raíz, Python del sistema sin las bibliotecas locales:
+Command from the root, Python system without local libraries:
 
 ```bash
 env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py
 ```
 
-- Primer ensayo guiado: `manual-output/guided-20261105-140452-8d87e9ff735e/`.
-  El portal concedió Ctrl+Shift+F12 y el prototipo anunció la espera, pero el
-  usuario no vio «AHORA» ni recuerda la cuenta atrás. Terminó por timeout,
-  salida 124, sin verificación del atajo. El temporizador ejecutó la
-  reactivación a las 14:05:22.254–14:05:22.270 CET, salida 0, sesión activa.
-  Se conserva en `recovery-51e42fa99d55.json`; el cierre posterior de la guía
-  generó otra recuperación con `reason=cancel`. No se atribuye éxito visual
-  al primer ensayo.
-- Corrección limitada a la guía: estado y cuenta atrás arriba, «AHORA» grande,
-  aviso para traer su ventana delante y registro de cambios de fase.
-  Comprobación de sintaxis y `git diff --check` correctas. No se añadieron
-  pruebas ni se repitió la batería general por este ajuste de presentación.
-- Repetición solicitada: `manual-output/guided-20261105-140927-fa41253e7d58/`.
-  Temporizador armado a las **14:09:27.707 CET**; `guide-events.log` registra
-  «AHORA» a las **14:09:28.005**, «Atajo recibido» a las **14:09:32.662** y
-  cierre a las **14:09:57.904**. `prototype.log` confirma «Atajo local
-  verificado; cerrando sesiones» y `process.json` salida **0**.
-  Recuperación independiente 14:09:57.777–14:09:57.792, `activate_exit=0`,
-  `VTNr=2`, `Active=yes`. `kill_exit=1` indica que el ámbito del prototipo
-  ya había terminado normalmente, no un fallo de cierre de un proceso vivo.
-  El usuario confirmó: **vio los mensajes y la cuenta atrás, y la imagen,
-  ratón y teclado respondieron durante toda la prueba**.
+- First guided essay: `manual-output/guided-20261105-140452-8d87e9ff735e/`. The portal granted Ctrl+Shift+F12 and the prototype announced the wait, but the user did not see "NOW" nor remember the countdown. Ended by timeout, exit 124, no shortcut check. The timer executed the reactivation at 14:05:22.254–14:05:22.270 CET, output 0, active session. It is preserved in `recovery-51e42fa99d55.json`; the subsequent closure of the guide generated another recovery with `reason=cancel`. Visual success is not attributed to the first trial.
+- Correction limited to the guide: status and countdown, large "NOW", notice to bring your window
+  in front and phase change log. Checking correct syntax and `git diff --check`. No tests were added
+  or the general battery was repeated for this presentation setting.
+- Requested repeat: `manual-output/guided-20261105-140927-fa41253e7d58/`. The timer was armed at **14:09:27.707 CET**. `guide-events.log` records “NOW” at **14:09:28.005**, “Shortcut received” at **14:09:32.662**, and shutdown at **14:09:57.904**. `prototype.log` confirms “Local shortcut verified; closing sessions”, and `process.json` shows exit **0**. Independent recovery ran at 14:09:57.777–14:09:57.792 with `activate_exit=0`, `VTNr=2`, and `Active=yes`. `kill_exit=1` indicates that the prototype scope had already ended normally. The user confirmed **they saw the messages and countdown, and the display, mouse, and keyboard responded throughout the test**.
 
-Resultado: atajo local Ctrl+Shift+F12 aislado y ejecución del temporizador a
-los 30 s verificados. La sesión ya estaba activa: no se ha probado retorno
-desde otra VT ni reparación de una imagen congelada. La recuperación con
-RemoteDesktop/EIS y la inyección siguen pendientes; EXP-INPUT-02 permanece
-abierto. No se inicia otra prueba por este resultado.
+Result: local shortcut Ctrl+Shift+F12 isolated and timer execution at the 30 s verified. The session
+was already active: no return has been tested from another VT or repair of a frozen image. Recovery
+with RemoteDesktop/EIS and injection are still pending; EXP-INPUT-02 remains open. No other test is
+started for this result.
 
-## Preparación de recuperación de 30 s y guía
+## 30 s recovery preparation and guidance
 
-5 de noviembre de 2026. El usuario matizó el ensayo anterior: cree que se
-congeló la imagen, aunque el sistema siguió funcionando por debajo. Esta
-observación no confirma una congelación del núcleo ni permite determinar si
-el atajo se activó durante la configuración o durante la espera del prototipo.
-El ensayo de 60 s continúa sin verificar el atajo ni la recuperación gráfica.
+November 5, 2026. The user nuanced the previous test: he believes the image was frozen, although the
+system continued to operate below. This observation does not confirm a kernel freeze nor does it
+allow to determine whether the shortcut was activated during the configuration or during the waiting
+of the prototype. The 60 s test continues without checking the shortcut or graphical recovery.
 
-Pidió otra prueba con vuelta automática a la sesión principal a los 30 s y
-pasos claros dentro de una ventana. Se añadió **solo una guía experimental**
-en `tools/shortcut_check.py`, sin integrar la aplicación principal. No abre
-portales al arrancar: el usuario debe pulsar «Iniciar prueba de 30 segundos».
-Indica el orden: Iniciar → comprobar la fila Ctrl+Shift+F12 → «Añadir» / «Add»
-arriba a la derecha en GNOME → esperar el mensaje «AHORA» en la guía → pulsar
-y soltar el atajo una vez → esperar el retorno. «Cancelar y volver al
-escritorio» cierra el ensayo e intenta reactivar la sesión. Si GNOME pide
-pantalla/control remoto o muestra el atajo antiguo, la instrucción es cancelar.
-El nombre del botón se contrastó con la [definición oficial del diálogo de GNOME 50.0](https://github.com/GNOME/gnome-control-center/blob/50.0/global-shortcuts-provider/cc-global-shortcut-dialog.blp).
+He asked for another test with automatic return to the main session at 30 s and clear steps inside a window. **Only one pilot guide** was added in `tools/shortcut_check.py`, without integrating the main application. Do not open portals when booting: the user must press "Start 30 seconds test". Indicates the order: Start → check the Ctrl+Shift+F12 → "Add" / "Add" top right at GNOME → wait for the message "NOW" in the guide → press and drop the shortcut once → wait the return. "Cancel and return to the desktop" closes the essay and tries to reactivate the session. If GNOME requests pantalla/control remote or shows the old shortcut, the instruction is to cancel. The name of the button was contrasted with the [official definition of the GNOME 50.0](https://github.com/GNOME/gnome-control-center/blob/50.0/global-shortcuts-provider/cc-global-shortcut-dialog.blp) dialog.
 
-La guía prepara primero un servicio de comprobación y un temporizador
-transitorio de usuario **fuera del ámbito del prototipo**. A los 30 s el
-servicio cierra únicamente el ámbito aleatorio de este ensayo con SIGKILL y
-llama a `loginctl --no-ask-password activate SESION`. Comprueba propietario,
-VT y estado; no termina ni desbloquea sesiones, no reinicia GNOME y no usa
-sudo. El hijo se niega a abrir el portal sin temporizador activo o si ya ha
-vencido el plazo. `RuntimeMaxSec=30s` y `timeout` añaden límites al prototipo.
-La guía muestra cuenta atrás y el paso actual leyendo solo su log sintético.
-Se usa Python del sistema con PyGObject/GTK3 ya disponibles; ninguna instalación.
+The guide first prepares a verification service and a temporary user timer **outside the scope of the prototype**. At 30 s the service closes only the random range of this trial with SIGKILL and calls `loginctl --no-ask-password activate SESION`. Check owner, VT and status; does not end or unlock sessions, does not restart GNOME and does not use sudo. The child refuses to open the portal without active timer or if the deadline has already expired. `RuntimeMaxSec=30s` and `timeout` add limits to the prototype. The guide shows countdown and the current step reading only its synthetic log. System Python is used with PyGObject/GTK3 already available; No installation.
 
-### Evidencia de preparación
+### Evidence of preparation
 
-- Sesión propia identificada: ID 1, UID 1000, Wayland, VT 2, activa.
-  `loginctl --no-ask-password activate 1` devolvió 0. La misma llamada desde
-  un servicio transitorio independiente también devolvió 0, sin autenticación.
-  La política local de logind admite cambio de VT para sesión activa/inactiva.
-  No se cambió a otra consola para comprobarlo.
-- Comprobación real del supervisor **sin prototipo ni portal**: se armó el
-  temporizador y se puso `sleep 90` dentro del ámbito de ensayo. A las
-  **13:52:42.998 CET** se ejecutó la recuperación; terminó a las
-  **13:52:43.012 CET**, `kill_exit=0`, proceso inocuo terminado por SIGKILL
-  (`-9`), `activate_exit=0`, `VTNr=2`, `Active=yes`. Logs en
-  `manual-output/guided-20261105-135212-67659af36348/`: `case.json`,
-  `preflight.log`, `timer.log`, `sleep.log`, `recovery.json` y
-  `preflight-result.json`. `kind=supervisor-preflight-sleep` distingue este
-  caso de una prueba real. Demuestra ejecución independiente del temporizador,
-  cierre y reactivación de la sesión ya activa; **no demuestra retorno desde
-  otra VT ni recuperación de un compositor o imagen congelados**.
-- Por petición de limitar el mantenimiento, se conservan solo **3 pruebas
-  nuevas imprescindibles** del supervisor: cierre/activación aunque falle el
-  envío de señal, rechazo de inicio sin temporizador activo o con plazo vencido,
-  y aborto si no se puede armar el temporizador. Comando:
-  `/usr/bin/python3 experiments/input/tests/test_shortcut_check.py`;
-  **3 tests, OK, salida 0**, sin comandos reales, GTK ni bus.
-  No se amplió ni repitió la batería general 579/0, cuya evidencia anterior
-  permanece válida para el C++ sin cambios de esta preparación.
+- Self session identified: ID 1, UID 1000, Wayland, VT 2, active. `loginctl --no-ask-password
+  activate 1` returned 0. The same call from an independent transit service also returned 0, without
+  authentication. Local login policy supports VT change for activa/inactiva. Session It was not
+  changed to another console to check it.
+- Supervisor check **without the prototype or portal**: the timer was armed and `sleep 90` was started inside the trial scope. Recovery ran at **13:52:42.998 CET** and finished at **13:52:43.012 CET**. The recorded values were `kill_exit=0`, the harmless process terminated by SIGKILL (`-9`), `activate_exit=0`, `VTNr=2`, and `Active=yes`. Logs in `manual-output/guided-20261105-135212-67659af36348/` include `case.json`, `preflight.log`, `timer.log`, `sleep.log`, `recovery.json`, and `preflight-result.json`. `kind=supervisor-preflight-sleep` identifies this as a preflight. It verifies independent timer execution, termination, and reactivation of the already-active session. Return from another VT and compositor or display freeze recovery remain unverified.
+- Upon request to limit maintenance, only **3 new essential tests** of the supervisor are retained:
+  shutdown and activation even if the sending of signal fails, rejection of start without active timer or
+  with expired deadline, and abortion if the timer cannot be set up. Command: `/usr/bin/python3
+  experiments/input/tests/test_shortcut_check.py`; **3 tests, OK, output 0**, without real commands,
+  GTK or bus. The general battery 579/0 was not extended or repeated, whose previous evidence
+  remains valid for C++ without any change in this preparation.
 
-Durante la pausa AFK no se abrió la guía ni se inició el ensayo interactivo;
-la consulta de timers y procesos no encontró ensayos pendientes. Después del
-regreso explícito del usuario se realizaron los dos casos descritos arriba.
-La observación visual corresponde al usuario, no a inspección del agente.
+During the AFK pause, the guide was not opened or the interactive essay was initiated; the timer and
+process query did not find any pending tests. After the user's explicit return, the two cases
+described above were performed. Visual observation is for the user, not for the agent's inspection.
 
-## Ensayo corregido con límite externo de 60 s — 5 de noviembre de 2026
+## Corrected test with an external limit of 60 s — 5 November 2026
 
-**Límite del proceso comprobado; atajo todavía no verificado.** El usuario
-pidió repetir con timeout de 60 s. Se inició solo `--check-target` de la versión
-corregida, sin RemoteDesktop, EIS, captura ni red. La prueba alcanzó el límite
-y requirió cierre forzado; no hay registro de la descripción concedida, del
-anuncio de espera ni de la activación del atajo. Falta la observación del
-usuario sobre el diálogo y la respuesta del escritorio; no se clasifica como
-éxito ni como otra congelación sin esa confirmación.
+**Fixed process limit; shortcut not yet verified.** The user asked to repeat with 60 s timeout. It
+started only `--check-target` of the corrected version, without RemoteDesktop, EIS, capture or
+network. The test reached the limit and required forced closure; there is no record of the
+description granted, the announcement of wait or the activation of the shortcut. There is no user
+observation about the dialog and the desktop response; it is not classified as success or another
+freeze without that confirmation.
 
-Misma base Git y binario `b0d8e9ebedde3d9cd98cfd11e3843ac009beab9c30bb3525d8eae06168b398d8`;
-se comprobaron los SHA-256 de fuentes y ejecutable antes de arrancar.
-Identidad de aplicación aún preparada y sin otro prototipo activo.
-`loginctl` confirmó `VTNr=2`, `Type=wayland`, `Active=yes` antes del ensayo.
+Same Git base and `b0d8e9ebedde3d9cd98cfd11e3843ac009beab9c30bb3525d8eae06168b398d8` binary; SHA-256
+font and executable were tested before booting. Application identity still ready and without another
+active prototype. `loginctl` confirmed `VTNr=2`, `Type=wayland`,`Active=yes` before trial.
 
-Comando, desde la raíz:
+Command, from the root:
 
 ```bash
 env -u LD_LIBRARY_PATH systemd-run --user --scope --collect \
@@ -308,90 +188,58 @@ env -u LD_LIBRARY_PATH systemd-run --user --scope --collect \
   /bin/bash -c 'source .local-state/ubuntu-validation/env.sh; exec timeout --signal=TERM --kill-after=3s 60s ./experiments/input/build/ubuntu-wayland/input_experiment --check-target --max-seconds 60'
 ```
 
-Dos guardas: el gestor de usuario limita la vida del ámbito a 60 s y espera
-3 s antes de forzar su cierre; `timeout` aplica también 60 s y 3 s al proceso.
-Los 60 s incluyen inicio y permiso, no empiezan después del diálogo.
-Durante la ejecución, `systemctl --user show` confirmó
-`RuntimeMaxUSec=1min`, `TimeoutStopUSec=3s`, `ActiveState=active`.
+Two saves: the user manager limits the life of the scope to 60 s and waits 3 s before forcing its
+closure; `timeout` also applies 60 s and 3 s to the process. All 60 s include start and permission,
+they do not start after the dialogue. During execution, `systemctl --user show` confirmed
+`RuntimeMaxUSec=1min`, `TimeoutStopUSec=3s`,`ActiveState=active`.
 
 Hora local CET (`Europe/Madrid`):
 
 - Inicio **13:35:38**.
-- Journal del ámbito: **13:36:38**, `Scope reached runtime time limit. Stopping.`
-- **13:36:41**, `Failed with result 'timeout'`; comando termina con **137**.
-- Recorrido posterior de `/proc/*/exe`: `input_experiment_running_pids=[]`.
+- Journal of the field: **13:36:38**, `Scope reached runtime time limit. Stopping.`
+- **13:36:41**, `Failed with result 'timeout'`; command exits with **137**.
+- Later scan of `/proc/*/exe`: `input_experiment_running_pids=[]`.
 
-El 137 corresponde a esta terminación forzada observada; no se registra como
-un crash espontáneo del prototipo. Se avisó al usuario de no pulsar el atajo
-una vez terminada la ejecución. No se lanzó una segunda prueba sin recoger
-su observación. No se puede concluir que el temporizador recupere un compositor
-bloqueado: solo queda probado que el gestor cerró el proceso y no dejó ese
-prototipo activo.
+137 corresponds to this observed forced termination; it is not recorded as a spontaneous crash of
+the prototype. The user was advised not to press the shortcut once the execution was completed. A
+second test was not released without collecting his observation. It cannot be concluded that the
+timer recovers a blocked composer: it is only proven that the manager closed the process and did not
+leave that prototype active.
 
-Logs ignorados en `manual-output/ubuntu-local-20261105/`:
-`shortcut-only-60s-01.log`, `shortcut-only-60s-01-guard.log`,
-`shortcut-only-60s-01-supervisor.log`, `shortcut-only-60s-01-cleanup.log`.
-El journal se consultó únicamente para el ámbito de esta prueba en el
-intervalo 13:35:30–13:36:50. Manual actualizado con ambas guardas de 60 s;
-sin cambios adicionales de código, dependencias o configuración permanente.
+Logs ignored in `manual-output/ubuntu-local-20261105/`: `shortcut-only-60s-01.log`, `shortcut-only-60s-01-guard.log`, `shortcut-only-60s-01-supervisor.log`, `shortcut-only-60s-01-cleanup.log`. The journal was consulted only for the scope of this test in the range 13:35:30–13:36:50. Updated manual with both 60 s guards; no additional changes of code, dependencies or permanent configuration.
 
-## Preparación corregida tras el incidente — 5 de noviembre de 2026
+## Preparation corrected after the incident — 5 November 2026
 
-**Código preparado, compilación nativa y pruebas aisladas superadas; sin nueva
-prueba gráfica.** El usuario pidió preparar el experimento para evitar otro
-bloqueo. Se corrigieron el conflicto del atajo y el orden de preparación;
-**no se afirma que la causa completa de la congelación esté demostrada ni que
-la recuperación gráfica ya funcione**. EXP-INPUT-02 sigue abierto para esa
-validación. No se abrió GlobalShortcuts, RemoteDesktop, EIS, captura ni red
-al preparar estas correcciones.
+**Prepared code, native compilation and out-of-date tests; no new graphical test.** The user asked
+to prepare the experiment to avoid another block. The shortcut conflict and preparation order were
+corrected; **It is not claimed that the complete cause of freezing is proven or that the graphical
+recovery is already working**. EXP-INPUT-02 is still open for such validation. GlobalShortcuts,
+RemoteDesktop, EIS, capture or network were not opened when preparing these corrections.
 
-Revisión base: `450cbb2e340a381bda01274eb86df0e05934e822`, rama
-`validation/ubuntu`, más los cambios locales anteriores y los descritos aquí.
-Sin commit ni publicación, sin dependencias nuevas ni instalación global.
+Base review: `450cbb2e340a381bda01274eb86df0e05934e822`, `validation/ubuntu` branch, plus previous
+local changes and those described here. No commit or publication, no new dependencies or global
+installation.
 
-### Cambios y evidencia que los justifica
+### Changes and evidence that justifies them
 
-1. **Atajo del destino Wayland: Ctrl+Shift+F12**, identificador
-   `oneintwo-emergency-v2`. No reutiliza el identificador de la concesión
-   persistida de Ctrl+Alt+F12. Los [valores de Mutter 50.1](https://raw.githubusercontent.com/GNOME/mutter/50.1/data/org.gnome.mutter.wayland.gschema.xml.in)
-   asignan Ctrl+Alt+F12 al cambio a VT 12 y su [implementación](https://raw.githubusercontent.com/GNOME/mutter/50.1/src/core/keybindings.c)
-   lo registra como combinación no enmascarable. Consulta del valor por defecto
-   **instalado**, sin tocar configuración:
-   `GSETTINGS_BACKEND=memory gsettings get org.gnome.mutter.wayland.keybindings switch-to-session-12`
-   → `['<Primary><Alt>F12']`, log `default-vt-shortcut.log`.
-   La consulta normal previa devolvió lo mismo con avisos dconf por el sandbox;
-   se usó el backend en memoria para comprobar el valor de esquema sin
-   escribir caché. Esto confirma el conflicto del diseño previo; no prueba
-   que todo el incidente fuese únicamente un cambio de VT.
-2. **`--check-target` en Wayland solo prepara GlobalShortcuts.** No llama a
-   RemoteDesktop ni conecta EIS, no inicia emulación y no necesita geometría.
-   La prueba fallida anterior permanece registrada como fallo; cambiar el
-   atajo no convierte aquel ensayo en éxito. Windows/X11 mantienen el
-   procedimiento anterior y Ctrl+Alt+F12; no se han vuelto a ejecutar allí.
-3. **Verificación física antes del control.** `--target` y `--inject-demo`
-   reservan el nuevo atajo y esperan activación **y liberación** de su propia
-   sesión, con límite de 30 s. Solo después solicitan RemoteDesktop y EIS.
-   Rechazo, timeout o cierre del atajo abortan sin abrir control. La pulsación
-   usada para verificar se consume y no se entrega como emergencia del control
-   que aún no ha comenzado. No se guarda una marca entre ejecuciones.
-4. **Emulación diferida y cierre.** Antes `EI_EVENT_DEVICE_ADDED` iniciaba
-   emulación inmediatamente con secuencia 0, también en la comprobación que
-   se describía como «sin inyección». Ahora se esperan dispositivos reanudados
-   y `start_emulating` solo se llama al enviar el primer evento real, con
-   secuencia creciente. Se solicitan y comprueban capacidades de botones y
-   rueda; se mantienen referencias propias a los dispositivos. Pausa, retirada
-   o desconexión hacen rechazar nuevos eventos y detener el flujo, sin
-   reanudarlo automáticamente. Al cerrar se envían las liberaciones del estado
-   propio aún utilizable, se finalizan sus transacciones y se liberan referencias
-   y descriptor. Se elimina un segundo `close(fd)` en el fallo de setup del
-   emisor porque [libei toma posesión del descriptor](https://libinput.pages.freedesktop.org/libei/api/group__libei-sender.html).
-5. **La demostración para al primer error** de movimiento, pulsación o
-   liberación, limpia el destino y devuelve 1; una salida local se informa
-   como interrupción y no como demostración finalizada correctamente.
+1. **Target Shortcut Wayland: Ctrl+Shift+F12**, identifier `oneintwo-emergency-v2`. It does not reuse Ctrl+Alt+F12's persistent concession identifier. The [Mutter values 50.1](https://raw.githubusercontent.com/GNOME/mutter/50.1/data/org.gnome.mutter.wayland.gschema.xml.in) assign Ctrl+Alt+F12 to change to VT 12 and its [implementation](https://raw.githubusercontent.com/GNOME/mutter/50.1/src/core/keybindings.c) records it as a non-mascable combination. Check the default value **installed**, without touching configuration: `GSETTINGS_BACKEND=memory gsettings get org.gnome.mutter.wayland.keybindings switch-to-session-12` → `['<Primary><Alt>F12']`, log `default-vt-shortcut.log`. The previous normal query returned the same with dconf notices by the sandbox; the backend in memory was used to check the value of the schema without writing cache. This confirms the conflict of the previous design; does not prove that the whole incident was just a change of VT.
+2. **`--check-target` in Wayland only prepares GlobalShortcuts.** Do not call RemoteDesktop or
+   connect EIS, do not start emulation and do not need geometry. The previous failed test remains
+   registered as failure; changing the shortcut does not turn that trial into success. Windows/X11
+   maintain the previous procedure and Ctrl+Alt+F12; they have not been run there again.
+3. **Physical verification before control.**`--target` and `--inject-demo` reserve the new shortcut
+   and expect activation **and release** from their own session, with a limit of 30 s. Only after
+   requesting RemoteDesktop and EIS. Rejection, timing or closure of the shortcut abort without
+   opening control. The click used to verify is consumed and is not delivered as an emergency of the
+   control that has not yet begun. A mark between executions is not saved.
+4. **Delayed emulation and closure.** Before `EI_EVENT_DEVICE_ADDED` began emulation immediately with sequence 0, also in the check described as "no injection". Restarted devices are now expected and `start_emulating` is only called when sending the first real event, with increasing sequence. Button and wheel capabilities are requested and tested; specific references to the devices are maintained. Pause, withdrawal or disconnection make you reject new events and stop the flow, without automatically resuming it. When closing, releases of the still usable state are sent, your transactions are completed and references and descriptors are released. A second `close(fd)` is deleted in the issuer's setup failure because [libei takes possession of the descriptor](https://libinput.pages.freedesktop.org/libei/api/group__libei-sender.html).
+5. **The demonstration for the first error** of movement, pulsation or release, clears the
+   destination and returns 1; a local output is reported as interruption and not as demonstration
+   completed correctly.
 
-### Comprobaciones realizadas sin escritorio
+### Checks carried out without desktop
 
-Desde la raíz, usando las dependencias persistentes del proyecto:
+From the root, using the persistent dependencies of the project:
 
 ```bash
 source .local-state/ubuntu-validation/env.sh
@@ -404,122 +252,100 @@ env -u DISPLAY -u WAYLAND_DISPLAY -u XDG_RUNTIME_DIR -u DBUS_SESSION_BUS_ADDRESS
   ./experiments/input/build/ubuntu-wayland/input_experiment --help
 ```
 
-Todos devolvieron **0**. Binario nativo Wayland + TLS reconstruido:
+All commands exited with **0**. Rebuilt native Wayland + TLS executable:
 
 ```text
-PASS native_portal_response_and_shortcut (aislado, sin bus)
-Comprobaciones: 579, fallos: 0
+PASS native_portal_response_and_shortcut (isolated, no bus)
+Checks: 579, failures: 0
 ```
 
-Las 579 comprobaciones del núcleo y flujos incluyen 41 adicionales: preparación
-solo del atajo, prohibición de abrir control sin verificación, rechazo del
-atajo, cierre previo y fallos en cada fase de autorización. El binario nativo
-comprueba además Response y callbacks Activated/Deactivated en memoria:
-ignorar sesión ajena e identificador antiguo, exigir activación previa a la
-liberación, consumir la comprobación sin emitir una emergencia y detectar
-cierre del atajo. Estos grupos nativos son adicionales al contador 579.
-La ayuda muestra el atajo de cada backend y el alcance de `--check-target`.
+The 579 core checks and flows include 41 additional ones: shortcut-only preparation, prohibition of
+opening control without verification, shortcut rejection, pre-closure and failures in each
+authorization phase. The native binary also checks Response and callbacks Activated/Deactivated in
+memory: ignore someone else's session and old identifier, require activation prior to release,
+consume the check without issuing an emergency and detect shortcut closure. These native groups are
+additional to the 579 counter. The help shows the shortcut of each backend and the scope of
+`--check-target`.
 
-Logs ignorados en `manual-output/ubuntu-local-20261105/`:
-`build-recovery-hardening.log`, `self-test-recovery-hardening.log`,
-`portable-self-test-recovery-hardening.log`, `help-recovery-hardening.log`,
-`default-vt-shortcut.log`, `recovery-hardening.sha256`.
-El último contiene SHA-256 de los seis archivos fuente afectados y el binario;
-el ejecutable es `b0d8e9ebedde3d9cd98cfd11e3843ac009beab9c30bb3525d8eae06168b398d8`.
-`git diff --check` no informa errores. La evidencia histórica Windows se conserva.
+Logs ignored in `manual-output/ubuntu-local-20261105/`: `build-recovery-hardening.log`, `self-test-recovery-hardening.log`, `portable-self-test-recovery-hardening.log`, `help-recovery-hardening.log`, `default-vt-shortcut.log`, `recovery-hardening.sha256`. The last contains SHA-256 of the six affected source files and binary; the executable is `b0d8e9ebedde3d9cd98cfd11e3843ac009beab9c30bb3525d8eae06168b398d8`. `git diff --check` does not report errors.
 
-**Límite de esta entrega:** no hay emisor EIS simulado ni servidor real en
-estos tests. Compilan su nueva gestión de dispositivos, pero no prueban que
-el compositor acepte sus eventos o recupere el escritorio. Tampoco se ha
-probado gráficamente la nueva reserva del atajo. El siguiente ensayo posible
-es solo GlobalShortcuts, supervisado y con recuperación independiente; no
-abrir control/inyección ni conectar Windows todavía. El origen Ubuntu sigue
-bloqueado por InputCapture v1 frente al requisito v2; no se amplió captura ni
-se modificaron ajustes de Mutter, consola, controladores o energía.
+**Limit of this delivery:** there is no simulated EIS transmitter or real server in these tests.
+They compile their new device management, but they do not prove that the composer accepts their
+events or retrieves the desktop. The new shortcut reservation has not been graphically tested
+either. The next possible trial is only GlobalShortcuts, supervised and with independent recovery;
+do not open control or injection or connect Windows yet. The Ubuntu source remains blocked by
+InputCapture v1 in front of the v2 requirement; no capture or modification of Mutter, console,
+controller
 
-## Validación local iniciada — 5 de noviembre de 2026
+## Local validation initiated — 5 November 2026
 
-**Entrada bloqueada por fallo de recuperación comunicado por el usuario.**
-Al pulsar Ctrl+Alt+F12 durante la última espera, el usuario observó que todo
-el PC quedó congelado y confirmó que tuvo que reiniciar para recuperarlo.
-El proceso no recibió la emergencia y terminó por tiempo. No repetir el atajo ni iniciar inyección hasta aclarar lo ocurrido y
-preparar una recuperación independiente comprobada. Cancelación de permisos
-verificada; las pruebas aisladas no certifican la recuperación del escritorio.
-No se ejecutó captura ni red ni se enviaron movimientos o teclas de prueba.
+**Entry blocked by recovery failure reported by the user.** When pressing Ctrl+Alt+F12 during the
+last wait, the user observed that the entire PC was frozen and confirmed that it had to restart to
+recover it. The process did not receive the emergency and ended for time. Do not repeat the shortcut
+or start injection until it clarified what happened and prepare a proven independent recovery.
+Verified permissions cancellation; isolated tests do not certify the recovery of the desktop. No
+capture or network was executed and no movements or test keys were sent.
 
-Base Git: `450cbb2e340a381bda01274eb86df0e05934e822`, rama
-`validation/ubuntu`, más las correcciones locales descritas abajo y en los
-otros experimentos. Sin commit ni publicación. Entorno y bibliotecas: los
-de la compilación inicial que sigue, con dependencias persistentes del proyecto.
+Git Base: `450cbb2e340a381bda01274eb86df0e05934e822`, `validation/ubuntu` branch, plus the local
+corrections described below and in the other experiments. No commit or publication. Environment and
+libraries: those of the initial compilation that follows, with persistent dependencies of the
+project.
 
-### Diagnóstico real y bloqueo de captura
+### Real diagnosis and catch blocking
 
-Comando desde la raíz, tras cargar `.local-state/ubuntu-validation/env.sh`:
+Command from the root, after loading `.local-state/ubuntu-validation/env.sh`:
 
 ```bash
 ./experiments/input/build/ubuntu-wayland/input_experiment --diagnose
 ```
 
-Salida 0; `manual-output/ubuntu-local-20261105/diagnose-01.log`:
+Output 0; `manual-output/ubuntu-local-20261105/diagnose-01.log`:
 
 ```text
 Plataforma: Linux Wayland (InputCapture + RemoteDesktop + libei)
-Captura declarada: no
-Inyeccion declarada: si
-InputCapture v1 con teclado y puntero; RemoteDesktop v2; GlobalShortcuts v1
+Capture reported: no
+Injection reported: yes
+InputCapture v1 with keyboard and pointer; RemoteDesktop v2; GlobalShortcuts v1
 ```
 
-El backend exige **InputCapture v2**, mientras que este escritorio expone v1.
-Ubuntu como origen queda bloqueado con este backend; no se redujo el requisito,
-no se ejecutó captura ni se usó X11 como sustituto. No es una afirmación de
-imposibilidad de InputCapture v1: admitirlo requeriría otro flujo y validación.
-La inyección declarada depende todavía de permisos, atajo y dispositivos EIS.
-La etiqueta histórica de diagnóstico «Actividad local del destino: si» se
-refiere a `targetLocalOverride` por GlobalShortcuts, no a detección de toda la
-actividad física como en Windows.
+The backend requires **InputCapture v2**, while this desktop displays v1. Ubuntu as its source is
+blocked with this backend; the requirement was not reduced, capture was not executed or X11 was used
+as a substitute. It is not an assertion of InputCapture's impossibility v1: to support it would
+require another flow and validation. The declared injection still depends on permissions, shortcut
+and EIS devices. The historical diagnostic label "Destiny Local Activity: If" refers to
+`targetLocalOverride` by GlobalShortcuts
 
-Recuperación preparada: `loginctl show-user UID -p Display --value` y
-`loginctl show-session SESION -p VTNr -p Type -p Active` devolvieron
-`VTNr=2`, `Type=wayland`, `Active=yes`. En esta máquina Ctrl+Alt+F2 es la
-vuelta prevista al escritorio si Ctrl+Alt+F12 cambia de consola. No se llegó
-a probar el atajo ni se cambió de consola durante esta sesión.
+Recovery prepared: `loginctl show-user UID -p Display --value` and `loginctl show-session SESION -p VTNr -p Type -p Active` returned `VTNr=2`, `Type=wayland`, `Active=yes`. On this Ctrl+Alt+F2 machine is the expected return to the desktop if Ctrl+AlT+F12 changes console. The shortcut was not tested or changed during this session.
 
-### Preparación real fallida y corrección
+### Actual preparation failed and correction
 
-Se añadió `--check-target --max-seconds 30` para preparar los permisos y
-comprobar Ctrl+Alt+F12 **sin llamar a ninguna función de inyección ni abrir
-red**. Es necesario comprobar la salida antes de una demostración real.
-También se corrigió `--inject-demo` para iniciar la guarda del destino y
-atender señales de parada durante la cuenta atrás y la demostración; antes
-solo consultaba la interrupción de consola. Estos caminos de escritorio aún
-no se han verificado con éxito.
+`--check-target --max-seconds 30` was added to prepare permissions and check Ctrl+Alt+F12 **without
+calling any injection function or opening network**. It is necessary to check the output before a
+real demonstration. `--inject-demo` was also corrected to start the target guard and attend stop
+signals during the countdown and demonstration; before only query the console interruption. These
+desktop paths have not yet been successfully verified.
 
-La primera ejecución de `--check-target` se preparó para que el usuario
-cancelara el permiso, pero terminó antes con:
+The first execution of `--check-target` was prepared for the user to cancel the permission, but
+ended earlier with:
 
 ```text
-No se pudo preparar el destino: CreateSession: el portal no respondió a tiempo
+Could not prepare the target: CreateSession: the portal did not respond in time
 process_exit=1
 ```
 
-El log también conserva avisos GLib de conexión inválida durante la limpieza.
-El usuario se ausentó momentáneamente y no pudo confirmar ningún diálogo:
-**no se registra como permiso denegado ni atajo probado**.
+The log also retains invalid connection GLib notices during cleaning. The user was temporarily
+absent and could not confirm any dialogue: **is not registered as denied permission or proven
+shortcut**.
 
-Causa concreta encontrada en `PortalClient::request`: `onResponse` esperaba
-un `RequestWait*`, pero la suscripción genérica le entregaba `PortalClient*`.
-La respuesta no actualizaba la espera y podía corromper el objeto de conexión.
-Además, los consumidores esperan una tupla `(a{sv})`, mientras que la función
-devolvía directamente `a{sv}`. Corrección:
+Concrete cause found in `PortalClient::request`: `onResponse` expected a `RequestWait*`, but the generic subscription gave him `PortalClient*`. The response did not update the wait and could corrupt the connecting object. In addition, consumers expect a tuple `(a{sv})`, while the function directly returned `a{sv}`. Correction:
 
-- Suscribir `Response` con el estado de espera correcto, también si cambia
-  la ruta devuelta por el portal.
-- Mantener el contrato de tupla al entregar resultados y liberar correctamente
-  la referencia del diccionario.
-- Añadir una regresión de respuesta sintética en memoria al `--self-test` de
-  la aplicación compilada con Wayland, sin crear backend, bus ni permisos.
+- Subscribe `Response` with the correct wait state, also if you change the path returned by the
+  portal.
+- Maintain the tuple contract by delivering results and correctly release the dictionary reference.
+- Add a synthetic response regression in memory to the application `--self-test` compiled with
+  Wayland, without creating backend, bus or permissions.
 
-Comandos finales, salida 0:
+Final commands, output 0:
 
 ```bash
 source .local-state/ubuntu-validation/env.sh
@@ -528,71 +354,51 @@ cmake --build experiments/input/build/ubuntu-wayland -j4
 ```
 
 ```text
-PASS native_portal_response (aislado, sin bus)
-Comprobaciones: 538, fallos: 0
+PASS native_portal_response (isolated, no bus)
+Checks: 538, failures: 0
 ```
 
-La comprobación nativa de respuesta es adicional a las 538 del núcleo y flujos;
-`input_self_test` conserva su alcance portable. No demuestra aún que el portal
-real autorice o cancele correctamente. SHA-256 del adaptador corregido:
-`891ddccf87c83ea30c66bdbce23058d5b0145bdba237808f1412b84dfe068b93`.
+The native response check is additional to the 538 core and streams; `input_self_test` retains its
+portable reach. It does not yet show that the actual portal authorizes or cancels correctly. SHA-256
+of the corrected adapter: `891ddccf87c83ea30c66bdbce23058d5b0145bdba237808f1412b84dfe068b93`.
 
-Logs ignorados en `manual-output/ubuntu-local-20261105/`: `diagnose-01.log`,
-`target-denied-01.log` (el nombre identifica el caso previsto, no su resultado),
-`build-local-exit.log`, `self-test-local-exit.log`, `build-response-fix.log` y
-`self-test-response-fix.log`. El diagnóstico tuvo límite externo de 30 s y la
-preparación de 240 s, con `timeout --signal=TERM --kill-after=3s`.
+Logs ignored in `manual-output/ubuntu-local-20261105/`: `diagnose-01.log`, `target-denied-01.log` (name identifies the expected case, not its result), `build-local-exit.log`, `self-test-local-exit.log`, `build-response-fix.log` and `self-test-response-fix.log`. The diagnosis had an external limit of 30 s and preparation of 240 s, with `timeout --signal=TERM --kill-after=3s`.
 
-### Reanudación: cancelación real y tipo de sesión
+### Resumption: actual cancellation and type of session
 
-Se repitió `--check-target --max-seconds 30` con la corrección anterior.
-La ejecución `target-denied-02.log` terminó antes del diálogo, salida 1:
-`RemoteDesktop.CreateSession no devolvió session_handle`. No es una denegación.
+`--check-target --max-seconds 30` was repeated with the previous correction. The
+`target-denied-02.log` execution ended before the dialog, exit 1: `RemoteDesktop.CreateSession no
+returned a session_handle`. It is not a denial.
 
-La [especificación oficial de RemoteDesktop](https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/main/data/org.freedesktop.portal.RemoteDesktop.xml)
-conserva `session_handle` como `s` por compatibilidad, aunque contiene una ruta
-de objeto. El adaptador solo aceptaba `o`. Se corrigió exclusivamente la
-lectura de RemoteDesktop a `s`, validando la ruta con
-`g_variant_is_object_path`; InputCapture v2 conserva su contrato propio.
-La regresión nativa sintética ahora incluye ese campo y utiliza el mismo
-lector que la preparación real. Compilación y `input_experiment --self-test`:
-salida 0, `PASS native_portal_response`, **538/0**; logs
-`build-session-handle.log` y `self-test-session-handle.log`.
-SHA-256 de `wayland_backend.cpp` tras esta corrección:
-`454d7f94c804c327d75f15a5c3fb52d68a3717389086c7fa130b7f505a8cb52c`.
+[Official RemoteDesktop specification](https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/main/data/org.freedesktop.portal.RemoteDesktop.xml) retains `session_handle` as `s` for compatibility, although it contains an object path. The adapter only accepted `o`. The RemoteDesktop reading was corrected exclusively to `s`, validating the route with `g_variant_is_object_path`; InputCapture v2 retains its own contract. Synthetic native regression now includes that field and uses the same reader as actual preparation. Compilation and `input_experiment --self-test`: output 0, `PASS native_portal_response`, **538/0**; logs `build-session-handle.log` and `self-test-session-handle.log`. SHA-256 of `wayland_backend.cpp` after this correction: `454d7f94c804c327d75f15a5c3fb52d68a3717389086c7fa130b7f505a8cb52c`.
 
-Nueva ejecución, mismas variables y guarda externa de 240 s:
+New execution, same variables and external save of 240 s:
 
 ```bash
 ./experiments/input/build/ubuntu-wayland/input_experiment --check-target --max-seconds 30
 ```
 
-El usuario confirmó pulsar Cancelar. `target-denied-03.log` conserva
-`No se pudo preparar el destino: el usuario canceló la autorización`,
-`process_exit=1`, sin los avisos GLib de conexión inválida del primer intento.
-**Cancelación verificada**, sin pasar a inyección ni red.
+The user confirmed to press Cancel. `target-denied-03.log` retains `No se pudo preparar el destino:
+the user cancelled authorization`, `process_exit=1`, without invalid connection GLib warnings from
+the first attempt. ** Verified cancellation**, without going into injection or network.
 
-### Identidad para GlobalShortcuts
+### Identity for GlobalShortcuts
 
-`--check-target --max-seconds 60` con límite externo de 240 s terminó con
-`CreateSession: GDBus.Error:org.freedesktop.portal.Error.NotAllowed: An app id is required`
-(`target-shortcut-01.log`, salida 1). El [portal 1.21.1](https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/1.21.1/src/global-shortcuts.c)
-rechaza atajos sin identidad; el [reconocimiento de aplicaciones host](https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/1.21.1/src/xdp-app-info-host.c)
-requiere ámbito de aplicación y entrada `.desktop` disponible.
+`--check-target --max-seconds 60` with an external limit of 240 s ended with `CreateSession:
+GDBus.Error:org.freedesktop.portal.Error.NotAllowed: An app id is required`
+(`target-shortcut-01.log`, output 1). The
+[1.21.1](https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/1.21.1/src/global-shortcuts.c)
+portal rejects unidentified shortcuts; the [host application
+recognition](https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/1.21.1/src/xdp-app-info-host.c)
+requires application scope and input `.desktop` available.
 
-Se preparó `io.github.OneForTwo.InputExperiment.desktop` dentro del directorio
-local ignorado de logs y un enlace del mismo nombre en
-`/home/pholtergate/.local/share/applications/`, solo para el usuario, sin sudo,
-autoinicio ni instalación global. La identidad se proporciona mediante un
-ámbito transitorio `systemd-run --user --scope --collect`, sin modificar servicios.
-La prueba del ámbito con `cat /proc/self/cgroup` devolvió 0.
+`io.github.OneForTwo.InputExperiment.desktop` was prepared within the local directory ignored of
+logs and a link of the same name in `/home/pholtergate/.local/share/applications/`, only for the
+user, without sweat, autostart or global installation. Identity is provided through a transient
+`systemd-run --user --scope --collect`, without changing services. The field test with `cat
+/proc/self/cgroup` returned 0.
 
-El primer lanzamiento con el entorno de compilación cargado produjo un error
-del propio `systemd-run` (`calendar_spec_weekday_conflicts`, salida 127,
-`target-shortcut-02.log`): `LD_LIBRARY_PATH` local incluía una libsystemd
-incompatible con la herramienta instalada. Se corrigió el comando: iniciar
-`systemd-run` con `env -u LD_LIBRARY_PATH` y cargar `env.sh` solo dentro de su
-proceso hijo. No se modificaron bibliotecas del sistema.
+The first release with the loaded build environment produced an error of its own `systemd-run` (`calendar_spec_weekday_conflicts`, output 127, `target-shortcut-02.log`): `LD_LIBRARY_PATH` local included a libsystemd incompatible with the installed tool. The command was corrected: start `systemd-run` with `env -u LD_LIBRARY_PATH` and load `env.sh` only within your child process. No system libraries were modified.
 
 ```bash
 env -u LD_LIBRARY_PATH systemd-run --user --scope --collect \
@@ -600,103 +406,72 @@ env -u LD_LIBRARY_PATH systemd-run --user --scope --collect \
   /bin/bash -c 'source .local-state/ubuntu-validation/env.sh; exec timeout --signal=TERM --kill-after=3s 240s ./experiments/input/build/ubuntu-wayland/input_experiment --check-target --max-seconds 60'
 ```
 
-La recuperación se volvió a consultar: VT 2, Wayland, sesión activa
-(`recovery-02.log`). Esta comprobación aún no equivale a probar el atajo.
+Recovery was again consulted: VT 2, Wayland, active session (`recovery-02.log`). This check is not
+yet equivalent to testing the shortcut.
 
-### Preparación con permisos y límite de un monitor
+### Preparation with permissions and limit of a monitor
 
-El usuario confirmó autorizar los diálogos de `target-shortcut-03.log`.
-La identidad de aplicación permitió avanzar a EIS, pero se rechazó la
-preparación: `el EIS expone varias regiones; el experimento solo admite un monitor`,
-salida 1. No se pulsó el atajo ni se inyectó entrada.
-Consulta de solo lectura a `org.gnome.Mutter.DisplayConfig.GetCurrentState`:
-**2 monitores lógicos y 2 físicos**, escalas 1,5 y 1,0; log
-`monitor-layout.log`, sin identificadores de hardware. El usuario desactivó
-uno temporalmente; nueva consulta: **1 monitor lógico**, `monitor-single.log`.
-No se amplió el experimento a varios monitores ni se alteró la configuración
-por código.
+The user confirmed to authorize the `target-shortcut-03.log` dialogues. The application identity allowed progress to EIS, but the preparation was rejected: `el EIS expone varias regiones; el experimento solo admite un monitor`, exit 1. The shortcut was not pressed or input injected. Read-only consultation at `org.gnome.Mutter.DisplayConfig.GetCurrentState`: **2 logic monitors and 2 physicists**, 1,5 and 1,0 scales; log `monitor-layout.log`, no hardware identifiers. The user temporarily disabled one; new query: **1 logical monitor**, `monitor-single.log`. The experiment was not extended to several monitors or altered the configuration by code.
 
-Al revisar la recepción de emergencia se detectó una suscripción incorrecta:
-`Activated` de GlobalShortcuts se emite desde el objeto principal del portal,
-no desde la ruta de Session. Referencia: [implementación oficial v1](https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/1.20.3/src/global-shortcuts.c).
-Se corrigió la ruta de suscripción a `/org/freedesktop/portal/desktop` y se
-filtra el primer argumento por la sesión propia antes de aceptar el
-identificador del atajo. Compilación y prueba aislada: salida 0,
-`PASS native_portal_response` más **538/0**; logs
-`build-shortcut-signal.log` y `self-test-shortcut-signal.log`. Esta regresión
-sintética de respuesta no comprueba la suscripción; su evidencia debe ser
-la pulsación real siguiente. SHA-256 del adaptador:
-`ca17d1358e3639bdc04aaf9663c5a0475e0810b41a0f32e9ff84c5416852560c`.
+When reviewing the emergency reception, an incorrect subscription was detected: `Activated` GlobalShortcuts is issued from the main object of the portal, not from the Session route. Reference: [official implementation v1](https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/1.20.3/src/global-shortcuts.c). The subscription path was corrected to `/org/freedesktop/portal/desktop` and the first argument is filtered by the session itself before accepting the shortcut identifier. Compilation and isolated test: output 0, `PASS native_portal_response` plus **538/0**; logs `build-shortcut-signal.log` and `self-test-shortcut-signal.log`. This synthetic regression of response does not check subscription; Your evidence must be the next real pulsation. SHA-256 adapter: `ca17d1358e3639bdc04aaf9663c5a0475e0810b41a0f32e9ff84c5416852560c`.
 
-### Espera de emergencia: todavía no verificada
+### Emergency wait: not yet verified
 
-`target-shortcut-04.log`, un solo monitor, alcanzó
-`Comprobacion sin inyeccion ni red. Pulse Ctrl+Alt+F12 ahora.`, pero EIS se
-desconectó inmediatamente después. El programa detectó la interrupción y
-salió 1, sin inyectar. El usuario indicó que no apareció un segundo diálogo;
-esto no demuestra falta de autorización del atajo, pues BindShortcuts devolvió
-su identificador y la preparación había avanzado a EIS. La causa de esta
-interrupción no quedó determinada.
+`target-shortcut-04.log`, a single monitor, reached `Check without injection or networking. Press
+Ctrl+Alt+F12 ahora.`, but EIS was disconnected immediately afterwards. The program detected the
+interruption and went out 1, without injecting. The user indicated that a second dialogue did not
+appear; this does not show a lack of shortcut authorization, as BindShortcuts returned its
+identifier and the preparation had advanced to EIS. The cause of this interruption was not
+determined.
 
-Se añadió diagnóstico de libei activable solo con `ONEINTWO_EI_DEBUG=1` y se
-repitió `--check-target --max-seconds 60` en el ámbito de usuario con guarda
-externa de 240 s. `target-eis-debug-05.log` muestra teclado, puntero y región
-absoluta, preparación completa y conexión mantenida hasta agotar los 60 s.
-No se recibió señal de emergencia; salida 1. El cierre al final de ese log
-lo inicia el propio cliente durante la limpieza, no confirma la desconexión
-anterior. No se enviaron movimientos, botones ni teclas. No se presume
-una causa de carrera sin más evidencia.
+A diagnosis of activated libei was added only with `ONEINTWO_EI_DEBUG=1` and `--check-target
+--max-seconds 60` was repeated in the user area with 240 s external guard. `target-eis-debug-05.log`
+displays keyboard, pointer and absolute region, complete preparation and connection maintained until
+60 s exhaust. No emergency signal was received; output 1. Closing at the end of that log is
+initiated by the client during cleaning, does not confirm the previous disconnection. No movements,
+buttons or keys were sent. No race cause is presumed without further evidence.
 
-Para distinguir un identificador devuelto de una combinación utilizable se
-añadió al log la `trigger_description` de la salida concedida por el portal.
-Compilación en `build-shortcut-description.log`. No se habilita demostración
-con inyección hasta superar la prueba física de emergencia.
+To distinguish a returned identifier from a usable combination, the `trigger_description` of the
+output granted by the portal was added to the log. Compilation in `build-shortcut-description.log`.
+No demonstration with injection is enabled until the physical emergency test is passed.
 
-### Incidente comunicado: congelación al pulsar el atajo
+### Communicated incident: freezing when pressing the shortcut
 
-Después de la última espera, el usuario confirmó que **sí pulsó Ctrl+Alt+F12**
-y que «todo el PC quedó congelado cuando lo hice». Se registra como observación
-del usuario y **fallo de recuperación**, no como simple prueba pendiente ni
-como éxito del atajo. Después confirmó que **tuvo que reiniciar para
-recuperar el equipo**. No hay evidencia suficiente para atribuirlo al compositor, EIS, la
-reserva del atajo o un cambio de consola virtual; no se modifica el código
-por una causa supuesta ni se repite la operación para reproducir el bloqueo.
+After the last wait, the user confirmed that ** did press Ctrl+Alt+F12** and that "the entire PC was
+frozen when I did." It is recorded as user observation and **recovery failure**, not as a simple
+pending test or as a shortcut success. Then he confirmed that ** had to restart to recover the
+computer**. There is not enough evidence to attribute it to the composer, EIS, the shortcut reserve
+or a virtual console change; the code is not modified for an assumed cause nor is the operation
+repeated to reproduce the lock.
 
-La ejecución asociada es `target-eis-debug-05.log`: alcanzó la espera,
-registró cambios de modificadores, no recibió `Emergency` y terminó tras
-60 s con salida 1. El cierre EIS del final fue iniciado por el cliente.
-No se enviaron movimientos, botones ni teclas; sí se abrió RemoteDesktop,
-se conectó EIS y se inició su transacción de emulación durante la preparación.
-Por tanto «sin inyección de eventos» no significa que no hubiera una sesión
-real de control autorizada.
+The associated execution is `target-eis-debug-05.log`: it reached the wait, recorded changes of
+modifiers, did not receive `Emergency` and ended after 60 s with output 1. The closing EIS of the
+end was initiated by the client. No movements, buttons or keys were sent; yes RemoteDesktop was
+opened, EIS was connected and its emulation transaction was initiated during preparation. Therefore
+"no event injection" does not mean that there was no actual authorized control session.
 
-Comprobaciones posteriores, sin abrir nuevos diálogos:
+Subsequent checks, without opening new dialogues:
 
-- Recorrido de `/proc/*/exe`, comparando con la ruta exacta del binario:
-  `input_experiment_running_pids=[]`; no quedó ese prototipo activo.
-- `journalctl -b --since '2026-11-05 13:03:30' --until '2026-11-05 13:05:00' --no-pager -o short-iso _UID=1000 --grep='[Ee][Ii][Ss]|libei|emulat|[Mm]utter|gnome-shell|[Ss]egfault|[Cc]rash|[Ff]ailed|[Ff]reeze|[Tt]imeout'`:
-  `-- No entries --`, conservado en `freeze-session-journal.log`.
-  La ausencia de mensajes en ese filtro no descarta una congelación ni prueba
-  su causa; no es una inspección del núcleo ni de todos los arranques.
+- `/proc/*/exe` tour, comparing with the exact binary path: `input_experiment_running_pids=[]`; that
+  prototype was not left active.
+- `journalctl -b --since '2026-11-05 13:03:30' --until '2026-11-05 13:05:00' --no-pager -o short-iso
+  _UID=1000
+  --grep='[Ee][Ii][Ss]|libei|emulat|[Mm]utter|gnome-shell|[Ss]egfault|[Cc]rash|[Ff]ailed|[Ff]reeze|[Tt]imeout'`:
+  `-- No entries --`, preserved in `freeze-session-journal.log`. The absence of messages on that
+  filter does not rule out a freeze or prove its cause; it is not an inspection of the core or all
+  boots.
 
-La versión ejecutada fue la de `build-eis-diagnostic.log`; la descripción de
-la combinación se añadió después y **no se ha ejecutado en el escritorio**.
-No se habilitan demostración, captura ni pruebas de entrada con Windows.
+The version executed was `build-eis-diagnostic.log`; the description of the combination was added
+later and **has not been executed on the desktop**. No demo, capture or input tests are enabled with
+Windows.
 
-### Recuperación mediante reinicio y registros del arranque afectado
+### Recovery by restarting and recording of affected boot
 
-El usuario confirmó que fue necesario reiniciar. Consultas de solo lectura:
-`date --iso-8601=seconds`, `uptime -s`, `journalctl --list-boots --no-pager`.
-Nuevo arranque: **2026-11-05 13:10:57 CET (Europe/Madrid)**,
-`6e1a6c6cf11a4266ad8256229db2dbe5`; arranque afectado:
-`d67316910f8348f19064305dcc789bb3`, cuyo journal termina a las 13:10:48.
-La comparación exacta de `/proc/*/exe` volvió a devolver
-`input_experiment_running_pids=[]`. No se ejecutó de nuevo el prototipo.
+The user confirmed that it was necessary to restart. Read-only queries: `date --iso-8601=seconds`, `uptime -s`, `journalctl --list-boots --no-pager`. Restart: **2026-11-05 13:10:57 CET (Europe/Madrid)**, `6e1a6c6cf11a4266ad8256229db2dbe5`; affected start: `d67316910f8348f19064305dcc789bb3`, whose journal ends at 13:10:48. The exact comparison of `/proc/*/exe` returned `input_experiment_running_pids=[]`. The prototype was not executed again.
 
-La consulta inicial con `journalctl -b` se realizó ya en el arranque nuevo;
-su ausencia de mensajes no informa del incidente anterior. Se corrigió la
-selección usando el ID del arranque afectado. Intervalo 13:03:30–13:11:00,
-salida ISO con zona horaria, sin nuevos diálogos ni operaciones de entrada:
+The initial query with `journalctl -b` was already done on the new boot; its absence of messages
+does not inform of the previous incident. The selection was corrected using the affected boot ID.
+13:03:30–13:11:00 interval, ISO output with time zone, without new dialogues or input operations:
 
 ```bash
 journalctl -b d67316910f8348f19064305dcc789bb3 \
@@ -710,79 +485,53 @@ journalctl -b d67316910f8348f19064305dcc789bb3 \
   -k -p warning --no-pager -o short-iso
 ```
 
-Logs locales ignorados: `freeze-previous-session.log`,
-`freeze-previous-logind.log`, `freeze-previous-kernel.log`.
-El del núcleo conserva la advertencia relevante y un recuento de las 85
-líneas repetidas de `kauditd_printk_skb: callbacks suppressed`, omitidas por
-no aportar detalle del fallo. Se descartaron mensajes de otras aplicaciones.
+Local logs ignored: `freeze-previous-session.log`,
+`freeze-previous-logind.log`,`freeze-previous-kernel.log`. The kernel retains the relevant warning
+and a count of the 85 repeated lines of `kauditd_printk_skb: callbacks suppressed`, omitted for not
+providing details of the bug. Messages from other applications were discarded.
 
-Observaciones, sin atribuir causalidad:
+Observations without a causal finding:
 
-- El núcleo siguió registrando mensajes después de la pulsación. A las
-  13:08:04 aparece una advertencia `i2c_hid_get_input: IRQ triggered but there's no data`.
-  No hay pánico, oops o bloqueo GPU explícito en las advertencias consultadas.
-- Logind registra cierre de tapa y suspensión a las 13:08:10, apertura a las
-  13:08:18 y fin de suspensión a las 13:08:19. GNOME Shell registra a las
-  13:08:10 `drmModeAtomicCommit: Permission denied` al desactivar `/dev/dri/card1`.
-  Estos mensajes son posteriores a la espera del prototipo; no demuestran
-  la causa de la congelación comunicada.
-- A las 13:10:18 se registra el botón de encendido; a las 13:10:41 se cierra
-  GNOME Shell y la sesión. Son pruebas de actividad de servicios durante el
-  incidente y del apagado posterior, no de que la interfaz fuera utilizable.
+- The kernel continued to record messages after pulsation. A 13:08:04 warning appears at
+  `i2c_hid_get_input: IRQ triggered but there's no data`. There is no panic, oops or GPU lock
+  explicit in the consulted warnings.
+- Logind records the lid closing and suspension starting at 13:08:10, the lid opening at 13:08:18, and suspension ending at 13:08:19. At 13:08:10, GNOME Shell logged `drmModeAtomicCommit: Permission denied` while disabling `/dev/dri/card1`. These entries follow the prototype waiting period and do not establish the cause of the reported freeze.
+- At 13:10:18 the power button is recorded; at 13:10:41 GNOME Shell and session is closed. They are
+  tests of service activity during the incident and subsequent shutdown, not that the interface was
+  usable.
 
-**Resultado: recuperación solo mediante reinicio según el usuario; causa no
-determinada.** Se mantiene EXP-INPUT-02 abierto. No se ha aplicado un parche
-especulativo, cambiado el atajo, reiniciado servicios gráficos ni realizado
-nuevas pruebas de escritorio. La evidencia histórica Windows se conserva.
+**Result: Recovery only by user reboot; cause not determined.** EXP-INPUT-02 is kept open. No
+speculative patch has been applied, the shortcut changed, graphic services restarted or new desktop
+tests performed. Windows historical evidence is preserved.
 
-### Punto de reanudación
+### Resumption point
 
-La cancelación ya está verificada y el usuario recuperó el equipo mediante
-reinicio. Se conservaron los registros pertinentes del arranque afectado; no
-permiten determinar la causa. Continuar solo con evidencia de solo lectura
-y pruebas aisladas hasta justificar una corrección concreta.
-No repetir Ctrl+Alt+F12, `--check-target` ni demostraciones de inyección hasta
-resolver EXP-INPUT-02 y disponer de recuperación independiente comprobada.
-Si se da por terminada la sesión de prueba, el usuario puede restaurar la
-disposición de dos monitores; el agente no la modifica.
-No conectar Windows hasta acordar revisión, roles, puertos, huellas y caso.
-La reconstrucción Windows y la integración del producto siguen pendientes.
+The cancellation is already verified and the user recovered the computer by rebooting. The relevant records of the affected boot were kept; they do not allow to determine the cause. Continue only with evidence of read alone and isolated tests until justifying a specific correction. Do not repeat Ctrl+Alt+F120, `--check-target` or injection demonstrations until solving EXP-INPUT-02 and have independent recovery checked. If the test session is terminated, the user can restore the layout of two monitors; the agent does not modify it. Do not connect Windows until agreed revision, roles, ports, fingerprints and case.
 
-## Compilación inicial Ubuntu nativa — 5 de noviembre de 2026
+## Initial compilation of native Ubuntu — November 5, 2026
 
-**Resultado actual: aplicación nativa Wayland + TLS compilada; self-test
-independiente con 538 comprobaciones, 0 fallos, salida 0.** La evidencia Windows
-que sigue se conserva. Esta ejecución actualiza la ausencia histórica de
-compilación nativa Wayland; no certifica captura, inyección ni recuperación.
+**Current result: native Wayland + TLS compiled; independent self-test with 538 checks, 0 failures,
+output 0.** The following Windows evidence is preserved. This execution updates the historical
+absence of native Wayland compilation; it does not certify capture, injection or recovery.
 
-### Entorno y revisión
+### Environment and review
 
-- Base Git: `450cbb2e340a381bda01274eb86df0e05934e822`, rama
-  `validation/ubuntu`, directorio `/home/pholtergate/DEV/OneForTwo`.
-  Fuentes de entrada sin modificar. El único parche de código local del
-  conjunto afecta a la cabecera TLS del experimento de portapapeles.
-- Fecha: 2026-11-05 (`Europe/Madrid`). Ubuntu 26.04.1 LTS,
-  Linux 7.0.0-42-generic x86_64; entorno heredado Wayland, `ubuntu:GNOME`,
-  GNOME Shell `50.1-0ubuntu1.5`, Mutter `50.1-0ubuntu2.4`.
-- GCC/G++ `15.2.0-16ubuntu1`, CMake local 4.2.3, Make 4.4.1,
-  pkg-config 2.5.1; GIO/GLib 2.88.0 (`2.88.0-1ubuntu0.1`),
-  libei 1.5.0 (`1.5.0-3`), OpenSSL 3.5.5 (`3.5.5-1ubuntu3.7`).
-- Paquetes de portales: xdg-desktop-portal `1.21.1+ds-1ubuntu3.1`,
-  GNOME `50.0-0ubuntu1`, GTK `1.15.3-2ubuntu1`.
-  No se consultó el bus: InputCapture v2, RemoteDesktop v2,
-  GlobalShortcuts v1 y dispositivos EIS siguen sin comprobar en ejecución.
+- Git base: `450cbb2e340a381bda01274eb86df0e05934e822`, `validation/ubuntu` branch,
+  `/home/pholtergate/DEV/OneForTwo` directory. Unmodified input sources. The only local code patch
+  in the set affects the TLS header of the clipboard experiment.
+- Fecha: 2026-11-05 (`Europe/Madrid`). Ubuntu 26.04.1 LTS, Linux 7.0.0-42-generic x86_64; entorno
+  heredado Wayland, `ubuntu:GNOME`, GNOME Shell `50.1-0ubuntu1.5`, Mutter `50.1-0ubuntu2.4`.
+- GCC/G++ `15.2.0-16ubuntu1`, CMake local 4.2.3, Make 4.4.1, pkg-config 2.5.1; GIO/GLib 2.88.0
+  (`2.88.0-1ubuntu0.1`), libei 1.5.0 (`1.5.0-3`), OpenSSL 3.5.5 (`3.5.5-1ubuntu3.7`).
+- Portal Packages: xdg-desktop-portal `1.21.1+ds-1ubuntu3.1`, GNOME `50.0-0ubuntu1`,GTK
+  `1.15.3-2ubuntu1`. No bus was consulted: InputCapture v2, RemoteDesktop v2, GlobalShortcuts v1 and
+  EIS devices are still not checked running.
 
-Inventario: `git status --short --branch`, `git rev-parse HEAD`,
-`cat /etc/os-release`, `uname -srmo`, variables de sesión, `c++ --version`,
-`dpkg-query -W`, `pkg-config --modversion gio-2.0 libei-1.0 openssl`.
-Las dependencias se trasladaron desde `/tmp` a
-`.local-state/ubuntu-validation/`, dentro del proyecto y excluidas de Git,
-sin instalación global ni `sudo`;
-[preparación y variables](../clipboard/RESULTS.md#dependencias-locales-de-esta-validación).
+Inventory: `git status --short --branch`, `git rev-parse HEAD`, `cat /etc/os-release`, `uname -srmo`, session variables, `c++ --version`, `dpkg-query -W`, and `pkg-config --modversion gio-2.0 libei-1.0 openssl`. Dependencies moved from `/tmp` to the Git-ignored `.local-state/ubuntu-validation/` inside the project, without a global installation or `sudo`. See [setup and variables](../clipboard/RESULTS.md#local-dependencies-for-this-validation).
 
-### Compilación y prueba aislada
+### Compilation and isolated testing
 
-Desde la raíz del repositorio:
+From the root of the repository:
 
 ```bash
 source .local-state/ubuntu-validation/env.sh
@@ -795,181 +544,199 @@ cd experiments/input
 ./build/ubuntu-wayland/input_self_test
 ```
 
-Los tres comandos finales devolvieron 0. Se construyeron `input_experiment`
-e `input_self_test`, incluida la compilación de `wayland_backend.cpp`,
-`linux_factory.cpp` y `tls_link.cpp`; definiciones
-`OIT_WITH_WAYLAND=1` y `ONEINTWO_WITH_TLS=1`, sin `OIT_WITH_X11`.
-El ejecutable nativo enlaza GIO/GObject/GLib, `libei.so.1`, `libssl.so.3` y
-`libcrypto.so.3`; `ldd` no informa bibliotecas ausentes. Sin errores ni avisos
-observados. No se usó `ONEINTWO_BACKEND=none`.
-Tras el traslado se regeneró la caché con `--fresh`, se reconstruyeron ambos
-ejecutables con las rutas persistentes y se repitió el self-test: **538/0**.
+The final three commands returned 0. `input_experiment` and `input_self_test` were built, including the compilation of `wayland_backend.cpp`, `linux_factory.cpp` and `tls_link.cpp`; definitions `OIT_WITH_WAYLAND=1` and `ONEINTWO_WITH_TLS=1`, without `OIT_WITH_X11`. The native executable links GIO/GObject/GLib, `libei.so.1`, `libssl.so.3` and `libcrypto.so.3`; `ldd` does not report missing libraries. No errors or observed warnings. No `ONEINTWO_BACKEND=none` was used. After the transfer the cache was re-registered with `--fresh`, both executables were reconstructed with persistent routes and the self-test was repeated: **538/0**.
 
 ```text
 OneInTwo input experiment: self-tests aislados
-Comprobaciones: 538, fallos: 0
+Checks: 538, failures: 0
 ```
 
-La prueba independiente ejercita núcleo y flujos Wayland con dobles; no
-instancia el backend GDBus/libei. Compilar ese backend y ejecutar los dobles
-son evidencias diferentes. Logs locales ignorados en `build/ubuntu-wayland/`:
-`configure.log`, `build.log`, `self-test.log`, `libraries.log`.
-La ejecución posterior al traslado queda en `configure-persistent.log`,
-`build-persistent.log`, `self-test-persistent.log` y `libraries-persistent.log`.
+The independent test exercises core and Wayland flows with doubles; not instance the backend GDBus/libei. Compile that backend and execute the doubles are different evidences. Local logs ignored in `build/ubuntu-wayland/`: `configure.log`, `build.log`, `self-test.log`, `libraries.log`. The execution after the transfer is `configure-persistent.log`, `build-persistent.log`, `self-test-persistent.log` and `libraries-persistent.log`.
 
-### Escritorio, coordinación y bloqueos restantes
+### Desktop, coordination and remaining locks
 
-El usuario pidió completar por ahora solo compilación y pruebas aisladas.
-No se ejecutaron `--diagnose`, `--inject-demo`, `--source` ni `--target`.
-Permisos, atajo local, geometría/dispositivos EIS, demostración en editor,
-cruce/retorno, distribución española y recuperación siguen pendientes.
-No se inició ninguna escucha ni conexión de prueba.
+The user requested only the build and isolated tests at this stage. `--diagnose`, `--inject-demo`, `--source`, and `--target` were not run. Permissions, the local shortcut, EIS geometry and devices, the editor demonstration, crossing and returning, the Spanish keyboard layout, and recovery remain pending. No test listener or connection was started.
 
-Próximo paso local, con usuario presente: diagnóstico D2; editor desechable,
-salida local Ctrl+Alt+F12 y medio independiente de recuperación preparados;
-autorizar y comprobar el atajo real antes de prolongar cualquier control.
-No habilitar captura sin salida local fiable. La demostración debe ser acotada
-y observada; la salida del programa no certifica texto o movimiento.
+Next local step, with user present: diagnosis D2; disposable editor, local output Ctrl+Alt+F12 and
+independent recovery medium prepared; authorize and check the actual shortcut before prolonging any
+control. Do not enable reliable local capture cul-de-sac. The demonstration must be limited and
+observed; the output of the program does not certify text or movement.
 
-Antes de conectar Windows, acordar revisión y reconstrucción de ambos extremos,
-roles, IP y puerto 47830/TCP, certificados públicos/huellas, editor, duración,
-orden de arranque y recuperación. Empezar por identidades y sesiones cortas
-según el manual. No se han generado claves ni contactado con el otro equipo.
-La reconstrucción Windows actual y X11 opcional siguen sin evidencia nueva;
-X11 no sustituye la validación Wayland. No queda bloqueo de compilación
-Wayland/TLS en esta máquina. La integración del producto permanece aplazada.
+Before connecting Windows, agree to review and rebuild both ends, roles, IP and 47830/TCP port,
+public certificates and fingerprints, editor, duration, boot order and recovery. Start with identities and
+short sessions according to the manual. No keys have been generated or contacted with the other
+computer. Current Windows reconstruction and optional X11 continue with no new evidence; X11 does
+not replace Wayland validation. There is no Wayland/TLS build block left on this machine. Product
+integration remains delayed.
 
-## Evidencia histórica conservada — entrega y revisión anteriores
+## Historical evidence preserved — previous delivery and review
 
-Revisión documental: **5 de noviembre de 2026**. Evidencia inicial del agente: 4 de noviembre de 2026. Este informe distingue presencia de implementación, compilación registrada, pruebas aisladas y validación manual.
+Documentary review: **November 5, 2026**. Agent's initial evidence: November 4, 2026. This report
+distinguishes presence of implementation, recorded compilation, isolated tests and manual
+validation.
 
-## 1. Estado actual
+## 1. Current status
 
-El prototipo contiene Windows, Linux/X11 y Linux/Wayland. Wayland ya no es un backend ausente: existen su adaptador nativo, los flujos portables de autorización y la selección de backend. Las versiones anteriores de este informe describían únicamente la primera entrega X11 y no reflejaban esos cambios.
+The prototype contains Windows, Linux/X11 and Linux/Wayland. Wayland is no longer an absent backend:
+there are its native adapter, portable authorization flows and the selection of backends. Previous
+versions of this report described only the first X11 delivery and did not reflect those changes.
 
-| Componente | Implementación | Evidencia disponible |
+| Componente | Implementation | Available evidence |
 | --- | --- | --- |
-| Núcleo, protocolo, geometría y controladores | Implementado | Self-test Windows existente: **538 comprobaciones, 0 fallos**, ejecutado el 5 de noviembre |
-| Flujos Wayland sin escritorio | Implementados en `wayland_flow.*` | Incluidos en el self-test con dobles de PortalOps |
-| Adaptador Windows | Implementado | Compilación inicial del agente con MSVC/OpenSSL; hay binario posterior en `build/cmake/` |
-| Adaptador X11 | Implementado | Sin compilación nativa Linux registrada en este informe |
-| Adaptador Wayland GDBus/libei | Implementado en `wayland_backend.cpp` | Sin evidencia registrada de compilación del adaptador nativo Linux |
-| Selección Linux y opciones CMake | Implementadas | Revisión del código: Wayland y X11 son opcionales y seleccionados según sesión |
-| TLS mutuo y huellas | Implementado | Compilación Windows documentada por el agente; handshake pendiente |
-| Escritorio real y dos equipos | Pruebas preparadas | **Pendiente manual**, tanto en Windows como en Ubuntu |
+| Core, protocol, geometry and controllers | Implemented | Existing Windows Self-test: **538 checks, 0 bugs**, executed November 5 |
+| Wayland flows without desktop | Implementeds en `wayland_flow.*` | Included in the self-test with PortalOps doubles |
+| Windows adapter | Implemented | Initial agent compilation with MSVC/OpenSSL; later binary in `build/cmake/` |
+| Adaptador X11 | Implemented | No native Linux compilation recorded in this report |
+| Wayland GDBus/libei adapter | Implemented en `wayland_backend.cpp` | No recorded evidence of compilation of native Linux adapter |
+| Linux selection and CMake options | Implementadas | Code revision: Wayland and X11 are optional and selected according to session |
+| Mutual TLS and fingerprints | Implemented | Windows compilation documented by agent; handshake pending |
+| Real desktop and two computers | Evidence prepared | ** Manual pendiente**, both in Windows and Ubuntu |
 
-La revisión del 5 de noviembre no recompiló la aplicación ni ejecutó captura, inyección, portales, diagnóstico gráfico o red. Ejecutó únicamente el binario independiente de self-tests existente. La presencia de un binario o de código nativo no certifica que el backend Linux compile.
+The November 5 review did not recompile the application or run capture, injection, portals,
+graphical diagnosis or network. It ran only the existing self-test independent binary. The presence
+of a binary or native code does not certify that the Linux backend compiles.
 
-## 2. Implementación actual
+## 2. Current implementation
 
-- `src/core/`: eventos, usos HID, conversiones, protocolo, geometría, estado de teclas/botones y controladores.
-- `src/platform/windows_backend.cpp`: hooks, SendInput y salida de emergencia.
-- `src/platform/linux_backend.cpp`: implementación X11, sin utilizarse como fallback de una sesión Wayland.
-- `src/platform/linux_factory.cpp`: selección por sesión y backend incluido en la compilación.
-- `src/platform/wayland_flow.*`: secuencias de autorización, barreras, activación, liberación, cierre y recuperación mediante el contrato PortalOps.
-- `src/platform/wayland_backend.cpp`: GDBus, InputCapture, RemoteDesktop, GlobalShortcuts y comunicación EIS con libei.
-- `src/net/tls_link.cpp`: transporte TLS y comprobación de identidad por huella en ambos extremos.
-- `src/main.cpp`: modos explícitos; preparación de permisos antes de iniciar comunicación.
-- `tests/self_test.cpp`: pruebas del núcleo y de los flujos Wayland con dobles, sin conexiones reales.
+- `src/core/`: events, HID uses, conversions, protocol, geometry, teclas/botones status and
+  controllers.
+- `src/platform/windows_backend.cpp`: hooks, SendInput and emergency exit.
+- `src/platform/linux_backend.cpp`: X11 implementation, not used as a Wayland session failback.
+- `src/platform/linux_factory.cpp`: selection per session and backend included in the compilation.
+- `src/platform/wayland_flow.*`: authorization sequences, barriers, activation, release, closure and
+  recovery using the PortalOps contract.
+- `src/platform/wayland_backend.cpp`: GDBus, InputCapture, RemoteDesktop, GlobalShortcuts and EIS
+  communication with libei.
+- `src/net/tls_link.cpp`: TLS transport and fingerprint identity check at both ends.
+- `src/main.cpp`: explicit modes; preparation of permissions before starting communication.
+- `tests/self_test.cpp`: core and Wayland flow tests with doubles, no real connections.
 
-El código conserva el alcance de un monitor por equipo, disposición horizontal y un origen físico seleccionado. No sincroniza modificadores o botones que ya estuvieran pulsados al cruzar; deben soltarse antes del cruce.
+The code retains the range of a monitor per equipment, horizontal layout and a selected physical
+origin. It does not synchronize modifiers or buttons that were already pressed when crossing; they
+must be released before crossing.
 
-## 3. Evidencia y límites de compilación
+## 3. Evidence and compilation limits
 
-### Evidencia inicial del agente — 4 de noviembre
+### Initial evidence of the staff member — 4 November
 
-| Entorno | Evidencia declarada en la primera entrega |
+| Entorno | Evidence declared in the first delivery |
 | --- | --- |
-| Windows 10.0.19045 x64 | MSVC 19.51.36257.0, herramientas 14.51.36231, Windows SDK 10.0.26100.0 |
+| Windows 10.0.19045 x64 | MSVC 19.51.36257.0, tools 14.51.36231, Windows SDK 10.0.26100.0 |
 | CMake Windows | 3.24.3, NMake, OpenSSL 3.0.5 |
-| WSL Ubuntu 20.04 | GCC 9.4.0, CMake 3.25.2; únicamente núcleo sin backend ni TLS |
-| Primera batería aislada | 403 comprobaciones, 0 fallos en MSVC y GCC 9, anteriores a la ampliación Wayland |
+| WSL Ubuntu 20.04 | GCC 9.4.0, CMake 3.25.2; only kernel without backend or TLS |
+| First battery isolated | 403 checks, 0 bugs in MSVC and GCC 9, prior to Wayland enlargement |
 
-Estos resultados iniciales son históricos; no verifican el adaptador Wayland añadido después.
+These initial results are historical; they do not verify the Wayland adapter added later.
 
-### Revisión del 5 de noviembre
+### Review of November 5
 
-Se localizaron `build/cmake/input_experiment.exe`, `build/cmake/input_self_test.exe` y `build/help.txt`, con fecha del 4 de noviembre posterior a las fuentes Wayland. La ayuda guardada ya describe Wayland. No se infiere de ello una compilación nativa de Linux.
+`build/cmake/input_experiment.exe`, `build/cmake/input_self_test.exe` and `build/help.txt` were
+located, with a date of November 4 after Wayland fonts. Saved help already describes Wayland. A
+native build of Linux is not inferred from this.
 
-El archivo `build/cmake-configure.log` conserva un intento fallido por ausencia de NMake en PATH; no es evidencia de una compilación final correcta. Los comandos para reconstruir se mantienen en [MANUAL.md](MANUAL.md).
+The `build/cmake-configure.log` file retains a failed attempt due to the absence of NMake in PATH;
+it is not evidence of a correct final compilation. Commands to rebuild are maintained in
+[MANUAL.md](MANUAL.md).
 
-No hay un resultado registrado para el binario portable WSL posterior a la ampliación Wayland. Tampoco hay evidencia de compilación del backend GDBus/libei, X11 o TLS nativo Linux. Esas comprobaciones siguen pendientes y no se sustituyen por una compilación con `ONEINTWO_BACKEND=none`.
+There is no recorded result for the WSL portable binary after Wayland enlargement. There is no
+evidence of compilation of the GDBus/libei backend, X11 or native Linux TLS. These checks are still
+pending and are not replaced by a compilation with `ONEINTWO_BACKEND=none`.
 
-## 4. Comprobación aislada ejecutada el 5 de noviembre
+## 4. Insulated check performed on 5 November
 
-Desde el directorio del experimento:
+From the experiment directory:
 
 ```powershell
 .\build\cmake\input_self_test.exe
 ```
 
-Salida observada, código de salida 0:
+Observed output, output code 0:
 
 ```text
 OneInTwo input experiment: self-tests aislados
-Comprobaciones: 538, fallos: 0
+Checks: 538, failures: 0
 ```
 
-El ejecutable de pruebas llama únicamente a `runSelfTests()`. No crea backends nativos, no abre el bus de sesión y no establece conexiones.
+The test executable calls only `runSelfTests()`. It does not create native backends, does not open
+the session bus and does not establish connections.
 
-Cobertura de la batería actual:
+Coverage of the current battery:
 
-- Protocolo y rechazo de mensajes inválidos.
-- Conversión de teclas HID/Windows/evdev/X11 y geometría.
-- Estados de origen/destino, secuencias y generaciones.
-- Liberación de teclas/botones, emergencia y temporizadores.
-- Geometría y barreras Wayland con datos sintéticos.
-- Secuencias InputCapture y RemoteDesktop con dobles de PortalOps.
-- Denegación de permisos, cierre, pérdida de captura y eventos de borde del portal.
+- Protocol and rejection of invalid messages.
+- HID/Windows/evdev/X11 key conversion and geometry.
+- origen/destino states, sequences and generations.
+- Release of teclas/botones, emergency and timers.
+- Geometry and Wayland barriers with synthetic data.
+- Sequences InputCapture and RemoteDesktop with PortalOps doubles.
+- Denial of permits, closure, loss of capture and portal edge events.
 
-La batería prueba la lógica de los flujos; no prueba el código GDBus/libei, el compositor, la reserva real de atajos ni la respuesta del cursor. No se han repetido las pruebas de los otros experimentos durante esta actualización.
+The battery tests the logic of the flows; it does not test the GDBus/libei code, the composer, the
+actual shortcut reserve or the cursor response. Tests of the other experiments have not been
+repeated during this update.
 
-## 5. Requisitos que impone el backend Wayland actual
+## 5. Requirements for the current Wayland backend
 
-Estos son requisitos de esta implementación, no una garantía general de compatibilidad de una versión de Ubuntu.
+These are requirements of this implementation, not a general guarantee of compatibility of a version
+of Ubuntu.
 
-| Papel | Comprobación o recurso exigido por el código |
+| Papel | Verification or remedy required by the code |
 | --- | --- |
-| Compilación | `gio-2.0`, `libei-1.0`, pkg-config; OpenSSL para comunicación entre equipos |
-| Origen | InputCapture versión 2 o superior y capacidades de teclado/puntero |
-| Origen autorizado | Una zona de pantalla, conexión EIS, barrera en el borde y activación concedida por el compositor |
-| Destino | RemoteDesktop versión 2 o superior y GlobalShortcuts versión 1 o superior |
-| Destino autorizado | Teclado y puntero concedidos, atajo de emergencia aceptado y dispositivos EIS utilizables |
-| Geometría del destino | Puntero absoluto, dispositivo de puntero para botones/rueda y una región válida de escritorio |
+| Compilation | `gio-2.0`, `libei-1.0`, pkg-config; OpenSSL for communication between teams |
+| Source | InputCapture version 2 or higher and keyboard and pointer capabilities |
+| Authorized source | A display area, EIS connection, border barrier and activation granted by the composer |
+| Destino | RemoteDesktop version 2 or higher and GlobalShortcuts version 1 or higher |
+| Authorized target | Awarded keyboard and pointer, accepted emergency shortcut and usable EIS devices |
+| Geometry of destination | Absolute pointer, pointer device for botones/rueda and a valid desktop region |
 
-El origen usa CreateSession2/Start/ConnectToEIS/GetZones/SetPointerBarriers/Enable. El destino prepara RemoteDesktop y reserva el atajo mediante GlobalShortcuts antes de escuchar en red. Si no se concede la salida local, el flujo se rechaza.
+The source uses CreateSession2/Start/ConnectToEIS/GetZones/SetPointerBarriers/Enable. The
+destination prepares RemoteDesktop and reserves the shortcut using GlobalShortcuts before listening
+to the network. If local output is not granted, the flow is rejected.
 
-La geometría puede conocerse solo después de autorizar las sesiones. El diagnóstico previo no demuestra que se concederán permisos ni que EIS ofrecerá los dispositivos necesarios. No se ha fijado una versión mínima de Ubuntu verificada.
+The geometry can only be known after the sessions are authorized. The previous diagnosis does not
+show that permissions will be granted nor that EIS will offer the necessary devices. No minimum
+version of verified Ubuntu has been set.
 
-## 6. Capacidades y restricciones por validar
+## 6. Capacities and constraints to be validated
 
-- La captura se activa por el compositor al alcanzar una barrera. El control usa esa notificación, no una observación global simulada del cursor.
-- El retorno en origen solicita Release con una posición sugerida. No se garantiza que el compositor coloque el puntero exactamente en esa posición.
-- El destino Wayland no puede restaurar una posición global que no conoce; este backend no ofrece esa restauración.
-- El destino requiere un atajo local concedido. Debe comprobarse la combinación que realmente reserve el escritorio y que su activación llegue al proceso.
-- El destino Linux no detecta actividad física local como el backend Windows; debe usarse la salida de emergencia.
-- Un cambio de zonas, cierre del portal o pérdida de EIS debe causar la transición prevista; falta validarlo en el escritorio.
-- El watchdog del destino cubre pérdida del origen, no la muerte del propio proceso receptor.
-- No hay reconexión automática ni soporte garantizado para varios monitores, IME o teclas fuera de la tabla.
-- Las ventanas elevadas y el escritorio seguro Windows no forman parte de la garantía de este experimento.
+- The capture is activated by the composer upon reaching a barrier. Control uses that notification,
+  not a simulated global observation of the cursor.
+- The return in origin requests Release with a suggested position. It is not guaranteed that the
+  composer places the pointer exactly in that position.
+- Wayland destination cannot restore a global position that it does not know; this backend does not
+  offer that restoration.
+- The destination requires a local shortcut granted. The combination that actually reserves the
+  desktop must be checked and its activation reached the process.
+- The Linux destination does not detect local physical activity such as the Windows backend; the
+  emergency output must be used.
+- A change of zones, closure of the portal or loss of EIS should cause the expected transition; it
+  needs to be validated on the desktop.
+- The target watchdog covers loss of origin, not the death of the recipient process itself.
+- There is no automatic reconnection or guaranteed support for multiple monitors, IME or keys
+  outside the table.
+- The high windows and secure Windows desktop are not part of the warranty of this experiment.
 
-## 7. Matriz pendiente y siguiente paso
+## 7. Pending matrix and next step
 
-| Área | Estado | Prueba requerida |
+| Area | Estado | Test required |
 | --- | --- | --- |
-| Compilación Windows del estado actual | Sin nueva compilación en esta revisión | Reconstrucción mediante CMake |
-| Compilación Linux/Wayland nativa | Sin evidencia registrada | Forzar `ONEINTWO_WAYLAND=ON`, TLS activado y X11 desactivado |
-| Compilación Linux/X11 | Sin evidencia registrada | Forzar X11 si se quiere evaluar esa alternativa |
-| Permisos Wayland | Pendiente manual | Aceptar, denegar, cancelar y retirar sesiones |
-| Entrada local | Pendiente manual | Demostración acotada en un editor desechable |
-| Cruce y retorno | Pendiente manual | Ambos sentidos Windows/Ubuntu |
-| Recuperación | Pendiente manual | Atajo en ambos extremos, corte de red, retirada de permiso y pérdida del origen |
-| TLS | Pendiente manual | Identidad correcta e incorrecta en ambos extremos |
-| Portabilidad del teclado | Pendiente manual | Distribución española, modificadores y botones |
+| Windows compilation of the current state | No new compilation in this review | CMake reconstruction |
+| Native Linux/Wayland Compilation | No recorded evidence | Set `ONEINTWO_WAYLAND=ON`, enable TLS, and disable X11 |
+| Compilation Linux/X11 | No recorded evidence | Force X11 to evaluate that alternative |
+| Wayland permissions | Manual pending | Grant, deny, cancel, and revoke sessions |
+| Local input | Manual pending | Demonstration tapered in a disposable editor |
+| Crossing and returning | Manual pending | Both directions between Windows and Ubuntu |
+| Recovery | Manual pending | Shortage at both ends, network cutting, withdrawal of permission and loss of origin |
+| TLS | Manual pending | Correct and incorrect identity at both ends |
+| Keyboard portability | Manual pending | Spanish distribution, modifiers and buttons |
 
-Seguir [MANUAL.md](MANUAL.md), registrando versión de sistema, sesión, portales, bibliotecas y resultado observado. La discrepancia documental está resuelta; la validación de escritorio y la compilación nativa Linux continúan abiertas en [TODO.md](../../TODO.md).
+Follow [MANUAL.md](MANUAL.md), registering system version, session, portals, libraries and observed
+result. The documentary discrepancy is resolved; desktop validation and native Linux compilation
+remain open in [TODO.Md](../../TODO.md).
 
-## 8. Conclusión
+## 8. Conclusion
 
-Hay implementación de Windows, X11 y Wayland, y evidencia aislada actualizada para el núcleo y flujos con dobles. Todavía no hay evidencia suficiente para afirmar que el adaptador Wayland compile o que los dos equipos crucen, inyecten y recuperen el control en un escritorio real. Esta entrega prepara la evaluación manual; no certifica soporte de una plataforma.
+There is implementation of Windows, X11 and Wayland, and up-to-date isolated evidence for the kernel
+and dual flows. There is still not enough evidence to claim that the Wayland adapter compiles or
+that the two teams cross, inject and regain control on a real desktop. This delivery prepares manual
+evaluation; it does not certify platform support.
 

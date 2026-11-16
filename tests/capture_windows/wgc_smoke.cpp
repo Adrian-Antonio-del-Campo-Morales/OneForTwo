@@ -1,6 +1,6 @@
-// Smoke test real de WGC: crea una ventana, captura al menos un frame y
-// verifica que el cierre no entrega callbacks posteriores. No intenta sustituir
-// a las pruebas con dobles; sólo valida el camino Win32/WinRT/D3D11 real.
+// Smoke real WGC test: creates a window, captures at least one frame and
+// check that the closing does not deliver subsequent callbacks. Do not try to replace
+// to double tests; only validates the actual Win32/WinRT/D3D11 path.
 #include "platform/windows/visual/win32_port.hpp"
 
 #include <dwmapi.h>

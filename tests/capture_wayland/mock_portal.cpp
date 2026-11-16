@@ -481,7 +481,7 @@ bool MockPortal::handleMethod(const char* sender, const char* object_path,
             }
             g_dbus_method_invocation_return_dbus_error(
                 invocation, "org.freedesktop.DBus.Error.UnknownProperty",
-                "propiedad no simulada");
+                "unsimulated property");
             return true;
         }
         if (g_strcmp0(method_name, "GetAll") == 0) {
@@ -513,7 +513,7 @@ bool MockPortal::handleMethod(const char* sender, const char* object_path,
 
     if (g_strcmp0(interface_name, kScreenCastInterface) != 0) {
         g_dbus_method_invocation_return_dbus_error(
-            invocation, "org.freedesktop.DBus.Error.UnknownInterface", "interfaz no simulada");
+            invocation, "org.freedesktop.DBus.Error.UnknownInterface", "non-simulated interface");
         return true;
     }
 
@@ -599,7 +599,7 @@ bool MockPortal::handleMethod(const char* sender, const char* object_path,
         calls.push_back("OpenPipeWireRemote");
         if (config.fail_open_pipewire) {
             g_dbus_method_invocation_return_dbus_error(
-                invocation, "org.freedesktop.portal.Error.Failed", "fallo simulado");
+                invocation, "org.freedesktop.portal.Error.Failed", "simulated failure");
             return true;
         }
         int descriptors[2] = {-1, -1};
@@ -631,7 +631,7 @@ bool MockPortal::handleMethod(const char* sender, const char* object_path,
 
     g_dbus_method_invocation_return_dbus_error(invocation,
                                                "org.freedesktop.DBus.Error.UnknownMethod",
-                                               "método no simulado");
+                                               "method not simulated");
     return true;
 }
 

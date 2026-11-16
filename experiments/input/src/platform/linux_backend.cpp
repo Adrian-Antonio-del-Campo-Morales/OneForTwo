@@ -1,7 +1,7 @@
-// Responsabilidad: adaptador Linux/X11. El origen observa el puntero con
-// eventos XI2 y captura con XGrabPointer/XGrabKeyboard; el destino inyecta con
-// XTest y reserva Ctrl+Alt+F12 con XGrabKey. Wayland no se presenta como
-// compatible: el portal InputCapture/libei no está implementado.
+// Responsibility: Linux/X11. adapter The source observes the pointer with
+// XI2 events and capture with XGrabPointer/XGrabKeyboard; fate injects with
+// XTest and book Ctrl+Alt+F12 with XGrabKey. Wayland is not presented as
+// Supported: the InputCapture/libei portal is not implemented.
 #include "core/keymap.hpp"
 #include "platform/backend.hpp"
 #include "platform/ring.hpp"
@@ -115,7 +115,7 @@ class X11Backend : public Backend {
   BackendCaps caps() const override { return caps_; }
   std::string sessionType() const override { return sessionType_; }
 
-  // X11 no pide autorización a un portal; los grabs se toman en startSource/startTarget.
+  // X11 does not ask permission to a portal; the records are taken in startSource/startTarget.
   bool prepareSource(Edge, std::string&) override { return true; }
   bool prepareTarget(std::string&) override { return true; }
 
@@ -209,35 +209,35 @@ bool X11Backend::init(std::string& error) {
 
   if (wayland_) {
     caps_.notes =
-        "Wayland: el portal InputCapture/libei no esta implementado en este prototipo. "
-        "Use una sesion 'Ubuntu on Xorg' para esta prueba.";
+        "Wayland: the InputCapture/libei portal is not implemented in this prototype. "
+        "Use a session 'Ubuntu on Xorg' for this test.";
   } else if (display_ == nullptr) {
-    caps_.notes = "Sin DISPLAY: ejecute dentro de una sesion grafica X11.";
+    caps_.notes = "Without DISPLAY: run within a graphic session X11.";
   } else {
     caps_.notes =
-        "X11 con XInput2 y XTest; se asume evdev y un solo monitor. "
-        "El destino no detecta automaticamente actividad fisica local; use Ctrl+Alt+F12.";
-    if (!xi2_) caps_.notes += " XInput2 no disponible.";
-    if (!xtest_) caps_.notes += " XTest no disponible.";
+        "X11 with XInput2 and XTest; assumes evdev and a single monitor. "
+        "The destination does not automatically detect local physical activity; use Ctrl+Alt+F12.";
+    if (!xi2_) caps_.notes += " XInput2 not available.";
+    if (!xtest_) caps_.notes += " XTest not available.";
   }
   return true;
 }
 
 bool X11Backend::startSource(std::string& error) {
   if (wayland_) {
-    error = "Wayland no soportado: falta la integracion InputCapture/libei";
+    error = "Wayland unsupported: InputCapture/libei integration missing";
     return false;
   }
   if (display_ == nullptr) {
-    error = "DISPLAY no disponible";
+    error = "DISPLAY is unavailable";
     return false;
   }
   if (!xi2_) {
-    error = "XInput2 no disponible; instale libxi-dev y use un servidor X11";
+    error = "XInput2 not available; install libxi-dev and use a X11 server";
     return false;
   }
   if (sourceThread_.joinable()) {
-    error = "la observacion X11 ya esta iniciada";
+    error = "the observation X11 is already initiated";
     return false;
   }
 
@@ -253,7 +253,7 @@ bool X11Backend::startSource(std::string& error) {
   if (!sourceReady_.load(std::memory_order_acquire)) {
     sourceRunning_.store(false, std::memory_order_relaxed);
     if (sourceThread_.joinable()) sourceThread_.join();
-    error = "tiempo de espera agotado iniciando X11";
+    error = "exhausted waiting time starting X11";
     return false;
   }
   if (!sourceError_.empty()) {
@@ -418,8 +418,8 @@ void X11Backend::processEvent(Display* display, Window root, int screenWidth, in
     if (usage == hid::LeftCtrl || usage == hid::RightCtrl) ctrlDown = pressed;
     if (usage == hid::LeftAlt || usage == hid::RightAlt) altDown = pressed;
 
-    // Consulta el estado real del servidor: Ctrl/Alt pueden estar pulsados
-    // antes de que se instalara el grab y no haberse observado su press.
+    // Check the actual server status: Ctrl/Alt may be pressed
+    // before the recording was installed and your press was not observed.
     const bool emergency =
         pressed && usage == hid::F12 &&
         (ctrlDown || keyIsDown(display, hid::LeftCtrl) || keyIsDown(display, hid::RightCtrl)) &&
@@ -442,7 +442,7 @@ void X11Backend::processEvent(Display* display, Window root, int screenWidth, in
 void X11Backend::sourceThreadMain() {
   Display* display = XOpenDisplay(nullptr);
   if (display == nullptr) {
-    sourceError_ = "no se pudo abrir DISPLAY en el hilo de captura";
+    sourceError_ = "could not open DISPLAY in catch thread";
     sourceReady_.store(true, std::memory_order_release);
     return;
   }
@@ -453,7 +453,7 @@ void X11Backend::sourceThreadMain() {
   const int screenHeight = DisplayHeight(display, screen);
   int xiOpcode = 0;
   if (!queryXi2(display, xiOpcode)) {
-    sourceError_ = "XInput2 no disponible en el hilo de captura";
+    sourceError_ = "XInput2 not available in the catch thread";
     sourceReady_.store(true, std::memory_order_release);
     XCloseDisplay(display);
     return;
@@ -515,7 +515,7 @@ void X11Backend::stopSource() {
 
 bool X11Backend::setCaptureActive(bool active, std::string& error) {
   if (!sourceThread_.joinable()) {
-    error = "la observacion X11 no esta iniciada";
+    error = "observation X11 is not initiated";
     return false;
   }
   {
@@ -526,11 +526,11 @@ bool X11Backend::setCaptureActive(bool active, std::string& error) {
     requestOk_ = false;
     requestCv_.notify_all();
     if (!requestCv_.wait_for(lock, std::chrono::seconds(2), [this] { return requestDone_; })) {
-      error = "X11 no respondio a la solicitud de captura";
+      error = "X11 did not respond to the catch request";
       return false;
     }
     if (active && !requestOk_) {
-      error = "no se pudieron obtener los grabs de X11";
+      error = "could not get the X11 grabs";
       return false;
     }
   }
@@ -554,25 +554,25 @@ void X11Backend::warpLocalCursor(int x, int y) {
 
 bool X11Backend::startTarget(std::string& error) {
   if (wayland_) {
-    error = "Wayland no soportado: falta la integracion InputCapture/libei";
+    error = "Wayland unsupported: InputCapture/libei integration missing";
     return false;
   }
   if (display_ == nullptr) {
-    error = "DISPLAY no disponible";
+    error = "DISPLAY is unavailable";
     return false;
   }
   if (!xtest_) {
-    error = "XTest no disponible; instale libxtst-dev";
+    error = "XTest is unavailable. Install libxtst-dev.";
     return false;
   }
   if (targetGrabbed_) {
-    error = "el destino X11 ya esta preparado";
+    error = "the destination X11 is already prepared";
     return false;
   }
 
   const int keycode = hidToX11Keycode(hid::F12);
   if (keycode == 0) {
-    error = "no hay conversion X11 para F12";
+    error = "no X11 mapping for F12";
     return false;
   }
 
@@ -591,7 +591,7 @@ bool X11Backend::startTarget(std::string& error) {
       XUngrabKey(display_, keycode, modifiers | extra, root_);
     }
     XSync(display_, False);
-    error = "no se pudo reservar Ctrl+Alt+F12 (otro cliente puede tenerlo)";
+    error = "could not book Ctrl+Alt+F12 (another client can have it)";
     return false;
   }
 
@@ -633,7 +633,7 @@ bool X11Backend::nextTargetSignal(TargetSignal& signal, int waitMs) {
 
 bool X11Backend::injectMove(int x, int y, std::string& error) {
   if (display_ == nullptr || !xtest_) {
-    error = "XTest no disponible";
+    error = "XTest not available";
     return false;
   }
   XTestFakeMotionEvent(display_, screen_, x, y, 0);
@@ -643,12 +643,12 @@ bool X11Backend::injectMove(int x, int y, std::string& error) {
 
 bool X11Backend::injectKey(uint16_t usage, bool pressed, std::string& error) {
   if (display_ == nullptr || !xtest_) {
-    error = "XTest no disponible";
+    error = "XTest not available";
     return false;
   }
   const int keycode = hidToX11Keycode(usage);
   if (keycode == 0) {
-    error = "tecla sin conversion X11";
+    error = "key without conversion X11";
     return false;
   }
   XTestFakeKeyEvent(display_, static_cast<unsigned int>(keycode), pressed ? True : False, 0);
@@ -658,12 +658,12 @@ bool X11Backend::injectKey(uint16_t usage, bool pressed, std::string& error) {
 
 bool X11Backend::injectButton(uint16_t button, bool pressed, std::string& error) {
   if (display_ == nullptr || !xtest_) {
-    error = "XTest no disponible";
+    error = "XTest not available";
     return false;
   }
   const unsigned int xbutton = codeToX11Button(button);
   if (xbutton == 0) {
-    error = "boton de raton no soportado";
+    error = "mouse button not supported";
     return false;
   }
   XTestFakeButtonEvent(display_, xbutton, pressed ? True : False, 0);
@@ -673,7 +673,7 @@ bool X11Backend::injectButton(uint16_t button, bool pressed, std::string& error)
 
 bool X11Backend::injectWheel(int16_t dx, int16_t dy, std::string& error) {
   if (display_ == nullptr || !xtest_) {
-    error = "XTest no disponible";
+    error = "XTest not available";
     return false;
   }
   const int maxTicks = 16;

@@ -1,4 +1,4 @@
-"""Regresión aislada de argumentos/quoting; sin certificados privados, red o escritorio."""
+"""Isolated regression of arguments/quoting; no private certificates, network or desktop."""
 
 from pathlib import Path
 import tempfile
@@ -28,7 +28,7 @@ class CommandTests(unittest.TestCase):
                 args = prepare.command("windows", "connect", "192.0.2.2", 47831, str(binary))
                 self.assertEqual(args[1:4], ["--connect", "--host", "192.0.2.2"])
                 (base / "ubuntu.pem").unlink()
-                with self.assertRaisesRegex(ValueError, "Falta el archivo"):
+                with self.assertRaisesRegex(ValueError, "File Missing"):
                     prepare.command("windows", "serve", "192.0.2.1", 47831, str(binary))
 
     def test_rejects_invalid_endpoint(self):

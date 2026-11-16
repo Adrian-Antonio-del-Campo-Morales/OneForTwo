@@ -1,4 +1,4 @@
-// Responsabilidad: regresión de lectura PEM en la DLL TLS, sin red ni escritorio.
+// Regression test for PEM loading in the TLS DLL without network or desktop access.
 #include "net/tls_channel.hpp"
 
 #include <cctype>

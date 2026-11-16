@@ -16,8 +16,8 @@
 
 namespace oneintwo::tests {
 
-// Reloj monotónico y ejecutor post controlados. Los callbacks de los dobles se
-// invocan explícitamente para que cada caso decida el orden observable.
+// Monotonic watch and post-controlled execution. Double callbacks are
+// they explicitly invoke for each case to decide the observable order.
 class ManualClock {
 public:
     MonotonicTime now() const { return time_; }
@@ -153,7 +153,7 @@ struct Fixture {
     FakeDesktopNotifications desktop;
     RecordingSend sender;
     std::vector<std::string> errors;
-    std::string peer_name = "PORTATIL-A";
+    std::string peer_name = "LAPTOP-A";
     std::unique_ptr<SharedNotifications> module;
     SessionGeneration generation = 7;
     FeatureSet send_features{};

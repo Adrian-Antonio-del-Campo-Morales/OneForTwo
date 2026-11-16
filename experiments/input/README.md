@@ -1,99 +1,110 @@
-# Experimento de teclado y ratón
+# Keyboard and Mouse Experiment
 
-Estado actualizado: **5 de noviembre de 2026**. Hay implementación Windows, X11 y Wayland. El encargo original se conserva a continuación; el estado de la entrega y su evidencia se detallan al final y en [RESULTS.md](RESULTS.md).
+Updated status: **November 5, 2026**. There is Windows, X11 and Wayland implementation. The original
+order is preserved below; the status of delivery and its evidence are detailed at the end and in
+[RESULTS.md](RESULTS.md).
 
-## Encargo para el agente
+## Ordering for the agent
 
-Implementa este experimento siguiendo [las instrucciones comunes](../AGENTS.md) y [el modelo de entrega](../README.md). Tu directorio exclusivo es `D:/DEVEL/OneInTwo/experiments/input`. La captura e inyección reales quedan reservadas a ejecución manual del usuario.
+Implement this experiment by following [common instructions](../AGENTS.md) and [delivery
+model](../README.md). Your exclusive directory is `D:/DEVEL/OneInTwo/experiments/input`. Actual
+capture and injection are reserved for manual execution by the user.
 
-## Pregunta que debe resolver
+## Question to Solve
 
-¿Puede Windows y Ubuntu actuar como origen y destino de entrada, cambiar de pantalla al cruzar un borde y recuperar el control de forma fiable?
+Can Windows and Ubuntu act as the source and destination of input, change screen when crossing a
+border and recover control reliably?
 
-La primera prueba utilizará un monitor por equipo, un origen físico seleccionado y disposición horizontal. Teclados simultáneos, vídeo remoto, varios monitores y aplicaciones elevadas quedan fuera del experimento.
+The first test will use one monitor per team, a selected physical origin and horizontal layout.
+Simultaneous keyboards, remote video, multiple monitors and high applications are left out of the
+experiment.
 
-## Diseño superficial
+## Interface design
 
-Un ejecutable con modos de diagnóstico, origen y destino, y componentes pequeños:
+An executable with diagnostic modes, origin and destination, and small components:
 
-1. Adaptadores Windows y Ubuntu/Wayland para captura e inyección.
-2. Conversión a eventos comunes: movimiento, botones, rueda y teclas.
-3. Estado de control: local, transición, remoto y recuperación.
-4. Conexión directa entre instancias y supervisión de su disponibilidad.
+1. Windows and Ubuntu/Wayland adapters for capture and injection.
+2. Conversion to common events: movement, buttons, wheel and keys.
+3. Control status: local, transition, remote and recovery.
+4. Direct connection between instances and monitoring their availability.
 
-El origen registra el borde configurado y el destino expone la geometría necesaria. El prototipo debe permitir volver a la pantalla inicial, no solo enviar eventos en una dirección. La detección del retorno y las coordenadas son parte de lo que se investiga.
+The source records the configured edge and the destination displays the required geometry. The
+prototype should allow you to return to the initial screen, not just send events in one direction.
+Return detection and coordinates are part of what is being investigated.
 
-La disponibilidad y los permisos se mostrarán explícitamente. Un entorno que no permita captura no se presentará como compatible porque admita inyección.
+Availability and permissions will be explicitly displayed. An environment that does not allow
+capture will not be presented as compatible because it supports injection.
 
-## Recuperación obligatoria del prototipo
+## Compulsory prototype recovery
 
-- Inicio real mediante comando explícito y un periodo de preparación visible.
-- Duración máxima de la sesión de prueba, configurada y documentada.
-- Salida local de emergencia que funcione mientras el remoto recibe entrada.
-- Liberación de captura al fallar la conexión.
-- Temporizador independiente en el receptor para liberar teclas y botones si desaparece el emisor.
-- Rechazo de eventos atrasados tras reconectar o cambiar la generación de control.
-- Limpieza en cancelación, cierre normal y retirada de permisos.
+- Real start by explicit command and a visible preparation period.
+- Maximum duration of the trial session, configured and documented.
+- Local emergency exit that works while the remote receives input.
+- Capture release by failing the connection.
+- Independent timer on the receiver to release keys and buttons if the emitter disappears.
+- Rejection of backward events after reconnecting or changing control generation.
+- Cleaning in cancellation, normal closure and withdrawal of permits.
 
-Ctrl+C en una terminal no basta como única vía de recuperación si las teclas están dirigidas al otro equipo. Si no se puede implementar una salida local fiable en un backend, no habilitar su modo de captura real y documentar el bloqueo.
+Ctrl+C in one terminal is not enough as the only way to recover if the keys are directed to the
+other computer. If a reliable local output cannot be implemented on a backend, do not enable your
+actual capture mode and document the lock.
 
-## Qué podrá comprobar el agente automáticamente
+## What the agent will be able to check automatically
 
-- Máquina de estados con reloj y adaptadores falsos.
-- Conversión de eventos y coordenadas de pantallas sintéticas.
-- Orden de pulsación/liberación y descarte de eventos obsoletos.
-- Pérdida de conexión y activación de temporizadores.
-- Prevención de bucles de eventos sintetizados.
+- State machine with clock and fake adapters.
+- Conversion of events and coordinates of synthetic screens.
+- Order presses and releases and discard obsolete events.
+- Loss of connection and timer activation.
+- Prevention of synthesized event loops.
 
-No inicializar hooks, portales o dispositivos reales durante esas pruebas.
+Do not initialize actual hooks, portals or devices during those tests.
 
-## Guion que debe preparar para ejecución manual
+## Screenplay to be prepared for manual execution
 
-1. Diagnosticar capacidades y revisar la salida de emergencia.
-2. Probar generación de eventos sintéticos acotados en una ventana de prueba elegida por el usuario.
-3. Iniciar destino y origen de forma explícita.
-4. Cruzar el borde, mover, pulsar, desplazar y regresar.
-5. Probar Ctrl, Alt, Shift, AltGr, acentos y teclado español.
-6. Desconectar al mantener una tecla o botón; comprobar recuperación en ambos extremos.
-7. Probar cancelación y revocación de permisos.
-8. Repetir invirtiendo los papeles de Windows y Ubuntu.
+1. Diagnose capabilities and review the emergency exit.
+2. Test generation of synthetic events in a test window chosen by the user.
+3. Start destination and origin explicitly.
+4. Cross the border, move, press, move and return.
+5. Try Ctrl, Alt, Shift, AltGr, accents and Spanish keyboard.
+6. Disconnect when holding a key or button; check recovery at both ends.
+7. Test for cancellation and revocation of permissions.
+8. Repeat investing the roles of Windows and Ubuntu.
 
-## Entregable y criterio de evaluación
+## Deliverable and evaluation criteria
 
-Código propio de los adaptadores y del flujo mínimo, compilación, self-tests, MANUAL.md y RESULTS.md. Registrar por sistema captura, inyección, cruce, retorno, mapeo de teclado y recuperación.
+Adapters and minimum flow code, compilation, self-tests, MANUAL.md and RESULTS.Md. Register by
+system capture, injection, crossover, return, keyboard mapping and recovery.
 
-La prueba no se considerará completa funcionalmente por transmitir movimiento sin retorno o sin liberación de estados. El agente puede entregar el código listo para evaluación, pero las capacidades reales y la recuperación permanecerán marcadas como pendientes hasta ejecutarlas manualmente.
+The test will not be considered complete functionally by transmitting motion without return or state
+release. The agent can deliver the code ready for evaluation, but the actual capabilities and
+recovery will remain marked as pending until they are executed manually.
 
-La decisión arquitectónica esperada es cómo implementar el contrato de entrada y qué restricciones exigir a cada plataforma.
+The expected architectural decision is how to implement the entry contract and what restrictions to
+require each platform.
 
-## Implementación y evidencia actuales
+## Current implementation and evidence
 
-- `src/core/`: protocolo, conversiones HID, geometría, estados y controladores.
-- `src/platform/wayland_flow.*`: lógica portable de autorización, activación y cierre probada con dobles de `PortalOps`.
-- `src/platform/wayland_backend.cpp`: adaptador nativo GDBus/libei para InputCapture en origen y RemoteDesktop/GlobalShortcuts en destino.
-- `src/platform/windows_backend.cpp`: hooks y SendInput.
-- `src/platform/linux_backend.cpp`: alternativa X11; `linux_factory.cpp` selecciona el backend de la sesión sin fallback silencioso.
-- `src/net/tls_link.cpp`: comunicación directa con certificados y huellas en ambos extremos.
-- `tests/self_test.cpp`: núcleo y flujos Wayland aislados, sin escritorio ni red.
+- `src/core/`: protocol, HID conversions, geometry, states and controllers.
+- `src/platform/wayland_flow.*`: portable logic of authorization, activation and tested closure with
+  doubles of `PortalOps`.
+- `src/platform/wayland_backend.cpp`: GDBus/libei native adapter for InputCapture source and
+  RemoteDesktop/GlobalShortcuts destination.
+- `src/platform/windows_backend.cpp`: hooks and SendInput.
+- `src/platform/linux_backend.cpp`: X11 alternative; `linux_factory.cpp` selects the backend of the
+  session without silent fallback.
+- `src/net/tls_link.cpp`: direct communication with certificates and fingerprints at both ends.
+- `tests/self_test.cpp`: isolated Wayland kernel and streams, without desktop or network.
 
-La ejecución del binario independiente Windows el 5 de noviembre dio **538 comprobaciones, 0 fallos**. La cifra histórica de 403 pertenece a la primera entrega anterior a la ampliación Wayland. En Ubuntu están compilados Wayland nativo y TLS; el self-test actualizado de núcleo y flujos da **579/0**, más las regresiones nativas en memoria. X11 no tiene evidencia nueva. Ninguna de estas pruebas aisladas valida la recuperación del escritorio.
+The execution of the independent Windows binary on November 5 gave **538 checks, 0 failures**. The
+historical figure of 403 belongs to the first installment prior to Wayland enlargement. Native
+Wayland and TLS are compiled in Ubuntu; the updated kernel and stream self-test gives **579/0**,
+plus native memory regressions. X11 has no new evidence. None of these isolated tests validates
+desktop recovery.
 
-La preparación Wayland exige InputCapture v2 en origen, RemoteDesktop v2 y
-GlobalShortcuts v1 en destino, dispositivos reanudados y una región EIS
-utilizable. El destino reserva Ctrl+Shift+F12 con identidad nueva y exige
-pulsarlo y soltarlo antes de abrir RemoteDesktop/EIS. `--check-target` prueba
-solo GlobalShortcuts; no abre control. La emulación empieza con el primer
-evento real y el cierre normal libera el estado propio. Estas correcciones
-se compilaron y probaron de forma aislada. El 5 de noviembre el usuario
-verificó primero Ctrl+Shift+F12 por separado y después la demostración
-RemoteDesktop/EIS con la guía y el temporizador independiente de 30 s:
-movimiento breve, texto `oneintwo`, salida 0 y escritorio respondiendo.
-Después pasaron R2 (emergencia con EIS activo) y R9 (retirada del permiso en
-GNOME), ambas salida 0 y escritorio operativo confirmado. La fase local
-prevista está completada en la configuración de un monitor. No se observó
-otra congelación; no se garantiza reparar un compositor bloqueado. Estados
-retenidos, cortes y entrada entre equipos siguen pendientes (EXP-INPUT-02);
-origen Ubuntu bloqueado por InputCapture v1.
+Wayland preparation requires InputCapture v2 at source, RemoteDesktop v2 and GlobalShortcuts v1 at destination, resumed devices and a usable EIS region. The destination reserves Ctrl+Shift+F12 with new identity and requires you to press and drop it before opening RemoteDesktop/EIS. `--check-target` test only GlobalShortcuts; It doesn't open control. Emulation begins with the first real event and normal closure releases one's state. These corrections were compiled and tested in isolation. On November 5, the user first verified Ctrl+Shift+F12 separately and then demo RemoteDesktop/EIS with 30 s independent guide and timer: short movement, `oneintwo`, output 0 and desktop responding. Then they passed R2 (emergency with EIS active) and R9 (withdrawal of permission in GNOME), both output 0 and operating desktop confirmed. The planned local phase is completed in the configuration of a monitor. No further freeze was observed; a blocked composer is not guaranteed to be repaired. States withheld, cut-off and entry between teams remain outstanding (EXP-INPUT-02); Ubuntu source blocked by InputCapture v1.
 
-El [manual](MANUAL.md) contiene compilación explícita por backend y pasos de permisos, cruce, retorno, cancelación y recuperación. El [informe](RESULTS.md) distingue evidencia histórica, comprobación actual y validación manual. Ningún resultado aislado afirma que ya funcionen el escritorio o la conexión entre equipos.
+The [manual](MANUAL.md) contains explicit compilation by backend and permission steps, crossing,
+return, cancellation and recovery. The [report](RESULTS.md) distinguishes historical evidence,
+current verification and manual validation. No isolated result states that the desktop or the
+connection between computers is already working.
 

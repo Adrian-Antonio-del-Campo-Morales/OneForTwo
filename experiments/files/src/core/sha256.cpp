@@ -1,5 +1,5 @@
-// Responsabilidad: implementación de SHA-256 (FIPS 180-4) usada por el motor
-// de transferencia y por los self-tests.
+// Responsibility: implementation of SHA-256 (FIPS 180-4) used by the engine
+// transfer and self-tests.
 #include "core/sha256.hpp"
 
 #include <cstring>

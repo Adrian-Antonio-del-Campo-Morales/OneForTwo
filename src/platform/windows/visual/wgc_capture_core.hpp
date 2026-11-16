@@ -10,13 +10,11 @@
 #include <thread>
 
 /*
- * Núcleo de WGC independiente de WinRT/D3D11.
+ * WGC core independent of WinRT/D3D11.
  *
- * El backend Windows implementa estas interfaces con objetos reales; las
- * pruebas nativas las implementan con dobles para ejecutar el mismo ciclo de
- * vida en cualquier plataforma. La decisión de ocultar el cursor vive en la
- * sesión inyectada, que en producción hace el QI de
- * IGraphicsCaptureSession2.
+ * Windows backend implements these interfaces with real objects; native tests implement them with
+ * doubles to run the same life cycle on any platform. The decision to hide the cursor lives in the
+ * injected session, which in production makes the IGraphicsCaptureSession2 QI.
  */
 
 namespace oneintwo::windows::detail {
@@ -27,7 +25,7 @@ class WgcSession {
 public:
     virtual ~WgcSession() = default;
 
-    // Producción: QI de IGraphicsCaptureSession2 y, si existe, propiedad.
+    // Production: QI of IGraphicsCaptureSession2 and, if it exists, property.
     virtual void configureCursor() = 0;
     virtual void start() = 0;
     virtual void close() = 0;
@@ -101,10 +99,9 @@ private:
 };
 
 /*
- * Realiza el QI y sólo llama a la propiedad si la interfaz está presente.
- * Es una plantilla para poder probar la rama de ausencia y la de excepción con
- * un objeto falso; producción la instancia con GraphicsCaptureSession y
- * ABI::Windows::Graphics::Capture::IGraphicsCaptureSession2.
+ * Performs the QI and only calls the property if the interface is present. It is a template to be
+ * able to test the missing branch and the exception one with a fake object; producing the instance
+ * with GraphicsCaptureSession and ABI::Windows::Graphics::Capture::IGraphicsCaptureSsession2.
  */
 template <typename Session, typename CursorSession>
 bool tryDisableCursor(Session& session)
@@ -115,7 +112,7 @@ bool tryDisableCursor(Session& session)
             return true;
         }
     } catch (...) {
-        // Ocultar el cursor es cosmético: la captura debe continuar.
+        // Hiding the cursor is cosmetic: the capture must continue.
     }
     return false;
 }

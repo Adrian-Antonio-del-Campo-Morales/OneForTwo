@@ -1,6 +1,6 @@
 #pragma once
-// Responsabilidad: reloj monótono usado por los bucles de sesión. Los
-// controladores reciben el tiempo como parámetro para poder probarse con un
+// Responsibility: monotonous clock used by session loops.
+// controllers receive time as a parameter to be tested with a
 // reloj falso.
 
 #include <chrono>

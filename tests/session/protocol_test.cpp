@@ -181,21 +181,21 @@ TEST_CASE(roundtrip_all_seven_message_types) {
     RemoteNotification manual;
     manual.ref = NotificationRef{11, 77};
     manual.mode = NotificationMode::manual;
-    manual.content = NotificationContent{"Título", "Cuerpo del aviso"};
+    manual.content = NotificationContent{"Title", "Warning body"};
     manual.app_name.clear();
     const auto manual_message = singleDecode(manual);
     const auto& received_manual = std::get<RemoteNotification>(manual_message);
     CHECK_EQ(received_manual.ref.generation, static_cast<SessionGeneration>(22));
     CHECK_EQ(received_manual.ref.notice_id, static_cast<std::uint64_t>(77));
     CHECK_EQ(received_manual.mode, NotificationMode::manual);
-    CHECK_EQ(received_manual.content.title, std::string("Título"));
-    CHECK_EQ(received_manual.content.body, std::string("Cuerpo del aviso"));
+    CHECK_EQ(received_manual.content.title, std::string("Title"));
+    CHECK_EQ(received_manual.content.body, std::string("Warning body"));
     CHECK(received_manual.app_name.empty());
 
     RemoteNotification forwarded;
     forwarded.ref = NotificationRef{11, 78};
     forwarded.mode = NotificationMode::forwarded;
-    forwarded.content = NotificationContent{"App", "Nuevo mensaje"};
+    forwarded.content = NotificationContent{"App", "New message"};
     forwarded.app_name = "correo";
     const auto forwarded_message = singleDecode(forwarded);
     const auto& received_forwarded = std::get<RemoteNotification>(forwarded_message);
@@ -204,7 +204,7 @@ TEST_CASE(roundtrip_all_seven_message_types) {
 }
 
 TEST_CASE(initiator_and_generation_translation_is_reversible) {
-    // Oferta local de A: el receptor la atribuye al par y a su generación local.
+    // Local offer of A: the receiver attributes it to the pair and its local generation.
     VisualShareOffer offer{localRef(41, 900), VisualSourceKind::monitor};
     GenerationPair a{900, 700}; // A local 900, conoce B 700
     GenerationPair b{700, 900}; // B local 700, conoce A 900
@@ -215,7 +215,7 @@ TEST_CASE(initiator_and_generation_translation_is_reversible) {
     CHECK_EQ(at_b.ref.generation, static_cast<SessionGeneration>(700));
     CHECK_EQ(at_b.ref.initiator, VisualInitiator::peer);
 
-    // Respuesta de B sobre la misma identidad de operación.
+    // B's response on the same operating identity.
     VisualDecisionMessage response{at_b.ref, VisualDecision::accepted};
     const std::vector<WireFrame> answered = encodeOk(response, b);
     const std::vector<FeatureMessage> back = decodeOk(answered, a);
@@ -316,18 +316,18 @@ TEST_CASE(protocol_rejects_bad_versions_types_and_lengths) {
     oversized_fragment.resize(visual_fragment_payload_bytes + 1, 0);
     CHECK_EQ(feedRaw(rawFrame(6, oversized_fragment)).status, ProtocolStatus::payload_too_large);
 
-    // Payload declarado mayor que el disponible: espera más bytes, no reserva.
+    // Payload declared higher than available: wait more bytes, no booking.
     std::vector<std::uint8_t> truncated = stop.bytes;
     truncated.pop_back();
     CHECK_EQ(feedRaw(truncated).status, ProtocolStatus::needs_more);
 
-    // Bytes sobrantes dentro de una trama completa.
+    // Bytes leftover within a whole plot.
     std::vector<std::uint8_t> offer_payload = refBytes(11, 0, 1);
     offer_payload.push_back(0);
     offer_payload.push_back(0); // sobrante
     CHECK_EQ(feedRaw(rawFrame(1, offer_payload)).status, ProtocolStatus::malformed);
 
-    // Enumeraciones y booleanos fuera de rango.
+    // Listings and booleans out of range.
     std::vector<std::uint8_t> bad_decision_payload = refBytes(11, 0, 2);
     bad_decision_payload.push_back(3);
     CHECK_EQ(feedRaw(rawFrame(2, bad_decision_payload)).status, ProtocolStatus::malformed);
@@ -339,13 +339,13 @@ TEST_CASE(protocol_rejects_bad_versions_types_and_lengths) {
 
 TEST_CASE(protocol_rejects_generation_and_initiator_mismatches) {
     const auto offer = encodeOk(VisualShareOffer{localRef(1), VisualSourceKind::monitor}).front();
-    // El receptor espera la generación 99 del par, pero llega 11.
+    // The receiver waits for generation 99 of the pair, but arrives 11.
     CHECK_EQ(feedRaw(offer.bytes, GenerationPair{22, 99}).status,
              ProtocolStatus::generation_mismatch);
 
     std::vector<std::uint8_t> offer_payload = refBytes(11, 0, 1);
     offer_payload.push_back(0);
-    std::fill(offer_payload.begin(), offer_payload.begin() + 8, 0); // generación 0
+    std::fill(offer_payload.begin(), offer_payload.begin() + 8, 0); // generation 0
     CHECK_EQ(feedRaw(rawFrame(1, offer_payload)).status, ProtocolStatus::generation_mismatch);
 
     std::vector<std::uint8_t> bad_initiator = refBytes(11, 2, 1);
@@ -362,7 +362,7 @@ TEST_CASE(protocol_enforces_visual_limits) {
     encodeFeatureMessage(frame, sender_generations, &error);
     CHECK_EQ(error, ProtocolStatus::out_of_range);
 
-    frame.size = VisualSize{1920, 1081}; // 2 075 520 píxeles > 2 073 600
+    frame.size = VisualSize{1920, 1081}; // 2 075 520 pixels > 2 073 600
     encodeFeatureMessage(frame, sender_generations, &error);
     CHECK_EQ(error, ProtocolStatus::out_of_range);
 
@@ -410,7 +410,7 @@ TEST_CASE(protocol_rejects_bad_notices) {
     CHECK_EQ(error, ProtocolStatus::out_of_range);
 
     notice.app_name.clear();
-    notice.content.title = std::string("\xC3\x28", 2); // UTF-8 inválido
+    notice.content.title = std::string("\xC3\x28", 2); // invalid UTF-8
     encodeFeatureMessage(notice, sender_generations, &error);
     CHECK_EQ(error, ProtocolStatus::out_of_range);
 

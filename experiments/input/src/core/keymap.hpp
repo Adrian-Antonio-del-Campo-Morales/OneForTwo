@@ -1,7 +1,7 @@
 #pragma once
-// Responsabilidad: identidad canónica de teclas (uso HID) y conversiones con
-// los códigos de Windows y de Linux/X11. La identidad es la posición física de
-// la tecla, no el carácter que produce.
+// Responsibility: canonical key identity (use HID) and conversions with
+// Windows and Linux/X11. codes Identity is the physical position of
+// the key, not the character it produces.
 
 #include <cstdint>
 
@@ -30,19 +30,19 @@ bool isKeyboardUsage(uint16_t usage);
 bool isMappedUsage(uint16_t usage);
 bool isModifierUsage(uint16_t usage);
 
-// Código de escaneo de Windows (set 1) -> uso HID. 0 si no se reconoce.
+// Windows scan code (set 1) -> use HID. 0 if not recognized.
 uint16_t winScanToHid(uint32_t scanCode, bool extended);
 
-// Uso HID -> código de escaneo de Windows. false si no se puede inyectar.
+// Use HID -> Windows scan code. false if it cannot be injected.
 bool hidToWinScan(uint16_t usage, uint32_t& scanCode, bool& extended);
 
-// Código evdev de Linux -> uso HID. 0 si no se reconoce.
+// Linux evdev code -> use HID. 0 if not recognized.
 uint16_t linuxCodeToHid(uint16_t linuxCode);
 
-// Uso HID -> código evdev. 0 si no se reconoce.
+// Use HID -> code evdev. 0 if not recognized.
 uint16_t hidToLinuxCode(uint16_t usage);
 
-// X11 usa el código evdev + 8 en servidores basados en evdev.
+// X11 uses evdev+8 code on evdov-based servers.
 uint16_t hidToX11Keycode(uint16_t usage);
 uint16_t x11KeycodeToHid(uint16_t keycode);
 

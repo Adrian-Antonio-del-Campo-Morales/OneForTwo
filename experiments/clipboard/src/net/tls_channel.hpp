@@ -1,8 +1,8 @@
 #pragma once
 
-// Responsabilidad: canal de transporte entre dos instancias, cifrado con TLS
-// y autenticado fijando el certificado del par. La implementación usa OpenSSL
-// y queda fuera de este encabezado para no imponerla al núcleo del experimento.
+// Responsibility: transport channel between two instances, encrypted with TLS
+// and authenticated by setting the torque certificate. The implementation uses OpenSSL
+// And it's out of this header not to impose it on the core of the experiment.
 
 #include <cstdint>
 #include <memory>
@@ -21,7 +21,7 @@ struct LocalTlsInfo {
   std::string backend;
 };
 
-// Calcula la huella SHA-256 del certificado local para compararla a mano.
+// Calculates the footprint SHA-256 of the local certificate to be compared by hand.
 bool describe_local_certificate(const TlsFiles& files, LocalTlsInfo& out,
                                 std::string& error);
 
@@ -42,9 +42,9 @@ class TlsChannel {
                  std::string& error);
   bool read_all(std::uint8_t* data, std::size_t size, std::string& error);
 
-  // Desbloquea una lectura pendiente sin liberar el objeto SSL.
+  // Unlock a pending reading without releasing the SSL object.
   void interrupt();
-  // Cierra la conexión actual y libera SSL; conserva el listener si es servidor.
+  // Closes the current connection and releases SSL; retains the listener if it is a server.
   void shutdown_peer();
   std::uint16_t local_port() const;
   std::string peer_fingerprint() const;

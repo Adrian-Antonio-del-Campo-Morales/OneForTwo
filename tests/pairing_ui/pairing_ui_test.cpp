@@ -119,7 +119,7 @@ bool pairDialogs(DeviceIdentity listener_identity, PairingStore& listener_store,
     PairingDialog connector(std::move(connector_identity), connector_store);
 
     field<QLineEdit>(listener, "pairingName")
-        ->setText(QStringLiteral("Equipo A"));
+        ->setText(QStringLiteral("Equipment A"));
     auto* listener_port = field<QSpinBox>(listener, "pairingPort");
     listener_port->setValue(0);
     field<QPushButton>(listener, "pairingStart")->click();
@@ -133,7 +133,7 @@ bool pairDialogs(DeviceIdentity listener_identity, PairingStore& listener_store,
 
     field<QComboBox>(connector, "pairingMode")->setCurrentIndex(1);
     field<QLineEdit>(connector, "pairingName")
-        ->setText(QStringLiteral("Equipo B"));
+        ->setText(QStringLiteral("Equipment B"));
     field<QLineEdit>(connector, "pairingHost")
         ->setText(QStringLiteral("127.0.0.1"));
     field<QSpinBox>(connector, "pairingPort")->setValue(port);
@@ -188,8 +188,8 @@ TEST_CASE(pairing_dialog_pairs_loopback_and_adopts_authenticated_session) {
     listener.setRotationHandler([] { return std::nullopt; });
     auto* listener_name = field<QLineEdit>(listener, "pairingName");
     auto* listener_port = field<QSpinBox>(listener, "pairingPort");
-    listener_name->setText(QStringLiteral("Equipo A"));
-    // Puerto automático para no competir con otros procesos de la suite.
+    listener_name->setText(QStringLiteral("Equipment A"));
+    // Automatic port to not compete with other processes of the suite.
     listener_port->setValue(0);
     field<QPushButton>(listener, "pairingStart")->click();
     CHECK(waitUntil([&] { return listener_port->value() != 0; }));
@@ -207,7 +207,7 @@ TEST_CASE(pairing_dialog_pairs_loopback_and_adopts_authenticated_session) {
     auto* connector_host = field<QLineEdit>(connector, "pairingHost");
     auto* connector_port = field<QSpinBox>(connector, "pairingPort");
     connector_mode->setCurrentIndex(1);
-    connector_name->setText(QStringLiteral("Equipo B"));
+    connector_name->setText(QStringLiteral("Equipment B"));
     connector_host->setText(QStringLiteral("127.0.0.1"));
     connector_port->setValue(listening_port);
     field<QPushButton>(connector, "pairingStart")->click();
@@ -251,7 +251,7 @@ TEST_CASE(pairing_dialog_pairs_loopback_and_adopts_authenticated_session) {
     CHECK_EQ(result_a->transport->authenticated_peer_fingerprint(), pin_b);
     CHECK_EQ(result_b->transport->authenticated_peer_fingerprint(), pin_a);
 
-    // El pin que guardó el diálogo, no solo el del resultado en memoria.
+    // The pin that saved the dialogue, not just the result in memory.
     PairingStore persisted_a(store_a_path);
     PairingStore persisted_b(store_b_path);
     CHECK(persisted_a.lastError().empty());
@@ -262,11 +262,11 @@ TEST_CASE(pairing_dialog_pairs_loopback_and_adopts_authenticated_session) {
     CHECK(saved_a.has_value());
     if (saved_b.has_value()) {
         CHECK(saved_b->trusts(pin_b));
-        CHECK(saved_b->name == std::string("Equipo B"));
+        CHECK(saved_b->name == std::string("Equipment B"));
     }
     if (saved_a.has_value()) {
         CHECK(saved_a->trusts(pin_a));
-        CHECK(saved_a->name == std::string("Equipo A"));
+        CHECK(saved_a->name == std::string("Equipment A"));
     }
 
     SessionEndpoint session_a;
@@ -335,8 +335,8 @@ TEST_CASE(pairing_dialog_enables_normal_pinned_session) {
         return;
     }
 
-    // La sesión normal debe usar exactamente los pines que persistió el
-    // diálogo, no el canal TLS temporal de la ceremonia SAS.
+    // The normal session should use exactly the pins that persisted on the
+    // dialogue, not the temporary SAS ceremony channel TLS.
     PairingStore persisted_a(store_a_path);
     PairingStore persisted_b(store_b_path);
     CHECK(persisted_a.lastError().empty());
@@ -464,7 +464,7 @@ TEST_CASE(re_pairing_after_rotation_keeps_previous_pin_as_secondary) {
 
     TrustedDevice old_a;
     old_a.device_id = "device-a";
-    old_a.name = "Equipo A";
+    old_a.name = "Equipment A";
     old_a.host = "127.0.0.1";
     old_a.port = 45454;
     old_a.pins = {old_pin};
@@ -472,7 +472,7 @@ TEST_CASE(re_pairing_after_rotation_keeps_previous_pin_as_secondary) {
 
     TrustedDevice old_b;
     old_b.device_id = "device-b";
-    old_b.name = "Equipo B";
+    old_b.name = "Equipment B";
     old_b.host = "127.0.0.1";
     old_b.port = 45454;
     old_b.pins = {pin_b};
@@ -511,7 +511,7 @@ TEST_CASE(re_pairing_after_rotation_keeps_previous_pin_as_secondary) {
     paired.listener->transport->close();
     paired.connector->transport->close();
 
-    // La conexión normal usa la huella principal, nunca el respaldo.
+    // The normal connection uses the main print, never the backup.
     CHECK_EQ(peer_a_in_b->pins.front(), new_pin);
     TlsTransportConfig server_config;
     server_config.mode = TlsTransportMode::listen;
@@ -546,9 +546,9 @@ TEST_CASE(re_pairing_after_rotation_keeps_previous_pin_as_secondary) {
     client.close();
     server.close();
 
-    // El pin anterior sigue guardado como respaldo, pero no autentica al peer
-    // que rotó el certificado: fijarlo en el servidor debe rechazar el nuevo
-    // certificado de A. Solo el pin nuevo es la identidad principal.
+    // The previous pin is still saved as backup, but does not authenticate the peer
+    // that rotated the certificate: fix it on the server must reject the new
+    // A certificate. Only the new pin is the main identity.
     CHECK_EQ(peer_a_in_b->pins.back(), old_pin);
     TlsTransportConfig previous_server_config;
     previous_server_config.mode = TlsTransportMode::listen;

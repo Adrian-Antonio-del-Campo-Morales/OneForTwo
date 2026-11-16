@@ -10,13 +10,13 @@ target_link_libraries(oneintwo_notifications_tests PRIVATE oneintwo_notification
 target_include_directories(oneintwo_notifications_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_compile_features(oneintwo_notifications_tests PRIVATE cxx_std_17)
 
-# El adaptador Linux solo existe en su plataforma.
+# The Linux adapter builds only on Linux.
 if(UNIX AND NOT APPLE)
     target_sources(oneintwo_notifications_tests PRIVATE test_linux_adapter.cpp)
 endif()
 
-# Los ayudantes de texto XML y línea base son independientes de WinRT y se
-# comprueban también fuera de Windows.
+# The XML text and baseline helpers are independent of WinRT and are
+# tested on other platforms too.
 if(NOT WIN32)
     target_sources(oneintwo_notifications_tests PRIVATE
         ${ONEINTWO_REPO_ROOT}/src/platform/windows/notification_support/toast_text.cpp)
@@ -33,8 +33,8 @@ if(ONEINTWO_BUILD_NATIVE_NOTIFICATION_TESTS)
         add_test(NAME notifications-native-windows
                  COMMAND oneintwo_notifications_native_windows)
 
-        # Sin MSIX, el descubrimiento debe fallar cerrado antes de solicitar
-        # consentimiento. Se ejecuta en el job MSVC, que no empaqueta el proceso.
+        # Without MSIX, discovery must fail closed before prompting for consent.
+        # The MSVC job runs this test without a package.
         add_executable(oneintwo_notifications_native_windows_discovery
                        native/windows_discovery.cpp)
         target_link_libraries(oneintwo_notifications_native_windows_discovery
@@ -43,7 +43,7 @@ if(ONEINTWO_BUILD_NATIVE_NOTIFICATION_TESTS)
                                 PRIVATE cxx_std_17)
         add_test(NAME notifications-windows-discovery-no-package
                  COMMAND oneintwo_notifications_native_windows_discovery)
-        # 77: el proceso sí tiene identidad de paquete; la prueba no aplica.
+        # 77: the process has a package identity, so the test does not apply.
         set_tests_properties(notifications-windows-discovery-no-package
                              PROPERTIES SKIP_RETURN_CODE 77)
     elseif(UNIX)
@@ -53,10 +53,10 @@ if(ONEINTWO_BUILD_NATIVE_NOTIFICATION_TESTS)
         target_compile_features(oneintwo_notifications_native_linux PRIVATE cxx_std_17)
         add_test(NAME notifications-native-linux
                  COMMAND oneintwo_notifications_native_linux)
-        # 77: no hay bus de sesión o servicio de notificaciones disponible.
+        # 77: the session bus or notification service is unavailable.
         set_tests_properties(notifications-native-linux PROPERTIES SKIP_RETURN_CODE 77)
 
-        # Servicio mínimo para el recorrido con un bus de sesión privado.
+        # Minimal service for the private session bus check.
         add_executable(oneintwo_notifications_dbus_stub native/dbus_notification_stub.cpp)
         target_compile_features(oneintwo_notifications_dbus_stub PRIVATE cxx_std_17)
         if(TARGET PkgConfig::DBUS)

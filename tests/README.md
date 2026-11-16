@@ -1,27 +1,42 @@
-# Pruebas previstas
+# Planned tests
 
-Estado: planificación de la aplicación integrada. Esta carpeta todavía no contiene una suite del producto. Los tres experimentos sí tienen pruebas aisladas propias y evidencia de alcance específico en sus respectivos `RESULTS.md`.
-Responsabilidad: reunir pruebas del producto y sus criterios de aceptación. Los experimentos que investigan APIs pertenecen a [experiments](../experiments/README.md).
+Status: Integrated application planning. This folder does not yet contain a product suite. All three
+experiments do have their own isolated evidence and evidence of specific scope in their respective
+`RESULTS.md`. Responsibility: Collecting Product Tests and their Acceptance Criteria. Experiments
+investigating APIs belong to [experiences](../experiments/README.md).
 
-## Núcleo automatizable sin escritorio
+## Automated core without desktop
 
-- Sesión: vinculación rechazada, identidad cambiada, revocación, conexiones duplicadas y reconexión con nueva generación.
-- Protocolo: tramas parciales, tamaños excesivos, mensajes desconocidos, orden inválido y operaciones sin permiso.
-- Portapapeles: concurrencia, supresión de eco, formato no soportado y ausencia de reproducción de contenido antiguo.
-- Archivos: rutas que escapan del destino, nombres incompatibles, colisiones, archivos vacíos, integridad, disco lleno y cancelación.
-- Entrada: transiciones de foco, rechazo de eventos de otra generación, liberación de teclas y temporizador del receptor.
+- Session: Rejected linkage, changed identity, revocation, duplicate connections and reconnection
+  with new generation.
+- Protocol: partial plots, excessive sizes, unknown messages, invalid order and operations without
+  permission.
+- Clipboards: attendance, deletion of echo, unsupported format and absence of reproduction of old
+  content.
+- Files: routes that escape the destination, incompatible names, collisions, empty files, integrity,
+  full disk and cancellation.
+- Entry: focus transitions, rejection of events of another generation, key release and receiver
+  timer.
 
-El [diseño de las funciones adicionales](../FUNCIONALIDADES.md) incluye criterios de aceptación para envío directo, enlaces y perfiles.
+The [design of the additional functions](../FEATURES.md) includes acceptance criteria for
+direct shipping, links and profiles.
 
-Usar dobles pequeños del contrato de escritorio y del transporte solo donde ayuden a observar estas garantías. No crear ahora un framework de simulación.
+Use small doubles of the desktop and transport contract only where they help observe these
+guarantees. Do not create a simulation framework now.
 
-## Integración y comprobación manual
+## Integration and manual testing
 
-Windows y Ubuntu deben probarse en ambos papeles. Verificar el pegado real en Explorer/Nautilus, el retorno del cursor, AltGr y acentos, bloqueo de sesión, permisos revocados y desconexiones con botones pulsados.
+Windows and Ubuntu must be tested on both papers. Check the actual pasting at Explorer/Nautilus, the
+cursor return, AltGr and accents, session blocking, revoked permissions and disconnections with
+pressed buttons.
 
-Comparar archivos por tamaño y hash. Medir respuesta interactiva durante transferencias grandes. Registrar versiones de sistema, escritorio, portales, teclado y método de medición.
+Compare files by size and hash. Measure interactive response during large transfers. Register system
+versions, desktop, portals, keyboard and measurement method.
 
-## Condición para afirmar soporte
+## Condition to affirm support
 
-Una prueba del núcleo no certifica un escritorio. Publicar únicamente las combinaciones comprobadas y sus límites. El primer incremento integrado elegirá la herramienta de pruebas del producto; los casos enumerados aquí no se contabilizan como pruebas superadas. Las pruebas manuales de los prototipos se ejecutarán según sus manuales y no se trasladarán automáticamente como certificación de la aplicación futura.
+A core test does not certify a desktop. Publish only the tested combinations and their limits. The
+first integrated increment will choose the product test tool; the cases listed here are not counted
+as passed tests. Manual tests of the prototypes will be run according to your manuals and will not
+be automatically moved as certification of future application.
 

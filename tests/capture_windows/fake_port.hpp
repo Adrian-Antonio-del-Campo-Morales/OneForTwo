@@ -11,8 +11,8 @@
 
 namespace oneintwo::test {
 
-// Estadísticas con vida propia: el adaptador destruye el objeto de captura al
-// cerrar, y la prueba sigue necesitando observar su parada.
+// Statistics with own life: the adapter destroys the capture object to
+// close, and the test still needs to observe your stop.
 struct FakeCaptureStats {
     bool started = false;
     bool stopped = false;

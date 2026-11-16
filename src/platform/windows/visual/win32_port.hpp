@@ -11,7 +11,7 @@ std::unique_ptr<WindowsCapturePort> makeWin32CapturePort(const PlatformContext& 
 
 bool windowsGraphicsCaptureSupported();
 
-// Retiene un objeto de captura para el HWND o HMONITOR indicado.
+// It retains a catch object for the HWND or HMONITOR indicated.
 std::unique_ptr<NativeCapture> createWin32Capture(std::uint64_t handle, VisualSourceKind kind);
 
 } // namespace oneintwo::windows

@@ -1,110 +1,128 @@
-# Experimento de copiar y pegar archivos
+# Experiment to copy and paste files
 
-La siguiente prueba acordada es [Windows → Ubuntu, caché y pegado en Nautilus](lan/README.md). Incluye el manifiesto de datos sintéticos y el comando receptor; el resultado entre equipos sigue pendiente hasta observarlo.
+The next agreed test is [Windows → Ubuntu, cache and glued to Nautilus](lan/README.md). Includes the
+synthetic data manifest and the receiver command; the result between teams remains pending until it
+is observed.
 
-## Encargo para el agente
+## Ordering for the agent
 
-Implementa este experimento siguiendo [las instrucciones comunes](../AGENTS.md) y [el modelo de entrega](../README.md). Tu directorio exclusivo es `D:/DEVEL/OneInTwo/experiments/files`. Las operaciones sobre portapapeles y exploradores reales se ejecutarán manualmente.
+Implement this experiment by following [common instructions](../AGENTS.md) and [delivery
+model](../README.md). Your exclusive directory is `D:/DEVEL/OneInTwo/experiments/files`. Operations
+on actual clipboards and browsers will be executed manually.
 
-## Pregunta que debe resolver
+## Question to Solve
 
-¿Cómo representar una oferta de archivos remotos para que Explorer y Nautilus puedan pegarlos? ¿Es suficiente una caché local o resulta viable entregar contenido bajo demanda?
+How to represent an offer of remote files so that Explorer and Nautilus can paste them? Is a local
+cache enough or is it feasible to deliver content on demand?
 
-El alcance es copiar un archivo y una carpeta de prueba en ambos sentidos. No incluye cortar, borrar originales, sincronizar carpetas, montar un sistema de archivos virtual ni compartir todo el disco.
+The scope is to copy a file and a test folder in both directions. It does not include cutting,
+deleting originals, synchronizing folders, mounting a virtual file system or sharing the entire
+disk.
 
-## Diseño superficial
+## Interface design
 
-Un ejecutable con componentes pequeños:
+An executable with small components:
 
-1. Adaptador de oferta de archivos en el portapapeles de cada sistema.
-2. Manifiesto de archivos/carpetas y mapa de identificadores a archivos autorizados.
-3. Transferencia por bloques y validación de integridad.
-4. Entrega local al explorador y control de vida de temporales.
+1. File offer adapter on the clipboard of each system.
+2. file and folder manifest and ID map to authorized files.
+3. Block transfer and integrity validation.
+4. Local delivery to the explorer and temporary life control.
 
-Este experimento implementará su acceso nativo al portapapeles de archivos dentro de su propia carpeta. No dependerá del agente de texto ni de sus resultados.
+This experiment will implement your native access to the file clipboard within your own folder. It
+will not depend on the text agent or its results.
 
-La transferencia podrá probarse localmente con fixtures sintéticos y manualmente entre equipos mediante dirección explícita. La representación del explorador debe contener archivos que pueda consumir, no solo una ruta remota pegada como texto.
+The transfer can be tested locally with synthetic fixtures and manually between computers via
+explicit address. The browser's representation must contain files that you can consume, not just a
+remote path pasted as text.
 
-## Dos alternativas delimitadas
+## Two alternatives and their scope
 
-**A. Caché local, prototipo funcional de referencia.** Recibir contenido en una carpeta privada de prueba, verificarlo y anunciar archivos locales listos para pegar. Mostrar que el contenido está preparado antes del pegado. Evitar eliminarlo mientras el explorador lo necesite.
+**A. Local cache, functional prototype reference.** Receive content in a private test folder, verify
+it and announce local files ready to paste. Show that the content is ready before pasting. Avoid
+deleting it while the browser needs it.
 
-**B. Entrega bajo demanda, prueba acotada de viabilidad.** Investigar la API nativa y probar con un archivo si permite entregar contenido cuando el explorador lo solicite. La prueba podrá usar contenido sintético local antes de conectarlo a la red. Documentar tiempos de espera, cancelación y diferencias entre sistemas.
+**B. Delivery on demand, limited feasibility test.** Investigate native API and test with a file if
+it allows delivering content when requested by the browser. The test may use local synthetic content
+before connecting it to the network. Document waiting times, cancellations and differences between
+systems.
 
-No construir un proveedor de sistema de archivos completo para forzar B. Si requiere esa ampliación o no hay una vía documentada viable, entregar A y una conclusión fundamentada sobre B. El objetivo es comparar alternativas, no prometer que ambas serán posibles.
+Do not build a full file system provider to force B. If you require such expansion or there is no
+viable documented path, deliver A and a well-founded conclusion about B. The goal is to compare
+alternatives, not promise that both will be possible.
 
-## Garantías del prototipo
+## Prototyping guarantees
 
-Usar únicamente datos desechables dentro de la carpeta de prueba elegida. Conservar originales, no sobrescribir silenciosamente, rechazar rutas fuera del destino y tipos especiales no soportados. Los identificadores remotos solo pueden acceder a elementos ofrecidos.
+Use only disposable data within the chosen test folder. Keep originals, do not overwrite silently,
+refuse off-target routes and special unsupported types. Remote identifiers can only access offered
+items.
 
-Guardar transferencias incompletas separadas, validar contenido y mostrar errores sin publicar un archivo incompleto como terminado. Los logs no incluirán contenidos ni rutas personales por defecto.
+Save separate incomplete transfers, validate content, and display errors without publishing an
+incomplete file as finished. Logs will not include content or personal paths by default.
 
-## Qué podrá comprobar el agente automáticamente
+## What the agent will be able to check automatically
 
-- Manifiestos, Unicode en nombres y límites.
-- Archivos vacíos y carpetas con datos sintéticos.
-- Bloques, integridad, truncado y cancelación.
-- Colisiones y rutas que intenten escapar del destino.
-- Vida de ofertas y temporales con un consumidor falso.
+- Manifestos, Unicode in names and limits.
+- Empty files and folders with synthetic data.
+- Blocks, integrity, truncation and cancellation.
+- Collisions and routes that try to escape fate.
+- Life of offers and temporary with a fake consumer.
 
-Las pruebas de archivos usarán un temporal dentro del directorio del experimento. No abrirán exploradores, publicarán ofertas nativas ni inicializarán el portapapeles.
+File tests will use a temporary within the experiment directory. They will not open browsers,
+publish native offers, or initialize the clipboard.
 
-## Guion que debe preparar para ejecución manual
+## Screenplay to be prepared for manual execution
 
-1. Crear el conjunto de datos de prueba.
-2. Publicar una oferta local y pegarla en Explorer o Nautilus.
-3. Probar archivo, carpeta y archivo vacío, comprobando tamaño y hash.
-4. Conectar ambos equipos y repetir Windows→Ubuntu y Ubuntu→Windows.
-5. Comparar caché y prueba bajo demanda donde esta exista.
-6. Cancelar o interrumpir una transferencia y verificar que no aparece como completada.
-7. Probar colisiones y un destino sin escritura.
-8. Cerrar el prototipo y revisar cuándo se eliminan sus temporales.
+1. Create the test data set.
+2. Publish a local offer and paste it into Explorer or Nautilus.
+3. Test file, folder and empty file, checking size and hash.
+4. Connect both computers and repeat Windows→Ubuntu and Ubuntu→Windows.
+5. Compare cache and test on demand where it exists.
+6. Cancel or interrupt a transfer and verify that it does not appear as completed.
+7. Try collisions and a fate without writing.
+8. Close the prototype and check when its time frames are removed.
 
-## Entregable y criterio de evaluación
+## Deliverable and evaluation criteria
 
-Código, compilación independiente, self-tests, MANUAL.md y RESULTS.md. La tabla de resultados distinguirá transferencia de contenido, publicación nativa y pegado real en cada explorador, además del coste de caché y límites de B.
+Code, independent compilation, self-tests, MANUAL.md and RESULTS.Md. The results table will
+distinguish transfer of content, native publication and actual pasted in each browser, in addition
+to the cost of cache and B limits.
 
-Enviar correctamente bytes no prueba que se pueda pegar en el explorador. El pegado nativo y la experiencia entre dos equipos permanecerán pendientes hasta su ejecución manual.
+Sending correctly bytes does not prove that it can be pasted into the browser. Native pasting and
+experience between two computers will remain pending until manual execution.
 
-La decisión arquitectónica esperada es qué estrategia de entrega usar y qué responsabilidad tendrá cada adaptador de archivos.
+The expected architectural decision is what delivery strategy to use and what responsibility each
+file adapter will have.
 
-## Implementación entregada (4 de noviembre de 2026)
+## Implementation delivered (4 November 2026)
 
-El prototipo está implementado y compilado en Windows; las pruebas de escritorio
-siguen pendientes y se describen en [MANUAL.md](MANUAL.md). El estado y la
-evidencias están en [RESULTS.md](RESULTS.md).
+The prototype is implemented and compiled on Windows; the desktop tests are still pending and
+described in [MANUAL.md](MANUAL.md). The status and evidence are in [RESULTS.Md](RESULTS.md).
 
 ```text
 files/
-├── CMakeLists.txt          compilación independiente (C++17)
-├── MANUAL.md               ejecución manual, permisos y matriz de resultados
-├── RESULTS.md              estado, evidencia y límites
-├── src/core/               manifiesto, transferencia, caché, protocolo, TLS
+├── CMakeLists.txt          standalone build (C++17)
+├── MANUAL.md               manual operation, permissions, and results matrix
+├── RESULTS.md              status, evidence, and limits
+├── src/core/               manifest, transfer, cache, protocol, and TLS
 ├── src/platform/win/       CF_HDROP (A) y FILEDESCRIPTOR/FILECONTENTS (B)
 ├── src/platform/linux/     x-special/gnome-copied-files y text/uri-list (A)
-└── tests/                  176 comprobaciones aisladas
+└── tests/                  176 isolated checks
 ```
 
-Decisiones principales:
+Design decisions:
 
-1. **A (caché) es la referencia**: se descarga, se verifica por archivo y solo
-   entonces se publica contenido local.
-2. **B (bajo demanda) es una prueba acotada de Windows**: descriptor OLE y
-   streams que piden rangos al origen. En Linux no está implementada: el adaptador
-   publica solo rutas `file://` locales. Nautilus acepta URIs válidas (no solo
-   `file://`) y GVfs
-   permite esquemas por D-Bus, así que B exigiría un backend GIO/GVfs o FUSE; es
-   una limitación de esta entrega, no una imposibilidad demostrada (RESULTS.md §5.1).
-3. El par remoto nunca recibe rutas absolutas: solo rutas relativas validadas e
-   identificadores de la oferta vigente.
-4. Los archivos incompletos viven en `incoming/` y nunca se publican; `offers/`
-   contiene solo contenido verificado con SHA-256.
-5. El modo remoto exige TLS mutuo con ambas huellas fijadas: el cliente verifica
-   el servidor y el servidor exige el certificado del cliente (`--client-pin`).
-   Sin OpenSSL se bloquea; no se degrada a texto plano ni se omite la identidad
-   de ninguna de las dos partes.
+1. **A (cache) is the reference**: it is downloaded, checked by file and only then local content is
+   published.
+2. **B (on demand) is a Windows limited test**: descriptor OLE and streams that request ranges at source. In Linux it is not implemented: the adapter publishes only local `file://` routes. Nautilus accepts valid URIs (not only `file://`) and GVfs allows schemas by D-Bus, so B would require a GIO/GVfs or FUSE backend; it is a limitation of this delivery, not a proven impossibility (RESULTS.md §5.1).
+3. The remote pair never receives absolute routes: only validated relative routes and current offer
+   identifiers.
+4. Incomplete files live in `incoming/` and are never published; `offers/` contains only content
+   verified with SHA-256.
+5. Remote mode requires mutual TLS with both fingerprints fixed: the client verifies the server and
+   the server requires the client certificate (`--client-pin`). Without OpenSSL it is blocked; it
+   does not degrade to plain text or omit the identity of either party.
 
-Uso rápido: `--self-test`, `--make-fixtures DIR`, `--inspect RUTA...` y
-`--fingerprint CERT.pem`; después, según el manual, `--publish-cache`,
-`--publish-ondemand`, `--share` y `--receive-offer`.
+Quick use: `--self-test`, `--make-fixtures DIR`,`--inspect RUTA...` and `--fingerprint CERT.pem`;
+then, according to the manual, `--publish-cache`, `--publish-ondemand`,`--share` and
+`--receive-offer`.
 

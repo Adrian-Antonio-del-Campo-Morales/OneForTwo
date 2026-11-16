@@ -17,9 +17,9 @@
 namespace oneintwo {
 namespace {
 
-// docs/COMPARTIR_PANTALLA.md fija tres segundos sin señales válidas. La
-// cabecera común declara visual_activity_timeout = 5 s; prevalece el ciclo
-// funcional de esta entrega (ver entrega al integrador).
+// docs/SHARE_SCREEN.md sets three seconds without valid signals.
+// common header declares visual_activity_timeout = 5 s; cycle prevails
+// functional of this delivery (see delivery to the integrator).
 constexpr auto viewer_signal_timeout = std::chrono::seconds{3};
 constexpr auto frame_interval = std::chrono::microseconds{1000000 / max_visual_frame_rate};
 
@@ -135,8 +135,8 @@ struct VisualShare::Impl {
         has_last_encode = false;
     }
 
-    // Invalida primero la referencia y después libera recursos. `send_stop`
-    // sólo se usa para un cierre iniciado localmente.
+    // It first invalidates the reference and then releases resources. `send_stop`
+    // is only used for a locally initiated closure.
     void terminate(bool send_stop) {
         if (phase == Phase::idle) {
             return;
@@ -182,15 +182,15 @@ struct VisualShare::Impl {
 
     void offerSource(SessionGeneration requested_generation, VisualSourceKind source) {
         if (requested_generation == 0 || requested_generation != generation) {
-            report("la generación de sesión no está vigente");
+            report("session generation is not in force");
             return;
         }
         if (!sendAllowed(source)) {
-            report("el permiso de compartir está desactivado para esta modalidad");
+            report("the permission to share is disabled for this modality");
             return;
         }
         if (phase != Phase::idle) {
-            report("ya hay una operación visual en curso");
+            report("visual operation is already in progress");
             return;
         }
         const VisualCaptureCapabilities capabilities =
@@ -198,11 +198,11 @@ struct VisualShare::Impl {
         const bool supported = source == VisualSourceKind::monitor ? capabilities.monitor
                                                                    : capabilities.window;
         if (!supported) {
-            report("el escritorio no admite esta modalidad de captura");
+            report("desktop does not support this mode of capture");
             return;
         }
         if (next_offer_id == std::numeric_limits<std::uint64_t>::max()) {
-            report("identificador de operación agotado");
+            report("Exhausted operation identifier");
             return;
         }
 
@@ -238,12 +238,12 @@ struct VisualShare::Impl {
             if (!sameRef(selected, ref)) {
                 discardStaleSelection(selected);
                 terminate(false);
-                report("el selector devolvió una fuente distinta de la solicitada");
+                report("the selector returned a source other than the one requested");
                 return;
             }
             if (ref.generation != generation || !sendAllowed(kind)) {
                 terminate(false);
-                report("el permiso se retiró durante la selección");
+                report("the permit was withdrawn during the selection");
                 return;
             }
             phase = Phase::offer_pending;
@@ -251,17 +251,17 @@ struct VisualShare::Impl {
             const SendResult sent = emit(VisualShareOffer{ref, kind});
             if (sent != SendResult::queued) {
                 terminate(false);
-                report("no se pudo enviar la invitación visual");
+                report("could not send visual invitation");
             }
             return;
         }
         terminate(false);
         if (result == DesktopResult::denied) {
-            report("el sistema denegó la captura de la fuente");
+            report("the system refused to capture the source");
         } else if (result == DesktopResult::unavailable) {
-            report("la fuente seleccionada no está disponible");
+            report("selected font is not available");
         } else if (result == DesktopResult::error) {
-            report("falló la selección local de la fuente");
+            report("local source selection failed");
         }
     }
 
@@ -278,8 +278,8 @@ struct VisualShare::Impl {
             return;
         }
         if (phase != Phase::idle) {
-            // Una invitación simultánea se rechaza por ocupación, incluso si la
-            // operación activa pertenece a la otra modalidad o al otro sentido.
+            // A simultaneous invitation is rejected by occupation, even if the
+            // active operation belongs to the other mode or to the other sense.
             emit(VisualDecisionMessage{offer.ref, VisualDecision::busy});
             return;
         }
@@ -316,12 +316,12 @@ struct VisualShare::Impl {
         }
         if (emit(VisualDecisionMessage{ref, effective}) != SendResult::queued) {
             terminate(false);
-            report("no se pudo enviar la decisión visual");
+            report("could not send visual decision");
             return;
         }
         if (effective != VisualDecision::accepted) {
             if (effective == VisualDecision::busy) {
-                report("la operación visual está ocupada");
+                report("The visual operation is busy.");
             }
             terminate(false);
             return;
@@ -349,7 +349,7 @@ struct VisualShare::Impl {
         }
         if (now() >= deadline) {
             terminate(false);
-            report("la aceptación llegó después del plazo de la invitación");
+            report("acceptance arrived after the deadline of the invitation");
             return;
         }
         if (decision != VisualDecision::accepted) {
@@ -358,7 +358,7 @@ struct VisualShare::Impl {
         }
         if (!sendAllowed(kind) || offer.generation != generation) {
             terminate(false);
-            report("el permiso de compartir se retiró antes de la aceptación");
+            report("the permission to share was withdrawn before acceptance");
             return;
         }
 
@@ -373,7 +373,7 @@ struct VisualShare::Impl {
         if (emit(VisualStateMessage{ref, revision, VisualSourceState::available}) !=
             SendResult::queued) {
             terminate(false);
-            report("no se pudo anunciar el estado de la fuente");
+            report("source status could not be announced");
             return;
         }
         VisualCaptureCallbacks callbacks;
@@ -391,7 +391,7 @@ struct VisualShare::Impl {
     void announceSourceState(VisualSourceState state) {
         if (revision == std::numeric_limits<VisualSourceRevision>::max()) {
             terminate(false);
-            report("revisión de fuente agotada");
+            report("Exhausted source review");
             return;
         }
         ++revision;
@@ -401,7 +401,7 @@ struct VisualShare::Impl {
         source_state = state;
         if (emit(VisualStateMessage{ref, revision, state}) != SendResult::queued) {
             terminate(false);
-            report("no se pudo anunciar el cambio de estado de la fuente");
+            report("could not announce change in source status");
             return;
         }
         if (state == VisualSourceState::closed) {
@@ -449,7 +449,7 @@ struct VisualShare::Impl {
     void allocateAndStart(const PendingCapture& pending) {
         if (next_sequence == std::numeric_limits<std::uint64_t>::max()) {
             terminate(false);
-            report("secuencia de imagen agotada");
+            report("picture sequence exhausted");
             return;
         }
         PendingCapture copy = pending;
@@ -462,7 +462,7 @@ struct VisualShare::Impl {
         if (sequence == 0) {
             if (next_sequence == std::numeric_limits<std::uint64_t>::max()) {
                 terminate(false);
-                report("secuencia de imagen agotada");
+                report("picture sequence exhausted");
                 return;
             }
             sequence = next_sequence++;
@@ -517,7 +517,7 @@ struct VisualShare::Impl {
                 return;
             }
             terminate(false);
-            report("el canal de datos no está disponible");
+            report("the data channel is not available");
             return;
         }
     }
@@ -529,7 +529,7 @@ struct VisualShare::Impl {
         }
         if (!receiveAllowed(kind)) {
             terminate(false);
-            report("el permiso de recepción se retiró");
+            report("the reception permit was withdrawn");
             return;
         }
         last_signal = now();
@@ -556,7 +556,7 @@ struct VisualShare::Impl {
         }
         if (!receiveAllowed(kind)) {
             terminate(false);
-            report("el permiso de recepción se retiró");
+            report("the reception permit was withdrawn");
             return;
         }
         last_signal = now();
@@ -577,12 +577,12 @@ struct VisualShare::Impl {
         }
         if (!receiveAllowed(kind)) {
             terminate(false);
-            report("el permiso de recepción se retiró");
+            report("the reception permit was withdrawn");
             return;
         }
         if (source_state != VisualSourceState::available || frame.revision != revision ||
             frame.sequence <= last_presented_sequence || !frame.key_frame) {
-            // Imagen adelantada a su anuncio, de una revisión anterior o repetida.
+            // Image advanced to your ad, from a previous or repeated review.
             return;
         }
         std::string error;
@@ -614,7 +614,7 @@ struct VisualShare::Impl {
         if (phase == Phase::idle || !sameRef(ref, offer)) {
             return;
         }
-        // Un cierre remoto no reenvía otro cierre.
+        // A remote lock doesn't forward another lock.
         terminate(false);
     }
 
@@ -644,7 +644,7 @@ struct VisualShare::Impl {
         const MonotonicTime current = now();
         if (phase == Phase::offer_pending && current >= deadline) {
             terminate(false);
-            report("la invitación visual caducó");
+            report("the visual invitation expired");
             return;
         }
         if (phase != Phase::live) {
@@ -656,7 +656,7 @@ struct VisualShare::Impl {
                 last_activity = current;
                 if (emit(VisualActivityMessage{ref, revision}) != SendResult::queued) {
                     terminate(false);
-                    report("no se pudo mantener la actividad de la operación visual");
+                    report("could not maintain visual operation activity");
                     return;
                 }
             }
@@ -665,7 +665,7 @@ struct VisualShare::Impl {
         }
         if (current - last_signal >= viewer_signal_timeout) {
             terminate(true);
-            report("se perdió la señal del origen visual");
+            report("the signal of visual origin was lost");
         }
     }
 

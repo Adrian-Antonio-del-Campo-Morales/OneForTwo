@@ -1,5 +1,5 @@
-// Fuerza el enlace del selector y de WGC: una biblioteca estática por sí sola
-// no comprueba que existan d3d11, dwmapi, windowsapp y el resto de import libs.
+// Force the selector link and WGC: a static library by itself
+// does not check for d3d11, dwmapi, windowsapp and the rest of import libs.
 #include "platform/windows/visual/win32_port.hpp"
 
 int main()

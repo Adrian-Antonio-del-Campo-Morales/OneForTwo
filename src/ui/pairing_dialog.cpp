@@ -27,22 +27,22 @@ PairingDialog::PairingDialog(DeviceIdentity identity, PairingStore& store,
     : QDialog(parent),
       identity_(std::move(identity)),
       store_(store) {
-    setWindowTitle(QStringLiteral("Emparejar equipos"));
+    setWindowTitle(QStringLiteral("Matching Teams"));
     setModal(true);
     setMinimumWidth(560);
 
     auto* layout = new QVBoxLayout(this);
     auto* intro = new QLabel(
         QStringLiteral(
-            "Crea una invitación en un equipo y únete desde el otro. Después "
-            "compara el código de seis cifras en ambas pantallas antes de "
-            "confirmar. El certificado no se guarda hasta que los dos "
-            "confirméis."),
+            "Create an invitation on one team and join from the other. "
+            "compare the six-digit code on both screens before "
+            "confirm. The certificate is not saved until both "
+            "confirm."),
         this);
     intro->setWordWrap(true);
     layout->addWidget(intro);
 
-    auto* identity_box = new QGroupBox(QStringLiteral("Identidad de este equipo"), this);
+    auto* identity_box = new QGroupBox(QStringLiteral("Identity of this team"), this);
     auto* identity_layout = new QVBoxLayout(identity_box);
     local_info_ = new QLabel(identity_box);
     local_info_->setObjectName(QStringLiteral("pairingLocalIdentity"));
@@ -55,44 +55,44 @@ PairingDialog::PairingDialog(DeviceIdentity identity, PairingStore& store,
     rotate_ = new QPushButton(QStringLiteral("Rotar certificado…"), identity_box);
     rotate_->setObjectName(QStringLiteral("pairingRotate"));
     rotate_->setToolTip(QStringLiteral(
-        "Genera un certificado nuevo; el otro equipo tendrá que volver a "
-        "emparejarse con la huella nueva."));
+        "Generates a new certificate; the other team will have to return to "
+        "Matching with the new print."));
     identity_layout->addWidget(rotate_);
     layout->addWidget(identity_box);
 
     auto* form = new QFormLayout();
     mode_ = new QComboBox(this);
     mode_->setObjectName(QStringLiteral("pairingMode"));
-    mode_->addItem(QStringLiteral("Crear invitación (este equipo escucha)"));
-    mode_->addItem(QStringLiteral("Unirse a una invitación"));
+    mode_->addItem(QStringLiteral("Create invitation (this team listens)"));
+    mode_->addItem(QStringLiteral("Join an invitation"));
     form->addRow(QStringLiteral("Modo:"), mode_);
 
     name_ = new QLineEdit(this);
     name_->setObjectName(QStringLiteral("pairingName"));
-    name_->setText(QStringLiteral("Mi equipo"));
-    form->addRow(QStringLiteral("Nombre visible:"), name_);
+    name_->setText(QStringLiteral("My device"));
+    form->addRow(QStringLiteral("Visible name:"), name_);
 
     host_ = new QLineEdit(this);
     host_->setObjectName(QStringLiteral("pairingHost"));
     host_->setText(QStringLiteral("127.0.0.1"));
-    host_->setPlaceholderText(QStringLiteral("IP o nombre del otro equipo"));
-    form->addRow(QStringLiteral("Equipo remoto:"), host_);
+    host_->setPlaceholderText(QStringLiteral("IP or name of other computer"));
+    form->addRow(QStringLiteral("Remote equipment:"), host_);
 
     port_ = new QSpinBox(this);
     port_->setObjectName(QStringLiteral("pairingPort"));
     port_->setRange(0, 65535);
     port_->setValue(45454);
-    port_->setSpecialValueText(QStringLiteral("Automático (solo al escuchar)"));
+    port_->setSpecialValueText(QStringLiteral("Automatic (only when listening)"));
     form->addRow(QStringLiteral("Puerto:"), port_);
 
     expected_peer_ = new QLineEdit(this);
     expected_peer_->setObjectName(QStringLiteral("pairingExpectedPeer"));
     expected_peer_->setPlaceholderText(
-        QStringLiteral("Opcional: ID del equipo que esperas"));
-    form->addRow(QStringLiteral("Equipo esperado:"), expected_peer_);
+        QStringLiteral("Optional: ID of the team you expect"));
+    form->addRow(QStringLiteral("Expected equipment:"), expected_peer_);
     layout->addLayout(form);
 
-    auto* sas_box = new QGroupBox(QStringLiteral("Código de confirmación SAS"), this);
+    auto* sas_box = new QGroupBox(QStringLiteral("Confirmation code SAS"), this);
     auto* sas_layout = new QVBoxLayout(sas_box);
     sas_ = new QLabel(QStringLiteral("—"), sas_box);
     sas_->setObjectName(QStringLiteral("pairingSas"));
@@ -101,7 +101,7 @@ PairingDialog::PairingDialog(DeviceIdentity identity, PairingStore& store,
     sas_->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     sas_->setStyleSheet(QStringLiteral("font-size: 30px; letter-spacing: 8px;"));
     sas_layout->addWidget(sas_);
-    status_ = new QLabel(QStringLiteral("Sin iniciar"), sas_box);
+    status_ = new QLabel(QStringLiteral("Unstarted"), sas_box);
     status_->setObjectName(QStringLiteral("pairingStatus"));
     status_->setTextFormat(Qt::PlainText);
     status_->setWordWrap(true);
@@ -110,12 +110,12 @@ PairingDialog::PairingDialog(DeviceIdentity identity, PairingStore& store,
     layout->addWidget(sas_box);
 
     auto* buttons = new QHBoxLayout();
-    start_ = new QPushButton(QStringLiteral("Iniciar emparejamiento"), this);
+    start_ = new QPushButton(QStringLiteral("Start pairing"), this);
     start_->setObjectName(QStringLiteral("pairingStart"));
-    confirm_ = new QPushButton(QStringLiteral("Confirmar código"), this);
+    confirm_ = new QPushButton(QStringLiteral("Confirm Code"), this);
     confirm_->setObjectName(QStringLiteral("pairingConfirm"));
     confirm_->setEnabled(false);
-    cancel_ = new QPushButton(QStringLiteral("Cancelar"), this);
+    cancel_ = new QPushButton(QStringLiteral("Cancel"), this);
     cancel_->setObjectName(QStringLiteral("pairingCancel"));
     buttons->addWidget(start_);
     buttons->addWidget(confirm_);
@@ -131,7 +131,7 @@ PairingDialog::PairingDialog(DeviceIdentity identity, PairingStore& store,
             return;
         }
         confirm_->setEnabled(false);
-        status_->setText(QStringLiteral("Esperando la confirmación del otro equipo…"));
+        status_->setText(QStringLiteral("Waiting for confirmation from the other team..."));
         pairing_->confirm();
     });
     connect(cancel_, &QPushButton::clicked, this, [this] { reject(); });
@@ -142,14 +142,14 @@ PairingDialog::PairingDialog(DeviceIdentity identity, PairingStore& store,
         if (QMessageBox::question(
                 this, QStringLiteral("Rotar certificado"),
                 QStringLiteral(
-                    "Se generará una identidad TLS nueva. Los equipos ya "
-                    "emparejados tendrán que confirmar de nuevo la SAS. "
-                    "¿Continuar?")) != QMessageBox::Yes) {
+                    "A new TLS identity will be generated. "
+                    "paired will have to confirm again the SAS. "
+                    "Continue?")) != QMessageBox::Yes) {
             return;
         }
         auto rotated = rotation_handler_();
         if (!rotated.has_value()) {
-            status_->setText(QStringLiteral("No se pudo rotar el certificado"));
+            status_->setText(QStringLiteral("Could not close temporary folder: %s"));
             return;
         }
         identity_ = std::move(*rotated);
@@ -157,7 +157,7 @@ PairingDialog::PairingDialog(DeviceIdentity identity, PairingStore& store,
                                  .arg(QString::fromStdString(identity_.device_id))
                                  .arg(QString::fromStdString(identity_.fingerprint)));
         status_->setText(QStringLiteral(
-            "Certificado rotado. Vuelve a emparejar con el otro equipo."));
+            "Certificate rotated. Match again with the other team."));
     });
     updateMode();
 }
@@ -174,8 +174,8 @@ std::optional<PairingResult> PairingDialog::takeResult() {
     if (!result_) {
         return std::nullopt;
     }
-    // El diálogo ya terminó; ahora sí se puede destruir la sesión SAS sin que
-    // su destructor borre los handlers del transporte que Application usará.
+    // The dialogue is over; now you can destroy the SAS session without
+    // Your destroyer erases the transport handlers that Application will use.
     pairing_.reset();
     std::optional<PairingResult> result(std::move(*result_));
     result_.reset();
@@ -189,7 +189,7 @@ void PairingDialog::updateMode() {
     if (connect) {
         port_->setSpecialValueText(QString());
     } else {
-        port_->setSpecialValueText(QStringLiteral("Automático (solo al escuchar)"));
+        port_->setSpecialValueText(QStringLiteral("Automatic (only when listening)"));
         if (port_->value() == 0) {
             port_->setValue(45454);
         }
@@ -220,14 +220,14 @@ void PairingDialog::startPairing() {
     const bool listen = mode_->currentIndex() == 0;
     const QString name = name_->text().trimmed();
     if (name.isEmpty()) {
-        fail(QStringLiteral("Escribe un nombre para este equipo"));
+        fail(QStringLiteral("Write a name for this team"));
         return;
     }
     QString host;
     if (!listen) {
         host = host_->text().trimmed();
         if (host.isEmpty() || port_->value() == 0) {
-            fail(QStringLiteral("Indica la dirección y el puerto del otro equipo"));
+            fail(QStringLiteral("Indicates the address and port of the other equipment"));
             return;
         }
     }
@@ -236,8 +236,8 @@ void PairingDialog::startPairing() {
     config.mode = listen ? TlsTransportMode::listen : TlsTransportMode::connect;
     config.certificate_pem = identity_.certificate_pem;
     config.private_key_pem = identity_.private_key_pem;
-    // Solo durante esta ceremonia: la SAS sustituye a la huella fijada hasta
-    // que las dos personas confirman el mismo código.
+    // Only during this ceremony: the SAS replaces the footprint fixed until
+    // that the two people confirm the same code.
     config.allow_unverified = true;
     if (listen) {
         config.bind_address = "0.0.0.0";
@@ -255,7 +255,7 @@ void PairingDialog::startPairing() {
     std::string error;
     if (!transport_->start(&error)) {
         fail(QString::fromStdString(
-            error.empty() ? std::string("No se pudo iniciar el emparejamiento")
+            error.empty() ? std::string("Could not start pairing")
                           : error));
         return;
     }
@@ -266,8 +266,8 @@ void PairingDialog::startPairing() {
     if (listen) {
         listen_port_ = transport_->listeningPort();
         port_->setValue(listen_port_);
-        status_->setText(QStringLiteral("Escuchando en el puerto %1. Esperando "
-                                        "al otro equipo…")
+        status_->setText(QStringLiteral("Listening at port %1. "
+                                        "to the other team...")
                              .arg(listen_port_));
     } else {
         status_->setText(QStringLiteral("Conectando con %1:%2…")
@@ -289,7 +289,7 @@ void PairingDialog::beginSession() {
     local.name = name_->text().trimmed().toStdString();
     local.fingerprint = identity_.fingerprint;
     if (local.name.empty()) {
-        local.name = "Equipo " + identity_.device_id;
+        local.name = "Device " + identity_.device_id;
     }
 
     PairingCallbacks callbacks;
@@ -307,14 +307,14 @@ void PairingDialog::beginSession() {
     if (pairing_->state() == PairingState::failed) {
         return;
     }
-    status_->setText(QStringLiteral("Esperando la identidad del otro equipo…"));
+    status_->setText(QStringLiteral("Waiting for the identity of the other team..."));
 }
 
 void PairingDialog::showSas(std::string code) {
     sas_->setText(QString::fromStdString(code));
     status_->setText(
-        QStringLiteral("Comprueba que este código coincide en los dos equipos. "
-                       "Si no coincide, cancela."));
+        QStringLiteral("Check that this code matches both teams. "
+                       "If it doesn't match, cancel."));
     confirm_->setEnabled(true);
 }
 
@@ -326,8 +326,8 @@ void PairingDialog::complete(PairingPeer peer) {
     TrustedDevice device;
     device.device_id = peer.device_id;
     device.name = peer.name;
-    // Un host vacío indica que este equipo escucha en `port`; el otro extremo
-    // guarda la dirección concreta a la que conectarse.
+    // An empty host indicates that this computer listens at `port`; the other end
+    // saves the specific address to connect to.
     device.host = listen ? std::string() : host_->text().trimmed().toStdString();
     device.port = listen ? listen_port_
                          : static_cast<std::uint16_t>(port_->value());
@@ -335,28 +335,28 @@ void PairingDialog::complete(PairingPeer peer) {
     std::string error;
     const bool re_pairing = store_.find(device.device_id).has_value();
     if (re_pairing) {
-        // Una sola escritura conserva el pin anterior como secundario y
-        // actualiza el nombre, el host y el puerto del par.
+        // A single writing retains the anterior pin as secondary and
+        // updates the name, host and port of the pair.
         auto rotated = store_.rotatePin(device, &error);
         if (!rotated.has_value()) {
             fail(QString::fromStdString(
                 error.empty()
-                    ? std::string("No se pudo rotar el pin del equipo emparejado")
+                    ? std::string("Could not rotate paired computer pin")
                     : error));
             return;
         }
         device = std::move(*rotated);
     } else if (!store_.save(device, &error)) {
         fail(QString::fromStdString(
-            error.empty() ? std::string("No se pudo guardar el equipo emparejado")
+            error.empty() ? std::string("Could not save paired equipment")
                           : error));
         return;
     }
 
     transport_->setReadyHandler({});
     transport_->setFailureHandler({});
-    // No destruyas PairingSession aquí: complete() puede ejecutarse dentro de
-    // su propio confirm(). El diálogo la libera al cerrarse.
+    // Do not destroy PairingSession here: complete() can be run within
+    // your own confirm(). The dialog releases it when it closes.
     auto result = std::make_unique<PairingResult>();
     result->peer = std::move(device);
     result->transport = std::move(transport_);
@@ -369,8 +369,8 @@ void PairingDialog::fail(const QString& message) {
     if (transport_) {
         transport_->close();
     }
-    // La limpieza se difiere: fail() puede venir de un callback ejecutado
-    // dentro de PairingSession::start(), confirm() o receive().
+    // Cleaning differs: fail() can come from a executed callback
+    // within PairingSession::start(), confirm() or receive().
     if (pairing_ || transport_) {
         QTimer::singleShot(0, this, [this] {
             pairing_.reset();
@@ -396,7 +396,7 @@ void PairingDialog::fail(const QString& message) {
 
 void PairingDialog::reject() {
     if (pairing_) {
-        pairing_->reject("cancelado");
+        pairing_->reject("cancelled");
         pairing_.reset();
     }
     if (transport_) {

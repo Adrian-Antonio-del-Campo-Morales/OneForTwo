@@ -194,7 +194,7 @@ TEST_CASE(feature_message_is_delivered_over_authenticated_tls_session) {
     RemoteNotification notice;
     notice.ref = NotificationRef{client.session->generation(), 42};
     notice.mode = NotificationMode::manual;
-    notice.content = NotificationContent{"Hola TLS", "Mensaje de función"};
+    notice.content = NotificationContent{"Hola TLS", "Function Message"};
     CHECK_EQ(client.session->send(FeatureMessage{notice}), SendResult::queued);
 
     CHECK(waitUntil([&] { return !server.messages.empty(); }));
@@ -206,7 +206,7 @@ TEST_CASE(feature_message_is_delivered_over_authenticated_tls_session) {
         CHECK_EQ(received->ref.notice_id, static_cast<std::uint64_t>(42));
         CHECK_EQ(received->mode, NotificationMode::manual);
         CHECK_EQ(received->content.title, std::string("Hola TLS"));
-        CHECK_EQ(received->content.body, std::string("Mensaje de función"));
+        CHECK_EQ(received->content.body, std::string("Function Message"));
     }
 
     client.session->close();

@@ -1,5 +1,5 @@
-// Responsabilidad: tabla explícita de teclas soportadas y conversiones entre
-// uso HID, código de escaneo de Windows y código evdev de Linux.
+// Responsibility: explicit table of supported keys and conversions between
+// use HID, Windows scanning code and Linux evdev code.
 #include "keymap.hpp"
 
 namespace oit {
@@ -12,9 +12,9 @@ struct KeyEntry {
   uint16_t linuxCode;
 };
 
-// Tabla basada en el conjunto de escaneo 1 de Windows, los usos HID de teclado
-// (página 0x07) y linux/input-event-codes.h. Cubre el bloque principal, teclas
-// de función, navegación, teclado numérico y modificadores.
+// Table based on Windows scan set 1, keyboard uses HID
+// (page 0x07) and linux/input-event-codes.h. Cover the main block, keys
+// function, navigation, numeric keyboard and modifiers.
 constexpr KeyEntry kKeys[] = {
     {0x04, 0x1E, false, 30},   // A
     {0x05, 0x30, false, 48},   // B
@@ -64,7 +64,7 @@ constexpr KeyEntry kKeys[] = {
     {0x2F, 0x1A, false, 26},   // [
     {0x30, 0x1B, false, 27},   // ]
     {0x31, 0x2B, false, 43},   // backslash
-    {0x33, 0x27, false, 39},   // ; / ñ en distribución española
+    {0x33, 0x27, false, 39},   // ; / ñ in Spanish layout
     {0x34, 0x28, false, 40},   // ' / ´
     {0x35, 0x29, false, 41},   // ` / º
     {0x36, 0x33, false, 51},   // ,
@@ -116,8 +116,8 @@ constexpr KeyEntry kKeys[] = {
     {0x61, 0x49, false, 73},   // KP 9
     {0x62, 0x52, false, 82},   // KP 0
     {0x63, 0x53, false, 83},   // KP .
-    {0x64, 0x56, false, 86},   // tecla ISO adicional (< > en español)
-    {0x65, 0x5D, true, 127},   // Application / menú
+    {0x64, 0x56, false, 86},   // additional ISO key (< > in English)
+    {0x65, 0x5D, true, 127},   // Application / Menu
 
     {0xE0, 0x1D, false, 29},   // Ctrl izquierdo
     {0xE1, 0x2A, false, 42},   // Shift izquierdo

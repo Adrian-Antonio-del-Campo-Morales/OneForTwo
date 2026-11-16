@@ -1,11 +1,15 @@
-# Distribución para Ubuntu
+# Distribution for Ubuntu
 
-Estado: pendiente; no hay paquete ni scripts de instalación.
-Responsabilidad: alojar la definición del paquete nativo para las versiones de Ubuntu verificadas.
+Status: pending; no package or installation scripts. Responsibility: Host the native package
+definition for verified Ubuntu versions.
 
-Deberá instalar el ejecutable y recursos, registrar el lanzador, declarar dependencias realmente utilizadas y permitir arranque opcional al iniciar la sesión gráfica. El agente funcionará como usuario; no se presupone un servicio root.
+You must install the executable and resources, register the launcher, declare dependencies actually
+used and allow optional booting when you start the graphical session. The agent will function as a
+user; a root service is not assumed.
 
-Documentará escritorio, sesión y portales requeridos, así como permisos y limitaciones del portapapeles y de la entrada. El acceso a la configuración no dependerá de disponer de icono de bandeja.
+You will document required desktop, session and portals, as well as clipboard and input permissions
+and limitations. Access to the configuration will not depend on having a tray icon.
 
-Antes de publicar: fijar versiones/arquitecturas, formato de paquete, actualización y limpieza. Si se evalúa un paquete aislado, volver a verificar acceso a archivos y APIs del escritorio con ese empaquetado.
+Before publishing: fix versiones/arquitecturas, package format, update and clean. If an isolated
+package is evaluated, recheck access to files and desktop APIs with that package.
 

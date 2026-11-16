@@ -2,9 +2,9 @@
 
 namespace oneintwo {
 
-// Resultado común de una operación que depende del escritorio. Se mantiene en
-// una cabecera propia para que las consultas del módulo de notificaciones
-// puedan declararlo sin incluir todo el contrato de escritorio.
+// Common result of an operation that depends on the desktop.
+// a header for queries in the notification module
+// they can declare it without including the entire desktop contract.
 enum class DesktopResult {
     ready,
     cancelled,

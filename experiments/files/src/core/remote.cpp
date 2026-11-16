@@ -1,5 +1,5 @@
-// Responsabilidad: cliente y servidor del protocolo de archivos. Cada petición
-// se valida contra la oferta vigente; los errores se comunican sin rutas locales.
+// Responsibility: client and file protocol server. Each request
+// is validated against the current offer; errors are communicated without local routes.
 #include "core/remote.hpp"
 
 #include <algorithm>
@@ -24,7 +24,7 @@ void sendError(Stream& stream, const std::string& message) {
     try {
         writeFrame(stream, MsgType::Error, encodeError(message));
     } catch (const Error&) {
-        // El par ya no escucha; la conexión se cerrará.
+        // The pair no longer listens; the connection will close.
     }
 }
 
@@ -38,7 +38,7 @@ Hello parseHello(const std::vector<std::uint8_t>& payload) {
     Hello hello;
     hello.version = r.u32();
     hello.mode = r.str(32);
-    if (r.remaining() != 0) throw Error("saludo con datos sobrantes");
+    if (r.remaining() != 0) throw Error("greeting with excess data");
     return hello;
 }
 
@@ -61,7 +61,7 @@ void streamFile(Stream& stream, const OfferStore& store, const Entry& entry,
         const std::size_t want = static_cast<std::size_t>(
             std::min<std::uint64_t>(buffer.size(), entry.size - offset));
         const std::size_t got = store.read(entry.id, offset, buffer.data(), want);
-        if (got == 0) throw Error("el archivo de origen terminó antes de lo declarado");
+        if (got == 0) throw Error("the source file ended before the declared");
         sendChunk(stream, entry.id, offset, buffer.data(), got);
         hash.update(buffer.data(), got);
         offset += got;
@@ -88,7 +88,7 @@ RemoteLink::~RemoteLink() {
 
 std::unique_ptr<RemoteLink> RemoteLink::attach(std::unique_ptr<Stream> stream,
                                                const std::string& mode, const Limits& limits) {
-    if (!stream) throw Error("flujo remoto no inicializado");
+    if (!stream) throw Error("non-initialized remote flow");
     std::unique_ptr<RemoteLink> link(new RemoteLink(std::move(stream), limits));
     link->handshake(mode);
     return link;
@@ -100,7 +100,7 @@ std::unique_ptr<RemoteLink> RemoteLink::connect(const std::string& host, std::ui
                                                 const std::string& clientKeyFile,
                                                 const std::string& mode, int timeoutMs,
                                                 const Limits& limits) {
-    if (!tlsAvailable()) throw Error("TLS no disponible: compile con OpenSSL para usar la red");
+    if (!tlsAvailable()) throw Error("TLS not available: compile with OpenSSL to use the network");
     std::unique_ptr<TcpStream> raw = tcpConnect(host, port, timeoutMs);
     raw->setReadTimeoutMs(timeoutMs);
     std::unique_ptr<Stream> secure =
@@ -116,14 +116,14 @@ void RemoteLink::handshake(const std::string& mode) {
 
     std::vector<std::uint8_t> payload;
     const MsgType reply = readFrame(*stream_, payload);
-    if (reply == MsgType::Error) throw Error("el servidor rechazó la conexión: " + decodeErrorPayload(payload));
-    if (reply != MsgType::HelloOk) throw Error("respuesta de saludo inesperada");
+    if (reply == MsgType::Error) throw Error("the server rejected the connection: " + decodeErrorPayload(payload));
+    if (reply != MsgType::HelloOk) throw Error("unexpected greeting response");
     ByteReader r(payload.data(), payload.size());
     const std::string offerId = r.str(128);
     const std::string label = r.str(256);
-    if (offerId.empty()) throw Error("el servidor no anunció una oferta");
-    if (r.remaining() != 0) throw Error("saludo de respuesta con datos sobrantes");
-    if (mode == "fetch" && label.size() > 256) throw Error("etiqueta de oferta fuera de límite");
+    if (offerId.empty()) throw Error("the server did not announce an offer");
+    if (r.remaining() != 0) throw Error("response greeting with excess data");
+    if (mode == "fetch" && label.size() > 256) throw Error("out-of-limit offer label");
 }
 
 void RemoteLink::requestManifest() {
@@ -131,18 +131,18 @@ void RemoteLink::requestManifest() {
     writeFrame(*stream_, MsgType::List);
     std::vector<std::uint8_t> payload;
     const MsgType reply = readFrame(*stream_, payload);
-    if (reply == MsgType::Error) throw Error("el servidor rechazó la oferta: " + decodeErrorPayload(payload));
-    if (reply != MsgType::Manifest) throw Error("respuesta de manifiesto inesperada");
+    if (reply == MsgType::Error) throw Error("the server rejected the offer: " + decodeErrorPayload(payload));
+    if (reply != MsgType::Manifest) throw Error("unexpected manifest response");
     offer_ = decodeOffer(payload.data(), payload.size(), limits_);
     for (const Entry& e : offer_.entries) {
-        if (!e.isDir && e.size > limits_.maxTotalBytes) throw Error("archivo fuera de límite");
+        if (!e.isDir && e.size > limits_.maxTotalBytes) throw Error("file off-limit");
     }
 }
 
 void RemoteLink::fetchFile(const Entry& entry, StagedFile& stage, CancelToken& cancel,
                            const ProgressFn& progress) {
-    if (offer_.find(entry.id) == nullptr) throw Error("el elemento no pertenece a la oferta recibida");
-    if (entry.isDir) throw Error("no se solicita contenido de una carpeta");
+    if (offer_.find(entry.id) == nullptr) throw Error("the item does not belong to the offer received");
+    if (entry.isDir) throw Error("no folder content requested");
 
     std::lock_guard<std::mutex> lock(mutex_);
     writeFrame(*stream_, MsgType::Get, encodeEntryRef(entry.id));
@@ -151,31 +151,31 @@ void RemoteLink::fetchFile(const Entry& entry, StagedFile& stage, CancelToken& c
         cancel.throwIfCancelled();
         std::vector<std::uint8_t> payload;
         const MsgType reply = readFrame(*stream_, payload);
-        if (reply == MsgType::Error) throw Error("fallo remoto: " + decodeErrorPayload(payload));
+        if (reply == MsgType::Error) throw Error("remote failure: " + decodeErrorPayload(payload));
         if (reply == MsgType::FileEnd) {
             ByteReader r(payload.data(), payload.size());
             const std::string id = r.str(128);
             const std::uint64_t size = r.u64();
             const std::string digest = r.str(128);
-            if (id != entry.id) throw Error("fin de archivo para otro elemento");
+            if (id != entry.id) throw Error("file end for another item");
             if (size != entry.size || expectedOffset != entry.size) {
-                throw Error("tamaño recibido distinto del declarado");
+                throw Error("size received other than declared");
             }
             stage.finish(digest);
             return;
         }
-        if (reply != MsgType::Data) throw Error("respuesta inesperada durante la transferencia");
+        if (reply != MsgType::Data) throw Error("unexpected response during transfer");
         ByteReader r(payload.data(), payload.size());
         const std::string id = r.str(128);
         const std::uint64_t offset = r.u64();
         std::vector<std::uint8_t> chunk(r.remaining());
         if (!chunk.empty()) r.bytes(chunk.data(), chunk.size());
-        if (id != entry.id) throw Error("bloque de otro elemento");
-        if (offset != expectedOffset) throw Error("bloque fuera de orden");
-        if (chunk.empty()) throw Error("bloque vacío en la transferencia");
+        if (id != entry.id) throw Error("block of another element");
+        if (offset != expectedOffset) throw Error("Out of order block");
+        if (chunk.empty()) throw Error("empty block in transfer");
         stage.writeAt(offset, chunk.data(), chunk.size());
         expectedOffset += chunk.size();
-        if (expectedOffset > entry.size) throw Error("se recibieron más bytes que el tamaño declarado");
+        if (expectedOffset > entry.size) throw Error("more bytes were received than the declared size");
         if (progress) {
             Progress p;
             p.bytesDone = expectedOffset;
@@ -187,10 +187,10 @@ void RemoteLink::fetchFile(const Entry& entry, StagedFile& stage, CancelToken& c
 
 std::size_t RemoteLink::readAt(const Entry& entry, std::uint64_t offset, void* buffer,
                                std::size_t len) {
-    if (offer_.find(entry.id) == nullptr) throw Error("el elemento no pertenece a la oferta recibida");
-    if (entry.isDir) throw Error("no se solicita contenido de una carpeta");
-    if (offset > entry.size) throw Error("desplazamiento fuera del archivo");
-    if (len > limits_.chunkBytes) throw Error("lectura mayor que el bloque permitido");
+    if (offer_.find(entry.id) == nullptr) throw Error("the item does not belong to the offer received");
+    if (entry.isDir) throw Error("no folder content requested");
+    if (offset > entry.size) throw Error("scrolling out of the file");
+    if (len > limits_.chunkBytes) throw Error("reading greater than the allowed block");
 
     std::lock_guard<std::mutex> lock(mutex_);
     ByteWriter w;
@@ -201,16 +201,16 @@ std::size_t RemoteLink::readAt(const Entry& entry, std::uint64_t offset, void* b
 
     std::vector<std::uint8_t> payload;
     const MsgType reply = readFrame(*stream_, payload);
-    if (reply == MsgType::Error) throw Error("fallo remoto: " + decodeErrorPayload(payload));
-    if (reply != MsgType::Data) throw Error("respuesta inesperada a la lectura");
+    if (reply == MsgType::Error) throw Error("remote failure: " + decodeErrorPayload(payload));
+    if (reply != MsgType::Data) throw Error("unexpected response to reading");
     ByteReader r(payload.data(), payload.size());
     const std::string id = r.str(128);
     const std::uint64_t dataOffset = r.u64();
-    if (id != entry.id || dataOffset != offset) throw Error("respuesta de lectura incoherente");
+    if (id != entry.id || dataOffset != offset) throw Error("Incoherent reading response");
     const std::size_t available = r.remaining();
     const std::size_t take = std::min(len, available);
     if (take > 0) r.bytes(buffer, take);
-    if (available > len) throw Error("el servidor devolvió más bytes de los solicitados");
+    if (available > len) throw Error("server returned more bytes than requested");
     return take;
 }
 
@@ -224,15 +224,15 @@ void serveSession(const OfferStore& store, Stream& stream,
                   const std::function<void(const std::string&)>& note) {
     std::vector<std::uint8_t> payload;
     const MsgType first = readFrame(stream, payload);
-    if (first != MsgType::Hello) throw Error("se esperaba el saludo del cliente");
+    if (first != MsgType::Hello) throw Error("the customer's greeting was expected");
     const Hello hello = parseHello(payload);
     if (hello.version != kProtocolVersion) {
-        sendError(stream, "versión de protocolo no compatible");
-        throw Error("cliente con versión de protocolo distinta");
+        sendError(stream, "non-compatible protocol version");
+        throw Error("client with different protocol version");
     }
     if (hello.mode != "fetch" && hello.mode != "ondemand") {
-        sendError(stream, "modo de sesión desconocido");
-        throw Error("modo de sesión desconocido");
+        sendError(stream, "Unknown session mode");
+        throw Error("Unknown session mode");
     }
     {
         ByteWriter w;
@@ -240,7 +240,7 @@ void serveSession(const OfferStore& store, Stream& stream,
         w.str(store.offer().label);
         writeFrame(stream, MsgType::HelloOk, w.take());
     }
-    if (note) note("sesión iniciada en modo " + hello.mode);
+    if (note) note("session initiated in mode " + hello.mode);
 
     for (;;) {
         const MsgType type = readFrame(stream, payload);
@@ -248,8 +248,8 @@ void serveSession(const OfferStore& store, Stream& stream,
         if (type == MsgType::List) {
             const std::vector<std::uint8_t> encoded = encodeOffer(store.offer());
             if (encoded.size() > kMaxFrameBytes) {
-                sendError(stream, "manifiesto demasiado grande para una trama");
-                throw Error("manifiesto fuera de límite");
+                sendError(stream, "manifest too big for a plot");
+                throw Error("out-of-limit manifest");
             }
             writeFrame(stream, MsgType::Manifest, encoded);
             continue;
@@ -259,18 +259,18 @@ void serveSession(const OfferStore& store, Stream& stream,
             const std::string id = r.str(128);
             const SourceItem* item = store.find(id);
             if (item == nullptr) {
-                sendError(stream, "elemento no autorizado");
-                throw Error("petición de un elemento no ofrecido");
+                sendError(stream, "unauthorised item");
+                throw Error("request for an item not offered");
             }
             if (item->meta.isDir) {
-                sendError(stream, "el elemento es una carpeta");
+                sendError(stream, "the element is a folder");
                 continue;
             }
             try {
                 streamFile(stream, store, item->meta, Limits{});
             } catch (const std::exception& e) {
-                // El origen pudo cambiar durante el envío: el cliente debe ver un
-                // error explícito y no un archivo incompleto como terminado.
+                // The origin could change during shipment: the client must see a
+                // explicit error and not an incomplete file as finished.
                 sendError(stream, e.what());
                 throw;
             }
@@ -283,15 +283,15 @@ void serveSession(const OfferStore& store, Stream& stream,
             const std::uint32_t len = r.u32();
             const SourceItem* item = store.find(id);
             if (item == nullptr) {
-                sendError(stream, "elemento no autorizado");
-                throw Error("petición de un elemento no ofrecido");
+                sendError(stream, "unauthorised item");
+                throw Error("request for an item not offered");
             }
             if (item->meta.isDir) {
-                sendError(stream, "el elemento es una carpeta");
+                sendError(stream, "the element is a folder");
                 continue;
             }
             if (len > 256u * 1024u) {
-                sendError(stream, "bloque de lectura demasiado grande");
+                sendError(stream, "too large reading block");
                 continue;
             }
             std::vector<std::uint8_t> buf(len);
@@ -299,19 +299,19 @@ void serveSession(const OfferStore& store, Stream& stream,
             sendChunk(stream, id, offset, buf.data(), got);
             continue;
         }
-        sendError(stream, "mensaje inesperado");
-        throw Error("mensaje de protocolo inesperado");
+        sendError(stream, "unexpected message");
+        throw Error("unexpected protocol message");
     }
 }
 
 void serveOffer(const OfferStore& store, const ServerOptions& options, CancelToken& cancel,
                 const std::function<void(const std::string&)>& note) {
-    if (!tlsAvailable()) throw Error("TLS no disponible: compile con OpenSSL para servir la oferta");
+    if (!tlsAvailable()) throw Error("TLS not available: Compile with OpenSSL to serve the offer");
     if (options.certFile.empty() || options.keyFile.empty()) {
-        throw Error("se requieren certificado y clave para servir una oferta");
+        throw Error("certificate and key required to serve an offer");
     }
     if (options.clientPin.size() != 64) {
-        throw Error("se requiere la huella del certificado de cliente (--client-pin)");
+        throw Error("the customer certificate footprint is required (--client-pin)");
     }
     std::string bindError;
     std::unique_ptr<TcpListener> listener =
@@ -326,11 +326,11 @@ void serveOffer(const OfferStore& store, const ServerOptions& options, CancelTok
         try {
             std::unique_ptr<Stream> secure =
                 wrapTlsServer(std::move(raw), options.certFile, options.keyFile, options.clientPin);
-            if (note) note("cliente TLS mutuo aceptado");
+            if (note) note("mutual accepted customer TLS");
             serveSession(store, *secure, note);
-            if (note) note("sesión finalizada");
+            if (note) note("session completed");
         } catch (const std::exception& e) {
-            if (note) note(std::string("sesión rechazada: ") + e.what());
+            if (note) note(std::string("meeting rejected: ") + e.what());
         }
     }
 }

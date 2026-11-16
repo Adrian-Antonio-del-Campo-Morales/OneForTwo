@@ -1,6 +1,6 @@
-// Responsabilidad: SHA-256 portable para verificar integridad de transferencias.
-// Se implementa el algoritmo estándar FIPS 180-4 para no depender de OpenSSL en
-// las pruebas aisladas ni en plataformas sin biblioteca criptográfica.
+// Liability: SHA-256 portable to verify transfer integrity.
+// The standard FIPS 180-4 algorithm is implemented to avoid relying on OpenSSL in
+// isolated tests or on platforms without cryptographic library.
 #pragma once
 
 #include <cstddef>
@@ -13,7 +13,7 @@ class Sha256 {
 public:
     Sha256();
     void update(const void* data, std::size_t len);
-    // Finaliza el cálculo y devuelve 64 caracteres hexadecimales en minúsculas.
+    // Finish the calculation and return 64 hexadecimal characters in lower case.
     std::string hexDigest();
 
 private:

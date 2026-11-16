@@ -1,99 +1,88 @@
-# Feature `share-screen`: sesión, emparejamiento y pantalla compartida
+# Feature `share-screen`: session, pairing and shared screen
 
-Este documento describe la entrega de la rama `feature/share-screen`, que en la
-[implementación paralela](../IMPLEMENTACION_PARALELA.md) corresponde al paquete
-**P**. No es el README general del producto ni una declaración de que la
-aplicación completa esté terminada.
+This document describes the delivery of branch `feature/share-screen`, which in the [parallel
+implementation](../PARALLEL_IMPLEMENTATION.md) corresponds to the package **P**. It is not the
+general README of the product nor a declaration that the complete application is finished.
 
-Estado de referencia: rama `feature/share-screen`, commit `3efa340`, suite local
-**10/10** y workflow Windows/MSVC en verde. La entrega contiene la base común de
-sesión, identidad, emparejamiento, protocolo, transporte TLS, composición y
-módulo visual. La captura nativa de escritorio y las notificaciones pertenecen a
-las ramas V y N, respectivamente.
+Reference status: branch `feature/share-screen`, commit `3efa340`, local suite **10/10** and
+workflow Windows/MSVC in green. Delivery contains common session base, identity, matching, protocol,
+transport TLS, composition and visual module. Native desktop capture and notifications belong to
+branches V and N, respectively.
 
-## Capacidades incluidas
+## Capacity included
 
-| Capacidad | Estado en esta rama |
+| Capacidad | State in this branch |
 | --- | --- |
-| Identidad TLS persistente por equipo | Implementada y probada |
-| Emparejamiento con código SAS de seis cifras | Implementado y probado |
-| Reemparejamiento y rotación de certificado | Implementados y probados |
-| Almacén de pares con pin principal y respaldo | Implementado y probado |
-| Transporte TLS con huella SHA-256 fijada | Implementado y probado |
-| Sesión autenticada con generaciones y permisos | Implementada y probada |
-| Protocolo de funciones versión 1 | Implementado y probado |
-| Módulo visual: invitación, decisión, estado, imágenes | Implementado y probado con captura sintética |
-| Visor de pantalla y composición Qt | Implementados y probados |
-| Diálogo de emparejamiento y ventana principal | Vinculados en la aplicación de pruebas |
-| Captura nativa de monitor/ventana | Pendiente de integrar desde V |
-| Notificaciones nativas | Pendientes de integrar desde N |
-| Ejecutable completo de producto | Omitido en esta rama |
-| Descubrimiento automático de equipos | No implementado |
-| Audio, grabación, control remoto de entrada | Fuera del alcance de esta entrega |
-| Instalador, firma y licencia | Pendientes de decisión de producto |
+| Persistent TLS identity per team | Implemented and tested |
+| Pairing with code SAS of six figures | Implemented and tested |
+| Certificate re-matching and rotation | Implemented and tested |
+| Pair store with main pin and backrest | Implemented and tested |
+| TLS transport with a pinned SHA-256 fingerprint | Implemented and tested |
+| Authenticated session with generations and permissions | Implemented and tested |
+| Protocol of functions version 1 | Implemented and tested |
+| Visual module: invitation, decision, status, images | Implemented and tested with synthetic capture |
+| Qt Screen Viewer and Composition | Implemented and tested |
+| Pairing dialog and main window | Linked in the application of tests |
+| Native catch of monitor/ventana | Pending integration from V |
+| Native notifications | Earrings to integrate from N |
+| Complete Product Executable | Skipped in this branch |
+| Automatic equipment discovery | Not implemented |
+| Audio, recording, remote input control | Out of the reach of this delivery |
+| Installer, signature and license | Pending product decision |
 
 ### Emparejamiento
 
-- Cada equipo genera una identidad RSA de 3072 bits y un certificado
-  autofirmado de diez años mediante libcrypto. La identidad se identifica por un
-  `device_id` hexadecimal de 32 caracteres y por la huella SHA-256 de su
-  certificado.
-- El diálogo permite escuchar o conectarse manualmente a un host y puerto. No
-  hay descubrimiento de red.
-- Durante la ceremonia se usa TLS con certificado no verificado y se calcula una
-  SAS de seis cifras a partir del transcript. Ambas personas deben comparar la
-  misma SAS y confirmar. Hasta entonces no se confía en el certificado.
-- La huella observada se guarda al completar la ceremonia. Las conexiones
-  posteriores usan TLS con el pin fijado y rechazan cualquier otro certificado.
-- Si se vuelve a emparejar un equipo existente, se actualizan nombre, host y
-  puerto y el pin nuevo queda como principal. El pin anterior se conserva como
-  respaldo transitorio.
-- La rotación explícita del certificado de este equipo genera una identidad
-  nueva y obliga a volver a emparejar. No se reutiliza la clave anterior.
+- Each team generates a 3072-bit RSA identity and a ten-year self-signed certificate by libcrypto.
+  The identity is identified by a `device_id` 32-character hexadecimal and by the SHA-256 print of
+  its certificate.
+- The dialog allows you to listen or connect manually to a host and port. There is no network
+  discovery.
+- During the ceremony, TLS with unverified certificate is used and a SAS of six figures is calculated from the transcript. Both people must compare the same SAS and confirm. Until then, the certificate is not trusted.
+- The track observed is saved when the ceremony is completed. Later connections use TLS with the pin
+  fixed and reject any other certificate.
+- If an existing computer is rematched, name, host and port are updated and the new pin remains the
+  main one. The previous pin is preserved as a temporary backup.
+- The explicit rotation of the certificate of this equipment generates a new identity and forces to
+  rematching. The previous key is not reused.
 
-### Sesión y protocolo
+### Session and protocol
 
-- La sesión se establece sobre un `QtTlsTransport` ya autenticado. El saludo
-  intercambia identidad y generación; la recepción rechaza generaciones
-  repetidas o antiguas y cada conexión recibe una generación local nueva.
-- La sesión aplica permisos por sentido y por modalidad. Los perfiles `usual`,
-  `sends_only` y `paused` limitan las capacidades efectivas; un perfil guardado
-  inválido se interpreta como pausa.
-- El canal interactivo transporta control y mensajes pequeños. El canal de datos
-  transporta unidades visuales fragmentadas. Las tramas tienen canal, longitud y
-  payload; el receptor valida versión, tipo, longitud y canal antes de despachar.
-- El protocolo de funciones es la versión 1. Los mensajes visuales incluyen
-  referencia de operación, revisión de fuente, secuencia y metadatos de imagen.
-  No hay negociación de versiones futuras ni compatibilidad hacia atrás.
-- Los identificadores de operación empiezan en 1 por generación y sentido. Un
-  desbordamiento termina la sesión antes de reutilizar un identificador.
+- The session is set at a `QtTlsTransport` already authenticated. The greeting exchanges identity
+  and generation; the reception rejects repeated or old generations and each connection receives a
+  new local generation.
+- The session applies permissions by sense and modality. Profiles `usual`, `sends_only` and `paused`
+  limit effective capabilities; an invalid saved profile is interpreted as pause.
+- The interactive channel carries control and small messages. The data channel transports fragmented
+  visual units. The plots have channel, length and payload; the receiver validates version, type,
+  length and channel before dispatch.
+- The function protocol is version 1. Visual messages include operating reference, source review,
+  sequence and image metadata. There is no negotiation of future versions or backward compatibility.
+- Operating identifiers start at 1 per generation and sense. An overflow ends the session before
+  reusing an identifier.
 
-### Compartir pantalla
+### Share Screen
 
-- El módulo visual mantiene una sola operación visual por sesión, contando
-  invitaciones pendientes y operaciones activas en ambos sentidos.
-- Una invitación caduca a los 30 segundos. La fuente puede ser monitor o
-  ventana; el adaptador nativo decide qué fuentes admite realmente.
-- El receptor debe aceptar. La captura no empieza antes de la aceptación y la
-  operación se invalida si cambia la generación, se retira el permiso o se
-  pierde la fuente.
-- Las imágenes se codifican como JPEG independientes, con calidad inicial 75 y
-  reducción de calidad/resolución si hace falta. La primera entrega no usa
-  vídeo interframe.
-- Límites implementados: 30 fps, 1920 píxeles por lado, 2.073.600 píxeles por
-  imagen y 1 MiB por unidad codificada. El receptor valida las dimensiones antes
-  de reservar la imagen decodificada.
-- El visor vacía la presentación al suspender o cerrar la fuente. La operación
-  termina si se pierden las señales de actividad; el emisor envía actividad cada
-  segundo y el receptor tolera tres segundos sin señales.
-- El cierre local o remoto invalida la operación, cancela trabajos y descarta
-  callbacks tardíos. Un cierre remoto no genera otro cierre de respuesta.
+- The visual module maintains a single visual operation per session, counting pending invitations
+  and active operations in both directions.
+- An invitation expires at 30 seconds. The font can be monitor or window; the native adapter decides
+  which fonts it actually supports.
+- The receiver must accept. Capture does not start before acceptance and the operation is
+  invalidated if the generation changes, permission is withdrawn or the source is lost.
+- The images are coded as JPEG independent, with initial quality 75 and reduction of
+  quality and resolution if necessary. The first installment does not use interframe video.
+- Implemented limits: 30 fps, 1920 pixels per side, 2.073.600 pixels per image and 1 MiB per encoded
+  unit. The receiver validates the dimensions before reserving the decoded image.
+- The viewer emptys the presentation by suspending or closing the source. The operation ends if the
+  activity signals are lost; the sender sends activity every second and the receiver tolerates three
+  seconds without signals.
+- Local or remote closure invalidates operation, cancels jobs and discards late callbacks. A remote
+  closure does not generate another response closure.
 
-## Detalles de implementación
+## Implementation Details
 
-### Identidad y almacenamiento
+### Identity and storage
 
-`DeviceIdentityStore` guarda la identidad en el directorio configurado:
+`DeviceIdentityStore` saves identity in the configured directory:
 
 ```text
 identity/
@@ -102,66 +91,59 @@ identity/
 └── identity.key   # clave privada PEM
 ```
 
-En POSIX el directorio se crea con permisos de propietario y la clave se escribe
-con lectura/escritura solo para el propietario. La identidad se genera con
-libcrypto, no invocando el binario `openssl`.
+In POSIX the directory is created with owner permissions and the key is written with
+lectura/escritura only for the owner. Identity is generated with libcrypto, not invoking the
+`openssl` binary.
 
-`PairingStore` guarda los pares en un TSV con cabecera
-`oneintwo-pairing-v1`:
+`PairingStore` saves the pairs in a TSV with `oneintwo-pairing-v1` header:
 
 ```text
-device_id <TAB> nombre <TAB> host <TAB> puerto <TAB> pin_principal [<TAB> pin_respaldo]
+device_id <TAB> name <TAB> host <TAB> port <TAB> primary_pin [<TAB> backup_pin]
 ```
 
-- Un par puede tener una o dos huellas; el principal siempre va primero.
-- Las escrituras usan `QSaveFile` (temporal único y reemplazo atómico) y, en
-  POSIX, `fsync` del archivo y del directorio. `save`, `remove`, `rotatePin` y
-  `retireFallback` publican el estado en memoria solo después de persistirlo.
-- `reload` conserva el último estado válido si el archivo está corrupto. Si la
-  corrupción se detecta al construir la aplicación, esta muestra el error y
-  deshabilita el almacén de pares; no hay recuperación automática.
-- El respaldo se retira después de autenticar por TLS la huella principal. No se
-  usa como fallback automático de conexión: la aplicación siempre intenta el pin
-  principal, y el respaldo existe para la transición de reemparejamiento.
-- `pinTrusted()` acepta principal y respaldo por compatibilidad. Para decisiones
-  de autorización que exijan la identidad activa debe usarse
-  `primaryPinTrusted()` o `pinRole()`.
+- A pair can have one or two prints; the main one always goes first.
+- Writings use `QSaveFile` (single time and atomic replacement) and, in POSIX, `fsync` of the
+  archive and directory. `save`, `remove`, `rotatePin` and `retireFallback` publish the status in
+  memory only after persisting.
+- `reload` retains the last valid state if the file is corrupt. If corruption is detected when you
+  build the application, it shows the error and disables the peer storage; there is no automatic
+  recovery.
+- The backrest is removed after the main print is authenticated by TLS. It is not used as an
+  automatic connection fallback: the application always tries the main pin, and the backrest exists
+  for the re-matching transition.
+- `pinTrusted()` accepts principal and support for compatibility. For authorization decisions
+  requiring active identity, `primaryPinTrusted()` or `pinRole()` should be used.
 
-`LocalStore` es distinto: guarda perfiles y aplicaciones permitidas y todavía
-usa un temporal fijo con `std::filesystem::rename`. No tiene las mismas garantías
-de transacción y durabilidad que `PairingStore`; no conviene asumir que ambas
-persistencias se comportan igual.
+`LocalStore` is different: it saves allowed profiles and applications and still uses a fixed time
+frame with `std::filesystem::rename`. It does not have the same guarantees of transaction and
+durability as `PairingStore`; it is not appropriate to assume that both persistences behave the
+same.
 
 ### Transporte TLS
 
-- Qt `QSslServer`/`QSslSocket` con TLS 1.2 o posterior. La confianza se basa
-  exclusivamente en el SHA-256 del certificado del par; no hay CA, nombre de
-  host ni validación de cadena.
-- En modo normal la huella es obligatoria. El servidor también fija la huella
-  del cliente. El modo `allow_unverified` está reservado a la ceremonia SAS.
-- Un transporte admite una sola conexión activa. El servidor cierra el listener
-  después de aceptar una conexión y el handshake tiene un plazo de 10 segundos.
-- Los buffers y tramas están acotados. Los errores de TLS y de identidad no
-  exponen la huella observada como si fuera una identidad autenticada.
+- Qt `QSslServer`/`QSslSocket` with TLS 1.2 or later. Trust is based solely on the SHA-256 of the pair certificate; there is no CA, host name or string validation.
+- In normal mode the footprint is mandatory. The server also fixes the client's footprint.
+  `allow_unverified` mode is reserved for the SAS ceremony.
+- A transport supports a single active connection. The server closes the listener after accepting a
+  connection and the handshake has 10 seconds.
+- Buffers and plots are narrowed down. TLS and identity errors do not expose the footprint observed
+  as if it were an authenticated identity.
 
-### Composición de la aplicación
+### Composition of the application
 
-- `Application` carga identidad y pares, construye la ventana, el coordinador y
-  la sesión, y reutiliza el último par guardado al arrancar.
-- `Coordinator` conecta la UI con la sesión, el módulo visual y los avisos. Las
-  acciones de compartición solo se autorizan con sesión establecida y permiso
-  efectivo.
-- `SessionLink` se encarga del saludo de identidad/generación y de la
-  autorización de mensajes. El perfil se aplica en la sesión, no en la UI.
-- `ModuleRuntime::post` encola trabajo en el hilo principal de Qt. Los callbacks
-  de UI, sesión y módulos deben ejecutarse en ese contexto; no se deben bloquear
-  con operaciones de red o disco.
+- `Application` loads identity and pairs, builds the window, coordinator and session, and reuses the
+  last saved pair when booting.
+- `Coordinator` connects the UI to the session, the visual module and the notices. Sharing actions
+  are only authorized with established session and effective permission.
+- `SessionLink` is responsible for the greeting of identity and generation and the authorization of
+  messages. The profile is applied in the session, not in the IU.
+- `ModuleRuntime::post` glues work on the main thread of Qt. UI callbacks, session and modules
+  should be executed in that context; they should not be blocked with network or disk operations.
 
-### Construcción y pruebas
+### Construction and testing
 
-Requisitos: CMake 3.24 o posterior, compilador C++17, Qt 6.4 o posterior con
-Core/Gui/Widgets/Network y OpenSSL Crypto. En Windows el workflow usa Qt 6.8.3
-(`qtbase`) y Visual Studio 2022 x64.
+Requirements: CMake 3.24 or later, compiler C++17, Qt 6.4 or later with Core/Gui/Widgets/Network and
+OpenSSL Crypto. In Windows the workflow uses Qt 6.8.3 (`qtbase`) and Visual Studio 2022 x64.
 
 ```bash
 cmake -S . -B build/root \
@@ -172,7 +154,7 @@ QT_QPA_PLATFORM=offscreen \
   ctest --test-dir build/root --output-on-failure
 ```
 
-La suite raíz contiene diez pruebas CTest:
+The root suite contains ten CTest tests:
 
 ```text
 oneintwo_protocol
@@ -187,158 +169,142 @@ oneintwo_pairing_ui
 oneintwo_application
 ```
 
-El workflow [windows-msvc.yml](../../.github/workflows/windows-msvc.yml) instala
-Qt, configura el proyecto y compila `oneintwo_application_tests`. Después exige
-que CTest registre exactamente `oneintwo_application` y que la prueba pase. Es
-una validación del enlace y arranque de Application en Windows, no de la captura
-nativa.
+The workflow [windows-msvc.yml](../../.github/workflows/windows-msvc.yml) installs Qt, configures
+the project and compiles `oneintwo_application_tests`. Then it requires CTest to register exactly
+`oneintwo_application` and the test passes. It is a validation of the Application link and boot on
+Windows, not native capture.
 
-## Mapa de archivos
+## File Map
 
-| Archivo | Responsabilidad |
+| File | Responsabilidad |
 | --- | --- |
-| `src/net/device_identity.*` | Generación, carga y rotación de la identidad TLS |
-| `src/net/pairing_session.*` | Ceremonia SAS y transición a confianza persistente |
-| `src/net/tls_transport.*` | Transporte TLS con pin fijado y framing de canales |
-| `src/net/session_link.*` | Saludo, generaciones, permisos y despacho autorizado |
-| `src/net/protocol.*` | Codificación/decodificación de mensajes de funciones |
-| `src/storage/pairing_store.*` | Pares, pins principal/respaldo y persistencia atómica |
-| `src/storage/local_store.*` | Preferencias de perfil y aplicaciones permitidas |
-| `src/features/visual_share.*` | Estado y reglas de la operación visual |
-| `src/features/visual/visual_codec.*` | Escalado, JPEG y validación de imágenes |
-| `src/ui/visual_viewer.*` | Presentación de la imagen compartida |
-| `src/ui/pairing_dialog.*` | Diálogo de emparejamiento y rotación |
-| `src/app/application.*` | Composición real de UI, sesión y almacenamiento |
-| `src/app/coordinator.*` | Conexión entre UI, sesión y módulos |
-| `src/platform/desktop.hpp` | Contrato de captura y notificaciones nativas |
-| `tests/*` | Pruebas de protocolo, TLS, pares, UI, composición y Application |
+| `src/net/device_identity.*` | Generation, load and rotation of identity TLS |
+| `src/net/pairing_session.*` | SAS ceremony and transition to persistent confidence |
+| `src/net/tls_transport.*` | Transportation TLS with pin fixed and channel framing |
+| `src/net/session_link.*` | Greetings, generations, permits and authorized dispatch |
+| `src/net/protocol.*` | Encoding and decoding feature messages |
+| `src/storage/pairing_store.*` | Pairs, pins principal/respaldo and atomic persistence |
+| `src/storage/local_store.*` | Permitted Profile & Applications Preferences |
+| `src/features/visual_share.*` | Status and rules of visual operation |
+| `src/features/visual/visual_codec.*` | Scale, JPEG and image validation |
+| `src/ui/visual_viewer.*` | Presentation of the shared image |
+| `src/ui/pairing_dialog.*` | Pairing and rotation dialogue |
+| `src/app/application.*` | Actual IU composition, session and storage |
+| `src/app/coordinator.*` | Connection between IU, session and modules |
+| `src/platform/desktop.hpp` | Native catch contract and notifications |
+| `tests/*` | Protocol tests, TLS, pairs, IU, composition and application |
 
-## Problemas conocidos y factores importantes
+## Known problems and important factors
 
-### La rama no es el producto completo
+### The branch is not the complete product
 
-El ejecutable `oneintwo` solo se crea si existen a la vez
-`oneintwo_notifications` y un target de captura nativo. En esta rama esos
-targets no forman parte de la composición; la aplicación se prueba con dobles de
-captura y avisos. Por tanto:
+The `oneintwo` executable is only created if there are both `oneintwo_notifications` and a native
+capture target. In this branch those targets are not part of the composition; the application is
+tested with capture doubles and warnings. Therefore:
 
-- La suite verifica contratos, protocolo, TLS, composición y arranque, no una
-  captura real de escritorio.
-- No se debe afirmar que compartir pantalla funciona de extremo a extremo hasta
-  integrar V y N y probar ambos sistemas operativos.
-- Los stubs de `tests/application/application_test.cpp` no son una implementación
-  de producto y no deben enlazarse en el ejecutable.
+- The suite verifies contracts, protocol, TLS, composition and boot, not a real desktop capture.
+- It should not be said that sharing screen works from end to end until you integrate V and N and
+  test both operating systems.
+- `tests/application/application_test.cpp` stubs are not a product implementation and should not be
+  linked to the executable.
 
-### Captura y notificaciones pertenecen a otras ramas
+### Capture and notifications belong to other branches
 
-La propiedad de los adaptadores nativos está definida en
-[la base paralela](../IMPLEMENTACION_PARALELA.md). Al integrar:
+The ownership of the native adapters is defined in [the parallel
+base](../PARALLEL_IMPLEMENTATION.md). When integrating:
 
-- V aporta la captura Windows/Wayland y sus pruebas nativas.
-- N aporta notificaciones y sus adaptadores.
-- P conserva la composición, el contrato visual, el protocolo y la sesión.
-- No se deben duplicar transportes ni protocolos para “hacer funcionar” una
-  rama aislada; la integración debe usar las cabeceras comunes.
+- V provides the catch Windows/Wayland and its native tests.
+- N provides notifications and their adapters.
+- P retains the composition, visual contract, protocol and session.
+- Transports and protocols should not be duplicated to “run” an isolated branch; integration should
+  use common headers.
 
-### No hay descubrimiento ni conexión automática
+### No discovery or automatic connection
 
-El emparejamiento requiere host y puerto. La aplicación no busca peers en la
-LAN, no resuelve NAT ni mantiene reconexión automática. Si el peer cambia de
-dirección, hay que actualizar el par.
+Pairing requires host and port. The application does not search for peers on the LAN, does not
+resolve NAT or maintain automatic reconnection. If the peer changes direction, the pair needs to be
+updated.
 
-### La generación del par no se persiste entre procesos
+### The generation of the pair does not persist between processes
 
-`SessionLink` acepta callbacks para recordar la última generación del peer, pero
-`Application` no los conecta a un almacén. La protección contra repetición de
-generaciones es efectiva dentro del proceso; tras reiniciar la aplicación, el
-contador local se reinicia y el peer no dispone de una marca persistida. Es una
-mejora pendiente si se requiere resistencia a replay entre reinicios.
+`SessionLink` accepts callbacks to remember the last generation of the peer, but `Application` does
+not connect them to a warehouse. The protection against repeat generations is effective within the
+process; after restarting the application, the local counter restarts and the peer does not have a
+persistent brand. It is an outstanding improvement if replay resistance is required between
+restarts.
 
-### El respaldo no es un failover automático
+### Backup is not an automatic failover
 
-- La aplicación usa siempre el pin principal para conectarse.
-- El respaldo se retiene solo para la ventana de reemparejamiento y se retira
-  cuando una conexión TLS autentica el principal.
-- Si la escritura del almacén falla al retirar el respaldo, la sesión continúa y
-  el respaldo puede permanecer; se muestra el error, pero no se bloquea la
-  conexión.
-- `pinTrusted()` sigue aceptando ambos pines por compatibilidad. No usarlo para
-  decidir la identidad activa; usar `primaryPinTrusted()`.
+- The app always uses the main pin to connect.
+- The backrest is retained only for the repair window and is removed when a TLS connection
+  authenticates the main one.
+- If the deed from the vault fails to remove the backup, the session continues and the backup can
+  stay; the error is displayed, but the connection is not blocked.
+- `pinTrusted()` still accepts both pins for compatibility. Do not use it to decide the active
+  identity; use `primaryPinTrusted()`.
 
-### Persistencia y concurrencia
+### Persistence and attendance
 
-- `PairingStore` está pensado para un único escritor y no tiene mutex. No se debe
-  escribir el mismo archivo desde varios procesos o hilos a la vez.
-- `QSaveFile` evita temporales compartidos y reemplazos parciales, pero no
-  implementa un bloqueo entre procesos ni resuelve escrituras perdidas si dos
-  instancias cargan y guardan a la vez.
-- `LocalStore` todavía usa un temporal fijo y no tiene las garantías de
-  `PairingStore`.
-- Si el almacén de pares está corrupto al arrancar, `Application` lo deshabilita
-  y muestra el error. `reload()` sobre una instancia ya cargada conserva el
-  último estado válido, pero la recuperación tras un arranque corrupto es manual.
+- `PairingStore` is intended for a single writer and does not have mutex. You should not write the
+  same file from several processes or threads at once.
+- `QSaveFile` avoids timeshares and partial replacements, but does not implement a lock between
+  processes or resolve lost scripts if two instances load and save at the same time.
+- `LocalStore` still uses a fixed term and does not have the guarantees of `PairingStore`.
+- If the torque storage is corrupt when booting, `Application` disables it and shows the error.
+  `reload()` on an already loaded instance retains the last valid state, but recovery after corrupt
+  booting is manual.
 
 ### Seguridad
 
-- El pin es la raíz de confianza. No hay CA ni nombre de host; agregar validación
-  de host sin rediseñar la rotación puede romper el modelo.
-- `allow_unverified` solo es válido dentro de la ceremonia SAS. Nunca debe
-  habilitarse para una sesión normal ni para evitar un error de pin.
-- Cambiar el certificado obliga a reemparejar; no se debe reutilizar una clave
-  privada antigua.
-- Los certificados y claves de `tests/tls/test_certificates.hpp` son material de
-  prueba. No deben usarse en una instalación real.
-- La clave privada debe quedar en el directorio de aplicación del usuario, con
-  permisos restringidos. No registrar claves, contenido de pantalla ni datos
-  sensibles.
+- Pin is the root of trust. There is no CA or host name; adding host validation without redesigning
+  the rotation can break the model.
+- `allow_unverified` is only valid within the SAS ceremony. It must never be enabled for a normal
+  session or to avoid a pin error.
+- Changing the certificate requires resetting; an old private key should not be reused.
+- `tests/tls/test_certificates.hpp` certificates and keys are test material. They must not be used
+  in a real installation.
+- The private key must be left in the user application directory, with restricted permissions. Do
+  not register keys, screen content or sensitive data.
 
-### Límites del protocolo
+### Protocol limits
 
-- La versión 1 es la única soportada. Cambiar tipos, campos o límites sin subir
-  la versión rompe la compatibilidad.
-- El canal interactivo y el de datos tienen límites estrictos. Validar longitudes
-  antes de reservar memoria y no ampliar buffers sin revisar el receptor.
-- Una operación visual usa JPEG de imágenes independientes; no hay audio ni
-  grabación.
-- Las invitaciones caducan y la sesión no reanuda automáticamente una operación
-  tras una desconexión o un cambio de generación.
+- Version 1 is the only supported version. Changing types, fields or limits without uploading the
+  version breaks the compatibility.
+- The interactive and data channel have strict limits. Validate lengths before booking memory and do
+  not expand buffers without checking the receiver.
+- A visual operation uses JPEG independent images; there is no audio or recording.
+- Invitations expire and the session does not automatically resume an operation after a
+  disconnection or change of generation.
 
-### Varios pares guardados
+### Several saved pairs
 
-`PairingStore` admite varios pares, pero `Application` reutiliza
-`devices().back()` al arrancar. Si se guardan varios equipos, el arranque no
-ofrece una selección explícita; hay que revisar este comportamiento antes de
-soportar múltiples pares en la interfaz de producto.
+`PairingStore` supports multiple pairs, but `Application` reuses `devices().back()` when booting. If
+multiple computers are saved, booting does not offer an explicit selection; this behavior must be
+reviewed before supporting multiple pairs in the product interface.
 
-### Diferencias de plataforma y cobertura
+### Platform differences and coverage
 
-- Linux se validó localmente con la suite completa; Windows/MSVC valida el
-  enlace y el arranque de Application en CI. La captura nativa de cada plataforma
-  requiere la evidencia de V.
-- No hay soporte validado para macOS.
-- La UI de pruebas usa `QT_QPA_PLATFORM=offscreen`; no sustituye una prueba de
-  escritorio real.
-- La licencia, el instalador y la firma siguen siendo decisiones de producto.
+- Linux was locally validated with the full suite; Windows/MSVC validates the Application link and
+  boot in IC. The native capture of each platform requires evidence of V.
+- No validated support for macOS.
+- The UI test uses `QT_QPA_PLATFORM=offscreen`; it does not replace a real desktop test.
+- The license, installer and signature remain product decisions.
 
-## Antes de modificar esta feature
+## Before modifying this feature
 
-1. Leer [la base de implementación paralela](../IMPLEMENTACION_PARALELA.md) y el
-   [diseño de compartir pantalla](../COMPARTIR_PANTALLA.md).
-2. Respetar la propiedad de archivos: P no debe absorber adaptadores nativos de V
-   ni notificaciones de N.
-3. Mantener las firmas públicas y los límites de protocolo; cualquier cambio de
-   contrato debe coordinarse con el integrador.
-4. Añadir pruebas de contrato o de sesión en la suite correspondiente. Para
-   cambios de UI, ejecutar con `QT_QPA_PLATFORM=offscreen` y no confundir esa
-   ejecución con una validación visual.
-5. No añadir stubs al ejecutable de producto. Los dobles pertenecen a `tests/`.
-6. Verificar el workflow Windows cuando el cambio afecte al enlace de
-   Application.
+1. Read [parallel implementation base](../PARALLEL_IMPLEMENTATION.md) and [screen sharing
+   design](../SHARE_SCREEN.md).
+2. Respect file property: P should not absorb native V adapters or N notifications.
+3. Maintain public signatures and protocol limits; any contract change should be coordinated with
+   the integrator.
+4. Add contract or session tests to the corresponding suite. For UI changes, run with
+   `QT_QPA_PLATFORM=offscreen` and do not confuse that execution with a visual validation.
+5. Do not add stubs to the product executable. Doubles belong to `tests/`.
+6. Verify the Windows workflow when the change affects the Application link.
 
-## Limitaciones de esta entrega
+## Limitations of this delivery
 
-Esta rama deja la base P lista para integrarse, pero no cierra la funcionalidad
-de producto: faltan captura nativa, notificaciones, ejecutable completo,
-descubrimiento, selección de múltiples pares y pruebas de escritorio entre
-equipos. La evidencia actual es la suite local y el enlace/arranque de
-Application en Windows.
+This branch leaves the P-base ready to integrate, but does not close the product functionality:
+missing native capture, notifications, complete executable, discovery, multiple pair selection and
+desktop cross-team testing. Current evidence is the local suite and the Application linking and startup
+on Windows.

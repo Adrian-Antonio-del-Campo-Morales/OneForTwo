@@ -25,7 +25,7 @@ public:
         setAlignment(Qt::AlignCenter);
         setMinimumSize(160, 90);
         setStyleSheet(QStringLiteral("background:#101010;color:#d0d0d0;"));
-        setText(QStringLiteral("Sin imagen"));
+        setText(QStringLiteral("No image"));
     }
 
     void setFrame(const QImage& image) {
@@ -36,7 +36,7 @@ public:
     void clearFrame() {
         image_ = QImage();
         QLabel::clear();
-        setText(QStringLiteral("Sin imagen"));
+        setText(QStringLiteral("No image"));
     }
 
 protected:
@@ -59,32 +59,32 @@ private:
 };
 
 QString modalityTitle(VisualSourceKind source) {
-    return source == VisualSourceKind::monitor ? QStringLiteral("Pantalla completa")
-                                               : QStringLiteral("Una ventana");
+    return source == VisualSourceKind::monitor ? QStringLiteral("Full screen")
+                                               : QStringLiteral("A window");
 }
 
 QString stateText(VisualSourceState state) {
     switch (state) {
     case VisualSourceState::available:
-        return QStringLiteral("Sin imagen");
+        return QStringLiteral("No image");
     case VisualSourceState::suspended:
-        return QStringLiteral("Fuente en pausa");
+        return QStringLiteral("Pause Source");
     case VisualSourceState::closed:
-        return QStringLiteral("Fuente cerrada");
+        return QStringLiteral("Closed source");
     }
-    return QStringLiteral("Sin imagen");
+    return QStringLiteral("No image");
 }
 
 class ViewerWindow final : public QWidget, public VisualViewer {
 public:
     ViewerWindow(ModuleRuntime runtime, std::function<void(VisualShareRef)> user_closed)
         : runtime_(std::move(runtime)), user_closed_(std::move(user_closed)) {
-        setWindowTitle(QStringLiteral("OneInTwo — Visor (solo lectura)"));
+        setWindowTitle(QStringLiteral("OneInTwo — Viewer (read only)"));
         setAttribute(Qt::WA_DeleteOnClose, false);
         frame_ = new FrameLabel(this);
-        state_ = new QLabel(QStringLiteral("Sin operación"), this);
+        state_ = new QLabel(QStringLiteral("No operation"), this);
         state_->setObjectName(QStringLiteral("visualStateLabel"));
-        source_ = new QLabel(QStringLiteral("Origen: equipo vinculado"), this);
+        source_ = new QLabel(QStringLiteral("Origin: linked equipment"), this);
         source_->setObjectName(QStringLiteral("visualSourceLabel"));
         auto* layout = new QVBoxLayout(this);
         layout->setContentsMargins(8, 8, 8, 8);
@@ -100,7 +100,7 @@ public:
         modality_ = offer.source;
         user_notified_ = false;
         programmatic_close_ = false;
-        setWindowTitle(QStringLiteral("OneInTwo — %1 (solo lectura)")
+        setWindowTitle(QStringLiteral("OneInTwo — %1 (read only)")
                            .arg(modalityTitle(offer.source)));
         frame_->clearFrame();
         state_->setText(QStringLiteral("Esperando imagen…"));
@@ -122,8 +122,8 @@ public:
         const QImage view(frame.bgra.data(), static_cast<int>(frame.size.width),
                           static_cast<int>(frame.size.height),
                           static_cast<int>(frame.size.width) * 4, QImage::Format_ARGB32);
-        // El visor conserva una copia con propiedad explícita antes de devolver
-        // el control; el argumento es una referencia prestada.
+        // The viewer retains a copy with explicit property before returning
+        // control; the argument is a borrowed reference.
         frame_->setFrame(view.copy());
         state_->setText(QStringLiteral("En directo"));
     }
@@ -143,7 +143,7 @@ public:
         programmatic_close_ = true;
         ref_.reset();
         frame_->clearFrame();
-        state_->setText(QStringLiteral("Operación terminada"));
+        state_->setText(QStringLiteral("Completed operation"));
         hide();
         programmatic_close_ = false;
     }
@@ -155,7 +155,7 @@ protected:
             user_notified_ = true;
             ref_.reset();
             frame_->clearFrame();
-            state_->setText(QStringLiteral("Operación terminada"));
+            state_->setText(QStringLiteral("Completed operation"));
             notifyUserClosed(closed);
         }
         QWidget::closeEvent(event);

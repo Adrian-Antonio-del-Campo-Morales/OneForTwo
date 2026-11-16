@@ -254,7 +254,7 @@ struct Harness {
                 viewer = fake.get();
                 return fake;
             },
-            "Equipo B",
+            "Equipment B",
         };
         coordinator = std::make_unique<Coordinator>(std::move(dependencies));
     }
@@ -304,7 +304,7 @@ bool sameRef(const VisualShareRef& left, const VisualShareRef& right) {
 
 TEST_CASE(main_window_is_wired_to_session_and_profile) {
     Harness harness;
-    CHECK_EQ(harness.session.limits.share_monitor, true); // Habitual por defecto
+    CHECK_EQ(harness.session.limits.share_monitor, true); // Default custom
     CHECK_EQ(harness.session.granted_send.share_monitor, false);
     CHECK_EQ(harness.notifications.generation, static_cast<SessionGeneration>(0));
     CHECK(!harness.button("shareMonitorButton")->isEnabled());
@@ -312,7 +312,7 @@ TEST_CASE(main_window_is_wired_to_session_and_profile) {
     harness.establish();
     CHECK(harness.button("shareMonitorButton")->isEnabled());
     CHECK_EQ(harness.notifications.generation, static_cast<SessionGeneration>(7));
-    CHECK_EQ(harness.label("statusLabel")->text().toStdString(), std::string("Sesión establecida"));
+    CHECK_EQ(harness.label("statusLabel")->text().toStdString(), std::string("Established meeting"));
 
     auto* combo = harness.window.findChild<QComboBox*>(QStringLiteral("profileCombo"));
     CHECK(combo != nullptr);
@@ -337,7 +337,7 @@ TEST_CASE(permission_checks_reach_session_and_visual_module) {
     CHECK(harness.session.granted_receive.share_monitor);
     harness.button("shareMonitorButton")->click();
     CHECK_EQ(harness.capture.select_calls, 1);
-    CHECK(harness.coordinator->hasActiveVisual() == false); // aún seleccionando
+    CHECK(harness.coordinator->hasActiveVisual() == false); // still selecting
 }
 
 TEST_CASE(origin_share_stop_and_encoded_frames_cross_the_coordinator) {
@@ -404,7 +404,7 @@ TEST_CASE(incoming_offer_is_presented_and_acceptance_opens_viewer) {
     auto* panel = harness.window.findChild<QWidget*>(QStringLiteral("offerPanel"));
     CHECK(panel != nullptr);
     CHECK(!panel->isHidden());
-    CHECK(harness.label("offerLabel")->text().contains(QStringLiteral("Equipo B")));
+    CHECK(harness.label("offerLabel")->text().contains(QStringLiteral("Equipment B")));
 
     harness.button("acceptOfferButton")->click();
     CHECK_EQ(harness.session.sentOf<VisualDecisionMessage>().size(), static_cast<std::size_t>(1));
@@ -459,11 +459,11 @@ TEST_CASE(notice_form_and_application_list_reach_notification_module) {
     auto* body = harness.window.findChild<QPlainTextEdit*>(QStringLiteral("noticeBody"));
     CHECK(title != nullptr);
     CHECK(body != nullptr);
-    title->setText(QStringLiteral("Hola"));
+    title->setText(QStringLiteral("Hello"));
     body->setPlainText(QStringLiteral("Mensaje manual"));
     harness.button("sendNoticeButton")->click();
     CHECK_EQ(harness.notifications.manual.size(), static_cast<std::size_t>(1));
-    CHECK_EQ(harness.notifications.manual.front().title, std::string("Hola"));
+    CHECK_EQ(harness.notifications.manual.front().title, std::string("Hello"));
     CHECK_EQ(harness.notifications.manual.front().body, std::string("Mensaje manual"));
 
     harness.setNoticePermissions(false);
@@ -491,7 +491,7 @@ TEST_CASE(incoming_notice_and_lock_are_routed) {
     RemoteNotification notice;
     notice.ref = NotificationRef{7, 42};
     notice.mode = NotificationMode::manual;
-    notice.content = NotificationContent{"Título", "Cuerpo"};
+    notice.content = NotificationContent{"Title", "Body"};
     harness.coordinator->receive(FeatureMessage{notice});
     CHECK_EQ(harness.notifications.notices.size(), static_cast<std::size_t>(1));
 
@@ -504,11 +504,11 @@ TEST_CASE(incoming_notice_and_lock_are_routed) {
     harness.coordinator->setLocked(true);
     CHECK_EQ(harness.session.sentOf<VisualStopMessage>().size(), static_cast<std::size_t>(1));
     CHECK(!harness.notifications.send.manual_notifications);
-    CHECK_EQ(harness.label("statusLabel")->text().toStdString(), std::string("Sesión bloqueada"));
+    CHECK_EQ(harness.label("statusLabel")->text().toStdString(), std::string("Locked session"));
 
     harness.coordinator->setLocked(false);
     CHECK(harness.notifications.send.manual_notifications);
-    CHECK_EQ(harness.label("statusLabel")->text().toStdString(), std::string("Sesión reanudada"));
+    CHECK_EQ(harness.label("statusLabel")->text().toStdString(), std::string("Resumed meeting"));
 }
 
 TEST_CASE(session_close_retires_permissions_and_viewer) {
@@ -520,7 +520,7 @@ TEST_CASE(session_close_retires_permissions_and_viewer) {
     CHECK(!harness.button("shareMonitorButton")->isEnabled());
     CHECK_EQ(harness.notifications.generation, static_cast<SessionGeneration>(0));
     CHECK(!harness.notifications.send.share_monitor);
-    CHECK_EQ(harness.label("statusLabel")->text().toStdString(), std::string("Sin sesión"));
+    CHECK_EQ(harness.label("statusLabel")->text().toStdString(), std::string("No session"));
 }
 
 TEST_CASE(share_without_session_reports_error_and_does_not_capture) {

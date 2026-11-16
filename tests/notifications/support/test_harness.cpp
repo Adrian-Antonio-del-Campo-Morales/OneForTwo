@@ -35,9 +35,9 @@ int run_all() {
         } catch (const RequirementFailure& failure) {
             std::cerr << "  " << test.name << ": " << failure.what() << '\n';
         } catch (const std::exception& error) {
-            report_failure(test.name, 0, std::string("excepción no controlada: ") + error.what());
+            report_failure(test.name, 0, std::string("uncontrolled exception: ") + error.what());
         } catch (...) {
-            report_failure(test.name, 0, "excepción no controlada");
+            report_failure(test.name, 0, "Uncontrolled derogation");
         }
         ++executed;
         std::cout << (failures == before ? "[OK]   " : "[FALLO]") << ' ' << test.name << '\n';

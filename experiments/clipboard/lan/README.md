@@ -1,30 +1,29 @@
-# Primera prueba LAN — Portapapeles Windows ↔ Ubuntu
+# First test LAN — Windows clipboards ↔ Ubuntu
 
-Preparado: 5 de noviembre de 2026. Responsabilidad: coordinar una prueba acotada
-con los binarios y adaptadores ya desarrollados, sin integrar la aplicación.
-La conexión es bidireccional aunque Windows escuche y Ubuntu conecte.
+Ready: November 5, 2026. Responsibility: coordinate a limited test with the already developed
+binaries and adapters, without integrating the application. The connection is bidirectional even if
+Windows listens and Ubuntu connects.
 
-## 1. Qué está preparado
+## 1. What is prepared
 
-- Asistente Python 3.8+ con biblioteca estándar para generar identidades y
-  mostrar los comandos del prototipo real. No ejecuta el prototipo.
-- Certificado público Windows y su SHA-256 en `public/`. Su clave privada existe
-  solo en la copia Windows original, bajo `.local-state/lan-clipboard/windows/`.
-- Muestras de texto distintas para cada sentido, sin datos personales.
-- Puerto acordado: **47831/TCP**, distinto al de los otros experimentos.
-- Windows escucha únicamente en la dirección LAN elegida. Ubuntu conecta.
-- El código del prototipo verificado es la entrega `2ae444d`; las revisiones
-  posteriores de preparación/documentación no sustituyen las pruebas reales.
+- Python 3.8+ Wizard with standard library to generate identities and display the commands of the
+  real prototype. It does not execute the prototype.
+- Public certificate Windows and its SHA-256 in `public/`. Its private key exists only in the
+  original Windows copy, under `.local-state/lan-clipboard/windows/`.
+- Different text samples for each sense, without personal data.
+- Agreed port: **47831/TCP**, different from other experiments.
+- Windows listens only to the chosen LAN address. Ubuntu connects.
+- The verified prototype code is `2ae444d` delivery; subsequent revisions of
+  setup and documentation do not replace actual tests.
 
-Los certificados duran 14 días desde la generación. Este paquete no inicia una
-conexión, modifica el cortafuegos, lee el portapapeles ni concede permisos.
-La primera prueba real sigue pendiente. No arrancar al mismo tiempo otro
-experimento de portapapeles, archivos o entrada.
+The certificates last 14 days from generation. This package does not start a connection, modify the
+firewall, read the clipboard, or grant permissions. The first real test is still pending. Do not
+boot another clipboard, file, or input experiment at the same time.
 
-## 2. Obtener la preparación en Ubuntu
+## 2. Get the preparation in Ubuntu
 
-Conservar cualquier cambio local. Desde una copia limpia, descargar y avanzar
-solo si es posible hacerlo sin mezclar historias:
+Keep any local changes. From a clean copy, download and move forward only if it is possible to do so
+without mixing stories:
 
 ```bash
 git fetch origin
@@ -32,35 +31,33 @@ git status --short --branch
 git merge --ff-only origin/validation/windows
 ```
 
-Si el avance se rechaza o hay cambios locales, conservarlos y resolver la
-sincronización antes de probar. No usar reset destructivo ni forzar el push.
-Anotar `git rev-parse HEAD` en ambos extremos; usar la misma revisión al empezar.
+If the advance is rejected or there are local changes, keep them and resolve the synchronization
+before testing. Do not use destructive reset or force the push. Write down `git rev-parse HEAD` at
+both ends; use the same revision when starting.
 
-El ejecutable Ubuntu esperado es
-`experiments/clipboard/build/ubuntu/oneintwo-clipboard`. Si la revisión trae
-cambios de C++, reconstruir y verificar TLS y el portal con el entorno ya
-validado en Ubuntu. Un cambio solo en este asistente no exige recompilar C++.
-Consultar [MANUAL.md](../MANUAL.md) y [RESULTS.md](../RESULTS.md).
+The expected Ubuntu executable is `experiments/clipboard/build/ubuntu/oneintwo-clipboard`. If the
+revision brings C++ changes, rebuild and verify TLS and the portal with the already validated
+environment in Ubuntu. A change in this wizard alone does not require C++ recompile. Consult
+[MANUAL.md](../MANUAL.md) and [RESULTS.Md](../RESULTS.md).
 
-## 3. Completar la identidad Ubuntu
+## 3. Complete the Ubuntu identity setup
 
-Desde la raíz del repositorio:
+From the root of the repository:
 
 ```bash
 python3 -B experiments/clipboard/lan/prepare.py prepare --name ubuntu
 ```
 
-Puede indicarse `--openssl /ruta/al/openssl` si no está en PATH. Si el agente usa
-dependencias locales, mantener su entorno de bibliotecas restringido a las
-herramientas y al binario de prueba, sin contaminar aplicaciones del escritorio.
+`--openssl /path/to/openssl` can be indicated if it is not in PATH. If the agent uses local
+dependencies, keep your library environment restricted to tools and test binary, without polluting
+desktop applications.
 
-El asistente conserva la clave en `.local-state/lan-clipboard/ubuntu/private.key`
-y crea `public/ubuntu.pem` y `public/ubuntu.sha256`. No regenera una identidad
-existente: comprueba que su certificado está vigente y corresponde a su clave.
-Si la identidad está incompleta o caducada, detenerse y acordar su sustitución;
-no sobrescribir una clave que todavía esté usando el otro extremo.
+The wizard retains the key in `.local-state/lan-clipboard/ubuntu/private.key` and creates
+`public/ubuntu.pem` and `public/ubuntu.sha256`. It does not regenerate an existing identity: it
+checks that your certificate is valid and corresponds to your key. If the identity is incomplete or
+expired, stop and agree to replace it; do not overwrite a key that is still using the other end.
 
-Publicar **solo** esos dos archivos públicos en la rama de trabajo Ubuntu:
+Publish **only** those two public archives in the Ubuntu branch of work:
 
 ```bash
 git add -- experiments/clipboard/lan/public/ubuntu.pem experiments/clipboard/lan/public/ubuntu.sha256
@@ -69,68 +66,66 @@ git commit -m "test: share Ubuntu public identity for clipboard LAN"
 git push
 ```
 
-El agente Ubuntu debe comunicar rama, commit, IP LAN y huella. Windows obtendrá
-esa revisión y comprobará la huella antes de arrancar. Nunca intercambiar ni
-subir `private.key`, directorios `.local-state`, paquetes o binarios.
+The Ubuntu agent must communicate branch, commit, IP LAN and fingerprint. Windows will get that
+revision and check the print before booting. Never swap or upload `private.key`, `.local-state`
+directories, packages or binaries.
 
-## 4. Identidad Windows y preparación local
+## 4. Windows identity and local preparation
 
-La máquina Windows original ya tiene preparada su identidad. Solo si se repite
-la preparación **en esa misma máquina**:
+The original Windows machine already has its identity ready. Only if the preparation ** is repeated
+on that same machine**:
 
 ```powershell
 python -B experiments/clipboard/lan/prepare.py prepare --name windows
 ```
 
-Una copia clonada en otra máquina no tiene esa clave privada: no debe regenerar
-la identidad Windows sin acordar un certificado nuevo con el otro extremo.
+A cloned copy on another machine does not have that private key: it must not regenerate the Windows
+identity without agreeing a new certificate with the other end.
 
-El certificado público se comprueba independientemente mediante:
+The public certificate is independently verified by:
 
 ```bash
 openssl x509 -in experiments/clipboard/lan/public/windows.pem -noout -fingerprint -sha256
 ```
 
-La huella esperada también figura en `public/windows.sha256`. Comparar con la
-huella comunicada desde Windows por la conversación de coordinación.
-Verificar de igual modo el certificado público de Ubuntu antes de confiar en él.
+The expected print also appears in `public/windows.sha256`. Compare to the fingerprint communicated
+from Windows by the coordination conversation. Check the public certificate of Ubuntu in the same
+way before trusting him.
 
-En Windows, poner las DLL usadas en la compilación en el PATH de esa consola:
+On Windows, put the DLL used in the compilation on the PATH of that console:
 
 ```powershell
 $env:Path = "C:\Program Files\OpenSSL-Win64\bin;" + $env:Path
 ```
 
-## 5. Acordar dirección y cortafuegos
+## 5. Agree direction and firewall
 
-Windows comunica su IP LAN actual al agente Ubuntu. No usar las direcciones de
-WSL o de interfaces virtuales. La IP puede cambiar entre sesiones.
+Windows communicates its current LAN IP to Ubuntu agent. Do not use WSL addresses or virtual
+interfaces. IP can switch between sessions.
 
-En la preparación del 5 de noviembre, la interfaz LAN Windows tiene perfil
-**Public** y no hay escuchas en 47831. No se ha cambiado su perfil ni creado
-una regla. Si el cortafuegos impide el acceso, preparar una excepción temporal
-limitada al ejecutable, la IP Ubuntu, la IP Windows y el puerto. En PowerShell de
-administración, sustituyendo ambas direcciones:
+In the preparation of November 5, the LAN Windows interface has a **Public** profile and there are
+no listeners in 47831. No change of profile or rule created. If the firewall prevents access,
+prepare a temporary exception limited to the executable, the Ubuntu IP, the Windows IP and the port.
+In Admin PowerShell, replacing both addresses:
 
 ```powershell
 $probe = (Resolve-Path 'experiments/clipboard/build/windows-ready/Release/oneintwo-clipboard.exe').Path
 New-NetFirewallRule -DisplayName 'OneInTwo clipboard LAN test' -Direction Inbound -Action Allow -Profile Public -Protocol TCP -LocalPort 47831 -Program $probe -LocalAddress WINDOWS_IP -RemoteAddress UBUNTU_IP
 ```
 
-Este documento no ejecuta esa regla. Confirmar el perfil actual y ajustar el
-parámetro si ha cambiado. No cambiar el perfil ni ampliar la regla a todos los
-programas, direcciones o redes para ocultar un fallo.
-Al acabar, retirar únicamente la regla de este ensayo:
+This document does not execute that rule. Confirm the current profile and adjust the parameter if
+you have changed. Do not change the profile or extend the rule to all programs, addresses or
+networks to hide a bug. Upon completion, remove only the rule from this test:
 
 ```powershell
 Remove-NetFirewallRule -DisplayName 'OneInTwo clipboard LAN test'
 ```
 
-## 6. Mostrar y ejecutar los comandos acordados
+## 6. Show and execute agreed commands
 
-Una vez presentes ambos certificados públicos y cada clave privada en su
-máquina, el asistente genera el comando exacto. Sustituir `WINDOWS_IP` por la
-dirección comunicada. No añadir `--show-content`: la salida mostrará metadatos.
+Once both public certificates and each private key are present on your machine, the wizard generates
+the exact command. Replace `WINDOWS_IP` with the communicated address. Do not add `--show-content`:
+the output will display metadata.
 
 Windows:
 
@@ -144,60 +139,56 @@ Ubuntu:
 python3 -B experiments/clipboard/lan/prepare.py command --name ubuntu --role connect --host WINDOWS_IP
 ```
 
-`--binary RUTA` permite señalar otro binario equivalente. El asistente comprueba
-la existencia del binario y de las identidades, muestra el comando y termina.
-**No se ha iniciado una sesión por ejecutar `command`.** Copiar el comando
-mostrado a la consola cuando ambos extremos estén preparados.
+`--binary RUTA` allows you to mark another equivalent binary. The wizard checks the existence of the
+binary and identities, displays the command and ends. **No session is logged in to execute
+`command`.** Copy the command displayed to the console when both ends are ready.
 
-1. Preparar editores desechables con las dos muestras.
-2. Arrancar el comando Windows y esperar el mensaje `listening=`.
-3. Arrancar Ubuntu, conceder solo portapapeles y comprobar `devices=0`.
-4. Confirmar las huellas y que ambos extremos completan TLS y saludo.
-5. Ejecutar la matriz siguiente. Para empezar, dedicar un máximo de tres minutos
-   a la sesión; finalizar manualmente con Ctrl+C en ambas consolas.
+1. Prepare disposable editors with both samples.
+2. Start the Windows command and wait for the message `listening=`.
+3. Start Ubuntu, grant only clipboard and check `devices=0`.
+4. Confirm the prints and that both ends complete TLS and greeting.
+5. Run the following matrix. To start, devote a maximum of three minutes to the session; manually
+   finish with Ctrl+C on both consoles.
 
-El prototipo no tiene un temporizador LAN automático: el límite de tres minutos
-es de la sesión acordada con el usuario, no una garantía del programa. No usar
-`eval` ni `Invoke-Expression` para ejecutar automáticamente el texto mostrado.
+The prototype does not have an automatic LAN timer: the three-minute limit is for the session agreed
+with the user, not a program warranty. Do not use `eval` or `Invoke-Expression` to automatically run
+the displayed text.
 
-## 7. Primera matriz entre equipos
+## 7. First matrix between teams
 
-| Caso | Acción | Qué observar |
+| Caso | Action | What to Observe |
 | --- | --- | --- |
-| T0 | En un intento separado, Ubuntu fija su propio certificado en lugar del de Windows con `--peer-cert` | Rechazo TLS, sin saludo de aplicación ni datos remotos; restaurar luego el certificado correcto |
-| T1 | Copiar `samples/windows.txt` en un editor Windows y pegar en el editor Ubuntu | Texto exacto, incluidos acentos y saltos de línea |
-| T2 | Copiar `samples/ubuntu.txt` en Ubuntu y pegar en Windows | Texto exacto; no vuelve la muestra anterior |
-| T3 | Dejar diez segundos sin nuevas copias | Ausencia de reenvíos continuos o cambios repetidos |
-| T4 | Detener cliente Ubuntu, volver a conectarlo y hacer una copia nueva | Error/desconexión claros y nueva sincronización, sin restaurar automáticamente contenido antiguo |
-| T5 | Ctrl+C en Ubuntu y Windows | Cierre de ambos procesos y sesiones, sin escuchas de este ensayo restantes |
+| T0 | In a separate attempt, Ubuntu fixes its own certificate instead of that of Windows with `--peer-cert` | Rejection TLS, no application greeting or remote data; then restore the correct certificate |
+| T1 | Copy `samples/windows.txt` to a Windows editor and paste into Ubuntu editor | Accurate text, including accents and line breaks |
+| T2 | Copy `samples/ubuntu.txt` to Ubuntu and paste into Windows | Exact text; does not return previous sample |
+| T3 | Wait ten seconds without copying again | Absence of continuous forwarding or repeated changes |
+| T4 | Stop Ubuntu client, reconnect it and make a new copy | Clear error or disconnect and subsequent resynchronization, without automatically restoring old content |
+| T5 | Ctrl+C in Ubuntu and Windows | Closure of both processes and sessions, without listening to this remaining essay |
 
-La prueba negativa T0 debe estar coordinada: Windows puede seguir escuchando
-tras rechazar al cliente. No confundir un error TLS con puerto inaccesible.
-Ninguna prueba de este documento se da por superada por haber generado comandos.
+The negative test T0 must be coordinated: Windows can keep listening after rejecting the client. Do
+not confuse a TLS error with inaccessible port. No proof of this document is overtaken by generating
+commands.
 
-## 8. Evidencia y final de sesión
+## 8. Evidence and end of session
 
-Registrar resultados observados en [RESULTS.md](../RESULTS.md): revisión de ambos
-equipos, roles, puerto, versiones, huellas públicas, resultado de cada caso y
-errores. No registrar texto privado. Reutilizar las verificaciones Ubuntu y
-Windows ya válidas; no repetir la investigación o las baterías generales.
+Record results observed in [RESULTS.md](../RESULTS.md): review of both computers, roles, port,
+versions, public footprints, result of each case and errors. Do not register private text. Reuse
+valid Ubuntu and Windows checks; do not repeat research or general batteries.
 
-Al terminar, cerrar los dos prototipos y retirar la regla temporal si se creó.
-Las claves locales se conservan para la siguiente sesión hasta caducar; no
-borrarlas ni regenerarlas silenciosamente. No se promete restauración del
-contenido previo del portapapeles: volver a copiar manualmente lo que se necesite.
+When finished, close the two prototypes and remove the time rule if created. Local keys are retained
+for the next session until they expire; do not delete or regenerate them silently. No restoration of
+the previous clipboard content is promised: recopy manually what is needed.
 
-Después de completar portapapeles se coordinarán archivos y entrada con sus
-manuales. Este paquete no inicia todavía esos experimentos; Ubuntu como origen
-de entrada continúa limitado por InputCapture v1 frente al requisito v2.
+After completing clipboards, files and input will be coordinated with your manuals. This package
+does not start those experiments yet; Ubuntu as input source continues to be limited by InputCapture
+v1 compared to the v2 requirement.
 
-## 9. Comprobación del asistente
+## 9. Checking the wizard
 
 ```bash
 python3 -B experiments/clipboard/lan/test_prepare.py
 ```
 
-Tres pruebas aisladas cubren roles/argumentos reales, falta del certificado del
-par, rechazo de extremos inválidos y quoting. La generación y comprobación de
-la identidad Windows se han realizado sin sockets ni escritorio; no prueban
-un handshake TLS. El certificado público no es un resultado funcional.
+Three isolated tests cover actual roles/argumentos, missing pair certificate, invalid end rejection
+and quoting. The generation and checking of Windows identity has been done without sockets or
+desktop; they do not test a TLS handshake. Public certificate is not a functional result.

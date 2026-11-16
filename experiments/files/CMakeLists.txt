@@ -1,5 +1,4 @@
-# Responsabilidad: compilación independiente del experimento de archivos.
-# No depende del CMake raíz ni del código del producto.
+# Standalone build for the file experiment, independent of the root CMake project and product code.
 cmake_minimum_required(VERSION 3.16)
 project(oneintwo_files_experiment LANGUAGES CXX)
 
@@ -7,8 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(O2F_ENABLE_TLS "Compilar transporte TLS con OpenSSL" ON)
-option(O2F_ENABLE_GTK "Compilar publicación de portapapeles con GTK3 en Linux" ON)
+option(O2F_ENABLE_TLS "Build TLS transport with OpenSSL" ON)
+option(O2F_ENABLE_GTK "Build clipboard publishing with GTK3 on Linux" ON)
 
 function(o2f_set_warnings target)
     if(MSVC)
@@ -38,7 +37,7 @@ o2f_set_warnings(o2f_core)
 
 if(WIN32)
     target_link_libraries(o2f_core PUBLIC bcrypt ws2_32)
-    # fopen de la API C de OpenSSL: se usa por interoperabilidad con PEM_read_X509.
+    # Use fopen from the C API for interoperability with PEM_read_X509.
     target_compile_definitions(o2f_core PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
 
@@ -49,8 +48,8 @@ if(O2F_ENABLE_TLS)
         target_link_libraries(o2f_core PUBLIC OpenSSL::SSL OpenSSL::Crypto)
         message(STATUS "TLS: OpenSSL ${OPENSSL_VERSION}")
     else()
-        message(WARNING "OpenSSL no encontrado: se compila sin transporte TLS; "
-                        "los modos --share y --receive-offer quedan bloqueados")
+        message(WARNING "OpenSSL was not found. The build disables TLS transport, "
+                        "--share, and --receive-offer")
     endif()
 endif()
 
@@ -64,7 +63,7 @@ elseif(UNIX)
     if(GTK3_FOUND)
         set(O2F_PLATFORM_SOURCE src/platform/linux/clipboard_linux.cpp)
     else()
-        message(WARNING "GTK3 no encontrado: el portapapeles de archivos en Linux no se compila")
+        message(WARNING "GTK3 was not found, so the build disables the file clipboard on Linux")
         set(O2F_PLATFORM_SOURCE src/platform/clipboard_unavailable.cpp)
     endif()
 else()

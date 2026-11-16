@@ -230,14 +230,14 @@ TEST_CASE(establishes_session_with_exchanged_generations) {
 
 TEST_CASE(rejects_unpinned_or_mismatched_peer_identity) {
     Link link(optionsFor("A", "B", "bb", 10), optionsFor("B", "A", "aa", 20));
-    link.transport_a.fingerprint = "ff"; // el transporte autenticó otro certificado
+    link.transport_a.fingerprint = "ff"; // the transport has authenticated another certificate
     link.startBoth();
     link.settle();
 
     CHECK_EQ(link.a->phase(), SessionLinkPhase::closed);
     CHECK_EQ(link.errors_a.size(), static_cast<std::size_t>(1));
     CHECK_EQ(link.errors_a.front(), SessionLinkError::identity);
-    CHECK(link.transport_a.sent.empty()); // no se envió ningún saludo
+    CHECK(link.transport_a.sent.empty()); // no greetings were sent
     CHECK(link.established_a == 0);
 }
 
@@ -292,7 +292,7 @@ TEST_CASE(local_generation_zero_is_rejected) {
 TEST_CASE(feature_message_before_establishment_terminates_session) {
     Link link(optionsFor("A", "B", "bb", 10), optionsFor("B", "A", "aa", 20));
     link.startBoth();
-    // Se descarta el saludo encolado y se inyecta una trama antes de negociar.
+    // The glued greeting is discarded and a plot is injected before negotiation.
     link.transport_b.inbox.clear();
     std::vector<std::uint8_t> bogus{0, 1, 0, 5, 0, 0, 0, 0};
     link.transport_b.inject(SessionChannelKind::interactive, bogus);
@@ -318,7 +318,7 @@ TEST_CASE(all_visual_messages_flow_with_translated_identity) {
     CHECK_EQ(offer_b.ref.initiator, VisualInitiator::peer);
     CHECK_EQ(offer_b.ref.offer_id, static_cast<std::uint64_t>(1));
 
-    // B responde sobre la identidad de operación original.
+    // B responds to the original operating identity.
     CHECK_EQ(link.b->send(VisualDecisionMessage{offer_b.ref, VisualDecision::accepted}),
              SendResult::queued);
     link.settle();
@@ -345,7 +345,7 @@ TEST_CASE(all_visual_messages_flow_with_translated_identity) {
     link.settle();
     CHECK_EQ(link.messages_a.size(), static_cast<std::size_t>(2));
     CHECK(std::holds_alternative<VisualStopMessage>(link.messages_a.back()));
-    // La operación cerrada ya no admite más datos.
+    // The closed operation no longer supports data.
     CHECK_EQ(link.a->send(VisualActivityMessage{local, 1}), SendResult::denied);
 }
 
@@ -357,7 +357,7 @@ TEST_CASE(notices_are_authorized_per_modality) {
     RemoteNotification manual;
     manual.ref = NotificationRef{link.a->generation(), 1};
     manual.mode = NotificationMode::manual;
-    manual.content = NotificationContent{"Hola", "Mensaje"};
+    manual.content = NotificationContent{"Hello", "Mensaje"};
     CHECK_EQ(link.a->send(manual), SendResult::queued);
 
     RemoteNotification forwarded;
@@ -385,7 +385,7 @@ TEST_CASE(send_and_receive_permissions_are_independent) {
 
     CHECK_EQ(link.a->send(VisualShareOffer{refFor(link, 1), VisualSourceKind::monitor}),
              SendResult::denied);
-    // La modalidad de ventana sigue habilitada.
+    // The window mode is still enabled.
     CHECK_EQ(link.a->send(VisualShareOffer{refFor(link, 2), VisualSourceKind::window}),
              SendResult::queued);
 
@@ -409,7 +409,7 @@ TEST_CASE(video_requires_an_accepted_operation) {
     const VisualShareRef local = refFor(link, 1);
     CHECK_EQ(link.a->send(VisualShareOffer{local, VisualSourceKind::monitor}),
              SendResult::queued);
-    // Antes de aceptar no se admite el canal de datos.
+    // The data channel is not supported before accepting.
     CHECK_EQ(link.a->send(smallFrame(local)), SendResult::denied);
 
     link.settle();
@@ -467,7 +467,7 @@ TEST_CASE(profile_limits_deny_new_and_active_operations) {
     link.settle();
 
     link.b->applyProfileLimits(FeatureSet{});
-    // B ya no acepta datos de la operación anterior aunque lleguen de A.
+    // B no longer accepts data from the previous operation even if they arrive from A.
     CHECK_EQ(link.a->send(smallFrame(refFor(link, 1))), SendResult::queued);
     link.settle();
     CHECK_EQ(link.messages_b.size(), static_cast<std::size_t>(1));

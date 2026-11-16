@@ -42,8 +42,8 @@ void start_observation(Fixture& fixture) {
 
 TEST_CASE(manual_unicode_is_sent_and_presented_with_attribution) {
     Fixture fixture;
-    const std::string title = "Reunión — café ☕";
-    const std::string body = "Línea uno\nLínea dos: ñandú, 日本語, emoji 😀";
+    const std::string title = "Reunion — coffee";
+    const std::string body = "Line one\nLine two: café, 日本語, emoji 😀";
 
     fixture.send_manual(title, body);
     REQUIRE(fixture.sender.accepted.size() == 1);
@@ -68,12 +68,12 @@ TEST_CASE(manual_unicode_is_sent_and_presented_with_attribution) {
 
 TEST_CASE(title_is_required_and_blank_titles_are_rejected) {
     Fixture fixture;
-    fixture.send_manual("", "cuerpo");
-    fixture.send_manual("   \t\n", "cuerpo");
+    fixture.send_manual("", "body");
+    fixture.send_manual("   \t\n", "body");
 
     CHECK(fixture.sender.accepted.empty());
     CHECK_EQUAL(fixture.errors.size(), std::size_t{2});
-    CHECK(contains(fixture.errors, "el título es obligatorio"));
+    CHECK(contains(fixture.errors, "the title is compulsory"));
 }
 
 TEST_CASE(utf8_byte_limits_are_exact) {
@@ -86,45 +86,45 @@ TEST_CASE(utf8_byte_limits_are_exact) {
     const std::string title_over_limit = repeated("\xC3\xA9", 129); // 258 bytes
     fixture.send_manual(title_over_limit);
     CHECK_EQUAL(fixture.sender.accepted.size(), std::size_t{1});
-    CHECK(contains(fixture.errors, "contenido fuera de límite"));
+    CHECK(contains(fixture.errors, "off-limit content"));
 
     fixture.clock.advance(std::chrono::seconds(1));
     const std::string body_at_limit = repeated("\xC3\xB1", 1024); // 2048 bytes
-    fixture.send_manual("título", body_at_limit);
+    fixture.send_manual("title", body_at_limit);
     CHECK_EQUAL(fixture.sender.accepted.size(), std::size_t{2});
 
     fixture.clock.advance(std::chrono::seconds(1));
-    fixture.send_manual("título", repeated("a", 2049));
+    fixture.send_manual("title", repeated("a", 2049));
     CHECK_EQUAL(fixture.sender.accepted.size(), std::size_t{2});
     CHECK_EQUAL(fixture.errors.size(), std::size_t{2});
 }
 
 TEST_CASE(malformed_utf8_is_rejected_in_both_directions) {
     Fixture fixture;
-    fixture.send_manual("\xC3", "cuerpo");
-    fixture.send_manual("título", "\x80");
-    fixture.send_manual("\xED\xA0\x80", "cuerpo");
-    fixture.send_manual("título", "\xC0\xAF");
+    fixture.send_manual("\xC3", "body");
+    fixture.send_manual("title", "\x80");
+    fixture.send_manual("\xED\xA0\x80", "body");
+    fixture.send_manual("title", "\xC0\xAF");
     CHECK(fixture.sender.accepted.empty());
     CHECK_EQUAL(fixture.errors.size(), std::size_t{4});
-    CHECK(contains(fixture.errors, "contenido mal formado"));
+    CHECK(contains(fixture.errors, "misformed content"));
 
     fixture.errors.clear();
-    fixture.receive(fixture.notice(1, NotificationMode::manual, "\xE2\x82", "cuerpo"));
+    fixture.receive(fixture.notice(1, NotificationMode::manual, "\xE2\x82", "body"));
     fixture.tick();
     CHECK(fixture.desktop.presentations.empty());
-    CHECK(contains(fixture.errors, "contenido mal formado"));
+    CHECK(contains(fixture.errors, "misformed content"));
 }
 
 TEST_CASE(send_rate_is_three_per_monotonic_second) {
     CHECK_EQUAL(notification_rate_per_second, 3u);
     Fixture fixture;
     for (int index = 0; index < 4; ++index) {
-        fixture.send_manual("aviso " + std::to_string(index));
+        fixture.send_manual("notice " + std::to_string(index));
     }
     CHECK_EQUAL(fixture.sender.accepted.size(), std::size_t{3});
     CHECK_EQUAL(fixture.sender.accepted.back().ref.notice_id, std::uint64_t{3});
-    CHECK(contains(fixture.errors, "límite de frecuencia"));
+    CHECK(contains(fixture.errors, "frequency limit"));
 
     fixture.clock.advance(std::chrono::seconds(1));
     fixture.send_manual("aviso 4");
@@ -136,11 +136,11 @@ TEST_CASE(receive_rate_drop_still_consumes_the_identifier) {
     Fixture fixture;
     for (std::uint64_t identifier = 1; identifier <= 4; ++identifier) {
         fixture.receive(fixture.notice(identifier, NotificationMode::manual,
-                                       "aviso " + std::to_string(identifier)));
+                                       "notice " + std::to_string(identifier)));
     }
     fixture.tick();
     CHECK_EQUAL(fixture.desktop.presentations.size(), std::size_t{3});
-    CHECK(contains(fixture.errors, "límite de frecuencia"));
+    CHECK(contains(fixture.errors, "frequency limit"));
 
     fixture.receive(fixture.notice(4, NotificationMode::manual, "repetido"));
     fixture.tick();
@@ -156,11 +156,11 @@ TEST_CASE(outbound_queue_is_bounded_and_retried_in_order) {
     Fixture fixture;
     fixture.sender.default_result = SendResult::busy;
     for (int index = 0; index < 17; ++index) {
-        fixture.send_manual("aviso " + std::to_string(index));
+        fixture.send_manual("notice " + std::to_string(index));
         fixture.clock.advance(std::chrono::milliseconds(400));
     }
     CHECK_EQUAL(fixture.sender.attempts.size(), std::size_t{17});
-    CHECK(contains(fixture.errors, "cola local de envío llena"));
+    CHECK(contains(fixture.errors, "local full shipping queue"));
 
     fixture.sender.default_result = SendResult::queued;
     fixture.tick();
@@ -202,31 +202,31 @@ TEST_CASE(observed_events_are_filtered_by_identity_and_allow_list) {
     start_observation(fixture);
     REQUIRE(fixture.desktop.start_count == 1);
 
-    fixture.desktop.emit_observed(0, observed("", "Sin identidad", "título"));
-    fixture.desktop.emit_observed(0, observed("OneInTwo.Desktop", "OneInTwo", "título"));
+    fixture.desktop.emit_observed(0, observed("", "No identity", "title"));
+    fixture.desktop.emit_observed(0, observed("OneInTwo.Desktop", "OneInTwo", "title"));
     fixture.desktop.emit_observed(
-        0, observed("OneInTwo.Desktop_123!OneInTwo.Desktop", "OneInTwo", "título"));
-    fixture.desktop.emit_observed(0, observed("app.two", "Otra aplicación", "título"));
-    fixture.desktop.emit_observed(0, observed("app.one", "", "título"));
-    fixture.desktop.emit_observed(0, observed("app.one", repeated("a", 129), "título"));
+        0, observed("OneInTwo.Desktop_123!OneInTwo.Desktop", "OneInTwo", "title"));
+    fixture.desktop.emit_observed(0, observed("app.two", "Other application", "title"));
+    fixture.desktop.emit_observed(0, observed("app.one", "", "title"));
+    fixture.desktop.emit_observed(0, observed("app.one", repeated("a", 129), "title"));
     CHECK(fixture.sender.accepted.empty());
 
-    fixture.desktop.emit_observed(0, observed("app.one", "Visor", "Título", "Cuerpo"));
+    fixture.desktop.emit_observed(0, observed("app.one", "Viewer", "Title", "Body"));
     REQUIRE(fixture.sender.accepted.size() == 1);
     const RemoteNotification& sent = fixture.sender.accepted.front();
     CHECK(sent.mode == NotificationMode::forwarded);
-    CHECK_EQUAL(sent.app_name, std::string("Visor"));
-    CHECK_EQUAL(sent.content.title, std::string("Título"));
+    CHECK_EQUAL(sent.app_name, std::string("Viewer"));
+    CHECK_EQUAL(sent.content.title, std::string("Title"));
     CHECK_EQUAL(sent.ref.notice_id, std::uint64_t{1});
 }
 
 TEST_CASE(discovery_offers_only_eligible_unique_applications) {
     Fixture fixture;
     std::vector<NotificationApplication> offered{
-        {"app.one", "Visor"},
+        {"app.one", "Viewer"},
         {"app.one", "Duplicada"},
         {"app.two", "Dos"},
-        {"", "Sin identidad"},
+        {"", "No identity"},
         {"OneInTwo.Desktop", "OneInTwo"},
         {"app.three", ""},
         {"app.four", repeated("a", 129)},
@@ -243,7 +243,7 @@ TEST_CASE(discovery_offers_only_eligible_unique_applications) {
             received = std::move(applications);
         });
     REQUIRE(fixture.desktop.discoveries.size() == 1);
-    CHECK(!called); // La consulta nativa es asíncrona.
+    CHECK(!called); // The native consultation is asynchronous.
 
     fixture.desktop.complete_discovery(0, DesktopResult::ready, std::move(offered));
     CHECK(called);
@@ -252,7 +252,7 @@ TEST_CASE(discovery_offers_only_eligible_unique_applications) {
     CHECK_EQUAL(received[0].app_id, std::string("app.five"));
     CHECK_EQUAL(received[1].app_id, std::string("app.two"));
     CHECK_EQUAL(received[2].app_id, std::string("app.one"));
-    CHECK_EQUAL(received[2].app_name, std::string("Visor"));
+    CHECK_EQUAL(received[2].app_name, std::string("Viewer"));
     CHECK_EQUAL(fixture.desktop.start_count, 0);
 }
 
@@ -262,7 +262,7 @@ TEST_CASE(discovery_is_unavailable_without_observation_support) {
 
     bool called = false;
     DesktopResult result = DesktopResult::error;
-    std::vector<NotificationApplication> received{{"app.one", "Visor"}};
+    std::vector<NotificationApplication> received{{"app.one", "Viewer"}};
     fixture.module->discoverApplications(
         [&](DesktopResult value, std::vector<NotificationApplication> applications) {
             called = true;
@@ -281,7 +281,7 @@ TEST_CASE(discovery_errors_do_not_offer_applications) {
     Fixture fixture;
     bool called = false;
     DesktopResult result = DesktopResult::error;
-    std::vector<NotificationApplication> received{{"app.one", "Visor"}};
+    std::vector<NotificationApplication> received{{"app.one", "Viewer"}};
 
     fixture.module->discoverApplications(
         [&](DesktopResult value, std::vector<NotificationApplication> applications) {
@@ -291,7 +291,7 @@ TEST_CASE(discovery_errors_do_not_offer_applications) {
         });
     REQUIRE(fixture.desktop.discoveries.size() == 1);
     fixture.desktop.complete_discovery(0, DesktopResult::denied,
-                                       {{"app.one", "Visor"}});
+                                       {{"app.one", "Viewer"}});
 
     CHECK(called);
     CHECK(result == DesktopResult::denied);
@@ -307,7 +307,7 @@ TEST_CASE(discovery_callback_is_discarded_after_module_destruction) {
     const auto complete = fixture.desktop.discoveries.front().complete;
 
     fixture.module.reset();
-    complete(DesktopResult::ready, {{"app.one", "Visor"}});
+    complete(DesktopResult::ready, {{"app.one", "Viewer"}});
     CHECK(!called);
 }
 
@@ -315,15 +315,15 @@ TEST_CASE(observed_duplicates_are_suppressed_within_the_window) {
     Fixture fixture;
     start_observation(fixture);
 
-    fixture.desktop.emit_observed(0, observed("app.one", "Visor", "Título", "Cuerpo"));
-    fixture.desktop.emit_observed(0, observed("app.one", "Visor", "Título", "Cuerpo"));
+    fixture.desktop.emit_observed(0, observed("app.one", "Viewer", "Title", "Body"));
+    fixture.desktop.emit_observed(0, observed("app.one", "Viewer", "Title", "Body"));
     CHECK_EQUAL(fixture.sender.accepted.size(), std::size_t{1});
 
-    fixture.desktop.emit_observed(0, observed("app.one", "Visor", "Título", "Otro cuerpo"));
+    fixture.desktop.emit_observed(0, observed("app.one", "Viewer", "Title", "Otro cuerpo"));
     CHECK_EQUAL(fixture.sender.accepted.size(), std::size_t{2});
 
     fixture.clock.advance(std::chrono::seconds(11));
-    fixture.desktop.emit_observed(0, observed("app.one", "Visor", "Título", "Cuerpo"));
+    fixture.desktop.emit_observed(0, observed("app.one", "Viewer", "Title", "Body"));
     CHECK_EQUAL(fixture.sender.accepted.size(), std::size_t{3});
 }
 
@@ -331,7 +331,7 @@ TEST_CASE(manual_and_forwarded_share_the_send_counter) {
     Fixture fixture;
     start_observation(fixture);
     fixture.send_manual("manual uno");
-    fixture.desktop.emit_observed(0, observed("app.one", "Visor", "automático"));
+    fixture.desktop.emit_observed(0, observed("app.one", "Viewer", "automatic"));
     fixture.send_manual("manual dos");
 
     REQUIRE(fixture.sender.accepted.size() == 3);
@@ -345,22 +345,22 @@ TEST_CASE(manual_and_forwarded_share_the_send_counter) {
 
 TEST_CASE(received_notices_are_validated_before_deduplication) {
     Fixture fixture;
-    fixture.receive(fixture.notice(1, NotificationMode::manual, "título", {}, "App"));
-    fixture.receive(fixture.notice(1, NotificationMode::manual, "título"));
-    fixture.receive(fixture.notice(2, NotificationMode::forwarded, "título", {}, ""));
-    fixture.receive(fixture.notice(2, NotificationMode::forwarded, "título", {}, "Visor"));
+    fixture.receive(fixture.notice(1, NotificationMode::manual, "title", {}, "App"));
+    fixture.receive(fixture.notice(1, NotificationMode::manual, "title"));
+    fixture.receive(fixture.notice(2, NotificationMode::forwarded, "title", {}, ""));
+    fixture.receive(fixture.notice(2, NotificationMode::forwarded, "title", {}, "Viewer"));
     fixture.receive(fixture.notice(3, NotificationMode::manual, repeated("a", 257)));
-    fixture.receive(fixture.notice(3, NotificationMode::manual, "título"));
-    fixture.receive(fixture.notice(4, NotificationMode::manual, "título", repeated("b", 2049)));
-    fixture.receive(fixture.notice(5, NotificationMode::forwarded, "título", {},
+    fixture.receive(fixture.notice(3, NotificationMode::manual, "title"));
+    fixture.receive(fixture.notice(4, NotificationMode::manual, "title", repeated("b", 2049)));
+    fixture.receive(fixture.notice(5, NotificationMode::forwarded, "title", {},
                                    repeated("a", 129)));
-    fixture.receive(fixture.notice(0, NotificationMode::manual, "título"));
+    fixture.receive(fixture.notice(0, NotificationMode::manual, "title"));
     fixture.tick();
 
     CHECK_EQUAL(fixture.desktop.presentations.size(), std::size_t{3});
-    CHECK(contains(fixture.errors, "aviso manual con aplicación"));
-    CHECK(contains(fixture.errors, "aplicación de origen inválida"));
-    CHECK(contains(fixture.errors, "identificador inválido"));
+    CHECK(contains(fixture.errors, "manual warning with application"));
+    CHECK(contains(fixture.errors, "application of invalid origin"));
+    CHECK(contains(fixture.errors, "invalid identifier"));
 }
 
 TEST_CASE(repetitions_and_older_received_identifiers_are_discarded) {
@@ -386,10 +386,10 @@ TEST_CASE(receive_queue_is_bounded) {
     Fixture fixture;
     for (std::uint64_t identifier = 1; identifier <= 17; ++identifier) {
         fixture.receive(fixture.notice(identifier, NotificationMode::manual,
-                                       "aviso " + std::to_string(identifier)));
+                                       "notice " + std::to_string(identifier)));
         fixture.clock.advance(std::chrono::milliseconds(400));
     }
-    CHECK(contains(fixture.errors, "cola local de presentación llena"));
+    CHECK(contains(fixture.errors, "local full presentation queue"));
 
     fixture.tick();
     CHECK_EQUAL(fixture.desktop.presentations.size(), std::size_t{16});
@@ -401,7 +401,7 @@ TEST_CASE(receive_queue_expires_after_ten_seconds) {
     fixture.clock.advance(std::chrono::seconds(10));
     fixture.tick();
     CHECK(fixture.desktop.presentations.empty());
-    CHECK(contains(fixture.errors, "cola caducada"));
+    CHECK(contains(fixture.errors, "Expired glue"));
 }
 
 TEST_CASE(revocation_withdraws_notices_before_presentation) {
@@ -413,7 +413,7 @@ TEST_CASE(revocation_withdraws_notices_before_presentation) {
     fixture.tick();
     CHECK(fixture.desktop.presentations.empty());
 
-    // Reautorizar no reproduce el aviso ya consumido.
+    // Reauthorize does not reproduce the notice already consumed.
     fixture.receive_features.manual_notifications = true;
     fixture.authorize();
     fixture.receive(fixture.notice(1, NotificationMode::manual, "pendiente"));
@@ -461,7 +461,7 @@ TEST_CASE(new_generation_resets_counters_and_restarts_observation) {
     start_observation(fixture);
     REQUIRE(fixture.desktop.start_count == 1);
 
-    fixture.send_manual("generación siete");
+    fixture.send_manual("generation seven");
     REQUIRE(fixture.sender.accepted.size() == 1);
     CHECK_EQUAL(fixture.sender.accepted.front().ref.notice_id, std::uint64_t{1});
     fixture.receive(fixture.notice(1, NotificationMode::manual, "pendiente"));
@@ -475,14 +475,14 @@ TEST_CASE(new_generation_resets_counters_and_restarts_observation) {
     fixture.tick();
     CHECK(fixture.desktop.presentations.empty());
 
-    // La generación antigua no vuelve a presentar ni enviar.
+    // The ancient generation does not present or send again.
     fixture.module->receiveNotice(RemoteNotification{
         NotificationRef{7, 9}, NotificationMode::manual,
         NotificationContent{"antiguo", {}}, {}});
     fixture.tick();
     CHECK(fixture.desktop.presentations.empty());
 
-    fixture.send_manual("generación ocho");
+    fixture.send_manual("generation eight");
     REQUIRE(fixture.sender.accepted.size() == 2);
     CHECK_EQUAL(fixture.sender.accepted.back().ref.generation, std::uint64_t{8});
     CHECK_EQUAL(fixture.sender.accepted.back().ref.notice_id, std::uint64_t{1});
@@ -491,7 +491,7 @@ TEST_CASE(new_generation_resets_counters_and_restarts_observation) {
 TEST_CASE(lock_withdraws_everything_and_keeps_observation_stopped) {
     Fixture fixture;
     start_observation(fixture);
-    fixture.send_manual("antes del bloqueo");
+    fixture.send_manual("before blocking");
     fixture.receive(fixture.notice(1, NotificationMode::manual, "pendiente"));
 
     fixture.send_features = FeatureSet{};
@@ -503,9 +503,9 @@ TEST_CASE(lock_withdraws_everything_and_keeps_observation_stopped) {
     fixture.tick();
     CHECK(fixture.desktop.presentations.empty());
 
-    fixture.send_manual("durante el bloqueo");
+    fixture.send_manual("during blocking");
     CHECK_EQUAL(fixture.sender.accepted.size(), std::size_t{1});
-    CHECK(contains(fixture.errors, "permiso de envío no concedido"));
+    CHECK(contains(fixture.errors, "shipping permit not granted"));
 }
 
 TEST_CASE(solo_envios_keeps_manual_and_stops_forwarding) {
@@ -520,14 +520,14 @@ TEST_CASE(solo_envios_keeps_manual_and_stops_forwarding) {
     CHECK_EQUAL(fixture.desktop.start_count, 0);
 
     fixture.module->forwardObserved(fixture.generation,
-                                    observed("app.one", "Visor", "automático"));
+                                    observed("app.one", "Viewer", "automatic"));
     CHECK(fixture.sender.accepted.empty());
 
     fixture.send_manual("manual permitido");
     CHECK_EQUAL(fixture.sender.accepted.size(), std::size_t{1});
 
     fixture.receive(fixture.notice(1, NotificationMode::manual, "manual recibido"));
-    fixture.receive(fixture.notice(2, NotificationMode::forwarded, "automático", {}, "Visor"));
+    fixture.receive(fixture.notice(2, NotificationMode::forwarded, "automatic", {}, "Viewer"));
     fixture.tick();
     CHECK_EQUAL(fixture.desktop.presentations.size(), std::size_t{1});
 }
@@ -544,7 +544,7 @@ TEST_CASE(allowed_application_changes_update_observation) {
     CHECK_EQUAL(fixture.desktop.start_count, 2);
     REQUIRE(fixture.desktop.starts.size() == 2);
 
-    // Un evento de la suscripción anterior no se entrega.
+    // An event from the previous subscription is not delivered.
     fixture.desktop.emit_observed(0, observed("app.two", "Dos", "viejo"));
     CHECK(fixture.sender.accepted.empty());
 
@@ -561,7 +561,7 @@ TEST_CASE(denied_observation_stops_and_reports) {
     CHECK(fixture.desktop.stop_count >= 1);
     CHECK(contains(fixture.errors, "denegada"));
 
-    fixture.desktop.emit_observed(0, observed("app.one", "Visor", "título"));
+    fixture.desktop.emit_observed(0, observed("app.one", "Viewer", "title"));
     CHECK(fixture.sender.accepted.empty());
 }
 
@@ -572,28 +572,28 @@ TEST_CASE(late_observed_events_from_stopped_subscriptions_are_discarded) {
     const auto stale = fixture.desktop.starts.front().observed;
 
     fixture.module->setAllowedApplications({});
-    stale(observed("app.one", "Visor", "durante la parada"));
+    stale(observed("app.one", "Viewer", "during the stop"));
     CHECK(fixture.sender.accepted.empty());
 
     fixture.module->setAllowedApplications({"app.one"});
     REQUIRE(fixture.desktop.start_count == 2);
-    stale(observed("app.one", "Visor", "tras reanudar"));
+    stale(observed("app.one", "Viewer", "tras reanudar"));
     CHECK(fixture.sender.accepted.empty());
 
-    fixture.desktop.emit_observed(1, observed("app.one", "Visor", "suscripción vigente"));
+    fixture.desktop.emit_observed(1, observed("app.one", "Viewer", "current subscription"));
     CHECK_EQUAL(fixture.sender.accepted.size(), std::size_t{1});
 }
 
 TEST_CASE(presentation_failure_reports_without_content) {
     Fixture fixture;
-    fixture.receive(fixture.notice(1, NotificationMode::manual, "título secreto",
+    fixture.receive(fixture.notice(1, NotificationMode::manual, "secret title",
                                    "cuerpo secreto"));
     fixture.tick();
     REQUIRE(fixture.desktop.presentations.size() == 1);
     fixture.desktop.presentations.front().complete(DesktopResult::error);
 
     REQUIRE(fixture.errors.size() == 1);
-    CHECK(fixture.errors.front().find("error del escritorio") != std::string::npos);
+    CHECK(fixture.errors.front().find("desktop error") != std::string::npos);
     CHECK(fixture.errors.front().find("secreto") == std::string::npos);
     CHECK_EQUAL(fixture.desktop.presentations.size(), std::size_t{1});
 }
@@ -601,10 +601,10 @@ TEST_CASE(presentation_failure_reports_without_content) {
 TEST_CASE(presentation_requires_a_verified_peer_name) {
     Fixture fixture;
     fixture.peer_name.clear();
-    fixture.receive(fixture.notice(1, NotificationMode::manual, "título"));
+    fixture.receive(fixture.notice(1, NotificationMode::manual, "title"));
     fixture.tick();
     CHECK(fixture.desktop.presentations.empty());
-    CHECK(contains(fixture.errors, "identidad del equipo no disponible"));
+    CHECK(contains(fixture.errors, "identity of equipment not available"));
 }
 
 TEST_CASE(observation_requires_backend_capability) {
@@ -631,9 +631,9 @@ TEST_CASE(received_notice_without_permission_does_not_consume_identifier) {
 
 TEST_CASE(observed_notice_before_subscription_is_discarded) {
     Fixture fixture;
-    // Todavía no hay lista de aplicaciones ni observación iniciada.
+    // There is still no list of applications or observation initiated.
     fixture.module->forwardObserved(fixture.generation,
-                                    observed("app.one", "Visor", "previo"));
+                                    observed("app.one", "Viewer", "previo"));
     CHECK(fixture.sender.accepted.empty());
     CHECK_EQUAL(fixture.desktop.start_count, 0);
 }
@@ -641,7 +641,7 @@ TEST_CASE(observed_notice_before_subscription_is_discarded) {
 TEST_CASE(stale_generations_are_ignored_on_send) {
     Fixture fixture;
     fixture.module->sendManual(fixture.generation + 1,
-                               NotificationContent{"antiguo", "cuerpo"});
+                               NotificationContent{"antiguo", "body"});
     CHECK(fixture.sender.accepted.empty());
     CHECK(fixture.errors.empty());
 }

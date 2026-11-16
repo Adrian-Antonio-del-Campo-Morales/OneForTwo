@@ -1,11 +1,10 @@
 #include "links.hpp"
 
 /*
- * Implementación pendiente.
+ * Implementation pending.
  *
- * Validar las URL en ambos extremos, mostrar la forma normalizada y mantener
- * una sola oferta pendiente, con vencimiento monotónico y deduplicación por
- * generación. Consumir la oferta al confirmarla. La apertura se delega al
- * escritorio después de comprobar el permiso efectivo y la vigencia.
- * Ver FUNCIONALIDADES.md, sección 2.
+ * Validate URLs at both ends, display the standard form and maintain a single pending offer, with
+ * monotonous maturity and deduplication per generation. Consume the offer when confirming it.
+ * Opening is delegated to the desktop after checking the effective permission and validity. See
+ * FUNCTIONALITIES.md, section 2.
  */

@@ -6,9 +6,9 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     project(oneintwo_notifications LANGUAGES CXX)
 endif()
 
-option(ONEINTWO_BUILD_TESTS "Construir las pruebas del paquete de notificaciones" OFF)
+option(ONEINTWO_BUILD_TESTS "Build the notification package tests" OFF)
 option(ONEINTWO_BUILD_NATIVE_NOTIFICATION_TESTS
-       "Construir el recorrido nativo de presentación del paquete" OFF)
+       "Build the package's native presentation check" OFF)
 
 set(ONEINTWO_NOTIFICATION_SOURCES
     ${ONEINTWO_REPO_ROOT}/src/features/notifications.cpp
@@ -26,8 +26,8 @@ if(WIN32)
     target_compile_definitions(oneintwo_notifications PUBLIC
         UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN
         WINVER=0x0A00 _WIN32_WINNT=0x0A00)
-    # C++/WinRT se activa desde windowsapp; la identidad de proceso y los
-    # accesos directos del menú Inicio usan shell32.
+    # windowsapp enables C++/WinRT. Process identity and Start menu shortcuts
+    # use shell32.
     target_link_libraries(oneintwo_notifications PUBLIC windowsapp shell32)
 elseif(UNIX AND NOT APPLE)
     target_sources(oneintwo_notifications PRIVATE
@@ -48,8 +48,8 @@ elseif(UNIX AND NOT APPLE)
         find_library(DBUS_LIBRARY NAMES dbus-1)
         if(NOT DBUS_INCLUDE_DIR OR NOT DBUS_ARCH_INCLUDE_DIR OR NOT DBUS_LIBRARY)
             message(FATAL_ERROR
-                "No se encontró libdbus-1. Instalar libdbus-1-dev o indicar "
-                "DBUS_INCLUDE_DIR, DBUS_ARCH_INCLUDE_DIR y DBUS_LIBRARY.")
+                "libdbus-1 was not found. Install libdbus-1-dev or set "
+                "DBUS_INCLUDE_DIR, DBUS_ARCH_INCLUDE_DIR, and DBUS_LIBRARY.")
         endif()
         target_include_directories(oneintwo_notifications PRIVATE
             ${DBUS_INCLUDE_DIR} ${DBUS_ARCH_INCLUDE_DIR})
@@ -57,7 +57,7 @@ elseif(UNIX AND NOT APPLE)
     endif()
 else()
     message(FATAL_ERROR
-        "oneintwo_notifications solo admite los backends Windows y Linux.")
+        "oneintwo_notifications supports only the Windows and Linux backends.")
 endif()
 
 if(ONEINTWO_BUILD_TESTS)

@@ -1,6 +1,6 @@
 #pragma once
-// Responsabilidad: contrato del canal fiable de control y apertura de canales
-// TLS con certificados verificados por huella SHA-256.
+// Liability: contract of reliable channel of control and opening of channels
+// TLS with certificates verified by SHA-256 fingerprints.
 
 #include "core/types.hpp"
 
@@ -16,7 +16,7 @@ class Link {
   virtual ~Link() = default;
   virtual bool send(const Message& message, std::string& error) = 0;
 
-  // Espera como máximo timeoutMs. Devuelve true sin mensajes si no hay datos.
+  // Wait for maximum timeoutMs. Return true without messages if there is no data.
   virtual bool receive(std::vector<Message>& out, int timeoutMs, std::string& error) = 0;
   virtual void close() = 0;
 };
@@ -28,7 +28,7 @@ std::unique_ptr<Link> openTlsClient(const std::string& host, uint16_t port,
                                     const std::string& certFile, const std::string& keyFile,
                                     const std::string& peerFingerprint, std::string& error);
 
-// shouldStop permite cancelar la espera de conexión desde Ctrl+C.
+// shouldStop allows you to cancel the connection wait from Ctrl+C.
 std::unique_ptr<Link> openTlsServer(uint16_t port, const std::string& certFile,
                                     const std::string& keyFile,
                                     const std::string& peerFingerprint,

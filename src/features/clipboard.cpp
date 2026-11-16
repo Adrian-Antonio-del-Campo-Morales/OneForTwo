@@ -1,13 +1,15 @@
 /*
- * OneInTwo — Sincronización de portapapeles de texto.
- * Estado: estructura documental; implementación pendiente.
+ * OneInTwo — Text clipboard synchronization. Status: documentary structure; pending
+ * implementation.
  *
- * Responsabilidades previstas:
- * - Gestionar cambios locales y remotos, formatos admitidos, límites y prevención de eco.
- * - Asignar identificadores de operación y un orden lógico determinista para resolver copias concurrentes.
- * - Distinguir notificaciones de escrituras propias de copias nuevas del usuario.
- * - Aplicar texto mediante el contrato de escritorio y publicar cambios mediante la sesión autorizada.
- * - Invalidar operaciones pendientes al cambiar de sesión y no reenviar contenido antiguo al reconectar.
- * - Las ofertas y el contenido de archivos pertenecen a files.cpp; no escribir el portapapeles por una segunda vía nativa.
+ * Responsibilities envisaged:
+ * - Manage local and remote changes, supported formats, limits and echo prevention.
+ * - Assign operation identifiers and a deterministic logical order to resolve concurrent copies.
+ * - Distinguish notifications of own scripts from new copies of the user.
+ * - Apply text using the desktop contract and post changes using the authorized session.
+ * - Invalid pending transactions when switching session and not forwarding old content when
+ *   reconnecting.
+ * - The offers and file content belong to files.cpp; do not write the clipboard by a second native
+ *   way.
  */
 

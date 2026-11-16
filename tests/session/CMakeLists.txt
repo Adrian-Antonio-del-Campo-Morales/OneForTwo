@@ -1,5 +1,5 @@
 if(NOT TARGET oneintwo_session)
-    message(FATAL_ERROR "oneintwo_session debe existir antes de las pruebas de sesión")
+    message(FATAL_ERROR "Session tests require the oneintwo_session target")
 endif()
 
 enable_testing()

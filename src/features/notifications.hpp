@@ -29,15 +29,15 @@ struct NotificationContent {
     std::string body;
 };
 
-// El identificador de la aplicación se usa para el filtro local.
+// The application identifier is used for the local filter.
 struct ObservedNotification {
     std::string app_id;
     std::string app_name;
     NotificationContent content;
 };
 
-// Aplicación que puede ofrecerse en la lista autorizada. app_id es la
-// identidad local fiable; app_name solo sirve para mostrarla.
+// Application available on the approved list. app_id is the
+// reliable local identity; app_name only serves to show it.
 struct NotificationApplication {
     std::string app_id;
     std::string app_name;
@@ -52,11 +52,11 @@ struct RemoteNotification {
     NotificationRef ref;
     NotificationMode mode;
     NotificationContent content;
-    std::string app_name; // Vacío en los avisos manuales.
+    std::string app_name; // Empty in manual warnings.
 };
 
-// El coordinador suministra la generación vigente al enviar.
-// La sesión valida el sentido antes de entregar un aviso recibido.
+// The coordinator provides the current generation when sending.
+// The session validates the meaning before delivering a notice received.
 struct NotificationDependencies;
 
 class SharedNotifications {
@@ -66,9 +66,9 @@ public:
     SharedNotifications(const SharedNotifications&) = delete;
     SharedNotifications& operator=(const SharedNotifications&) = delete;
     void tick();
-    // Enumera las aplicaciones con avisos actuales. Puede solicitar el
-    // consentimiento del sistema y no inicia ni modifica la observación.
-    // El callback se ejecuta una sola vez y puede llegar después.
+    // List applications with current notices. You can request the
+    // consent of the system and does not initiate or modify observation.
+    // The callback runs only once and can arrive later.
     void discoverApplications(
         std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete);
     void setAllowedApplications(std::set<std::string> app_ids);

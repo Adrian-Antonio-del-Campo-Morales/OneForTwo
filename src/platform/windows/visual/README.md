@@ -1,60 +1,55 @@
-# Captura visual nativa en Windows
+# Native Visual Capture on Windows
 
-Este README describe el backend Windows de la feature `feature/share-window`, que
-vive en este directorio. La feature completa comparte el contrato
-[`DesktopVisualCapture`](../../desktop.hpp) con el backend Wayland
-([`../linux/visual`](../../linux/visual/)); aquí se documenta la implementación
-Windows, sus límites y lo que el resto de componentes debe asumir.
+This README describes the Windows backend of the feature `feature/share-window`, which lives in this
+directory. The full feature shares the contract [`DesktopVisualCapture`](../../desktop.hpp) with the
+Wayland backend ([`../linux/visual`](../../linux/visual/)); here is documented the Windows
+implementation, its limits and what the other components must assume.
 
-Estado de esta rama:
+Status of this branch:
 
-- selección local de monitores y ventanas;
-- captura con Windows Graphics Capture (WGC) y D3D11;
-- entrega de imágenes BGRA al contrato común;
-- estados de disponibilidad, suspensión y cierre;
-- pruebas portables con puertos falsos, pruebas del núcleo WGC y un smoke test
-  Win32/WGC real;
-- CI `Windows MSVC` con SDK 19041 y con el SDK actual.
+- local selection of monitors and windows;
+- capture with Windows Graphics Capture (WGC) and D3D11;
+- delivery of images BGRA to the common contract;
+- states of availability, suspension and closure;
+- portable tests with false ports, core tests WGC and a real smoke test Win32/WGC;
+- IC `Windows MSVC` with SDK 19041 and with the current SDK.
 
-La integración de producto (módulo `VisualShare`, codec, transporte, permisos y
-visor) pertenece al coordinador y no está implementada en este paquete. Este
-backend no codifica, no cifra, no envía imágenes y no abre ninguna ventana de
-visor por sí solo.
+The product integration (module `VisualShare`, codec, transport, permissions and viewer) belongs to
+the coordinator and is not implemented in this package. This backend does not encode, does not
+encrypt, does not send images and does not open any viewer windows by itself.
 
 ## Capacidades
 
 | Capacidad | Estado | Observaciones |
 | --- | --- | --- |
-| Capturar un monitor | Sí | Selección por `HMONITOR`; se conserva la identidad del monitor. |
-| Capturar una ventana | Sí | Selección por `HWND`; no se vuelve a buscar la ventana por título. |
-| Selector local | Sí | Diálogo Win32 modal con lista de fuentes y botones Compartir/Cancelar. |
-| Excluir la propia aplicación | Sí | `EnumWindows` descarta las ventanas del proceso actual. |
-| Imagen BGRA de 8 bits | Sí | Filas contiguas, de arriba hacia abajo, alpha opaco. |
-| Adaptarse a cambios de tamaño | Sí | Se recrea el frame pool de WGC y se descarta el frame de transición. |
-| Suspensión por minimización | Sí | Una ventana minimizada pasa a `suspended`; al restaurar vuelve a `available`. |
-| Cierre de la fuente | Sí | Ventana cerrada o monitor perdido producen `closed`. |
-| Ocultar el cursor | Mejor esfuerzo | Sólo si el runtime expone `IGraphicsCaptureSession2`; un fallo de la propiedad no cancela la captura. |
-| Capturar audio, región o pantalla virtual | No | No hay recorte de región ni sustitución automática por monitor. |
-| Codificar, transportar o presentar | No | El backend entrega `VisualFrame` en memoria; el resto lo hace el coordinador. |
-| Garantizar contenido protegido o HDR | No | El sistema puede devolver negro o un frame no convertible; no se fuerza un resultado. |
+| Capture a Monitor | Yes | Selection by `HMONITOR`; the identity of the monitor is preserved. |
+| Capture a window | Yes | Selection by `HWND`; no further window search by title. |
+| Selector local | Yes | Win32 modal dialog with font list and Compartir/Cancelar. buttons |
+| Exclude the application itself | Yes | `EnumWindows` discards windows from the current process. |
+| 8-bit picture BGRA | Yes | Contiguous rows, top to bottom, opaque alpha. |
+| Adapt to size changes | Yes | The WGC frame pool is recreated and the transition frame is discarded. |
+| Minimization suspension | Yes | A minimized window passes to `suspended`; when restoring it returns to `available`. |
+| Closure of the source | Yes | Closed window or lost monitor produce `closed`. |
+| Hide cursor | Better effort | Only if the runtime exposes `IGraphicsCaptureSession2`; a property failure does not cancel the capture. |
+| Capture audio, region or virtual screen | No | There is no region cut or automatic replacement by monitor. |
+| Encode, transport or present | No | The backend delivers `VisualFrame` in memory; the rest is done by the coordinator. |
+| Guarantee protected content or HDR | No | The system can return black or a non-convertible frame; a result is not forced. |
 
-### Límites del contrato de imagen
+### Limits of the image contract
 
-`VisualFrame` contiene `size` y un `std::vector<std::uint8_t>` con exactamente
-`width * height * 4` bytes. El backend:
+`VisualFrame` contains `size` and a `std::vector<std::uint8_t>` with exactly `width * height * 4`
+bytes. Backend:
 
-- exige dimensiones mayores que cero;
-- limita cada lado a 16384 píxeles y el total a 64 Mi píxeles en la validación
-  interna;
-- no entrega formatos distintos de `DXGI_FORMAT_B8G8R8A8_UNORM`;
-- compacta el `RowPitch` de la textura de staging en filas contiguas;
-- fuerza el canal alpha a `0xFF` antes de publicar la imagen.
+- requires dimensions greater than zero;
+- limits each side to 16384 pixels and the total to 64 My pixels in internal validation;
+- does not deliver formats other than `DXGI_FORMAT_B8G8R8A8_UNORM`;
+- compact the `RowPitch` of the tagging texture in adjacent rows;
+- force the alpha channel to `0xFF` before publishing the image.
 
-Los límites de salida del producto (1920 píxeles por lado, 2.073.600 píxeles y
-30 fps) son responsabilidad del módulo común. Este backend no escala ni limita
-la frecuencia por sí mismo.
+The product output limits (1920 pixels per side, 2.073.600 pixels and 30 fps) are the responsibility
+of the common module. This backend does not scale or limit the frequency itself.
 
-## Flujo de uso
+## Flow of use
 
 ```text
 selectSource(offer, kind)
@@ -64,176 +59,163 @@ enumerate(kind) -> selector Win32 -> adopt(NativeSource)
         |                                   |
         |                              CreateForWindow/Monitor
         |                                   |
-        +---- resultado terminal -----------+
+        +---- terminal result -----------+
         |
 startCapture(offer, callbacks)
         |
         v
-WGC frame pool -> hilo de captura -> copia D3D11 a BGRA
+WGC frame pool -> capture thread -> D3D11 copy to BGRA
         |
         v
-ModuleRuntime.post -> CaptureModel -> callbacks.frame / callbacks.state_changed
+ModuleRuntime.post -> CaptureModel -> calls.frame / callbacks.state_changed
 ```
 
-1. El coordinador llama a `selectSource` con una referencia de operación y el
-   tipo de fuente (`monitor` o `window`).
-2. El adaptador comprueba capacidades, enumera fuentes y abre el selector.
-3. El usuario elige una fuente o cancela. La selección produce una única
-   respuesta terminal: `ready`, `cancelled`, `unavailable` o `error`.
-4. Tras la aceptación de la operación, el coordinador llama a `startCapture`.
-   WGC crea la sesión y comienza a entregar frames.
-5. `stopCapture` invalida la operación, detiene la captura y descarta callbacks
-   tardíos. Es idempotente.
+1. The coordinator calls `selectSource` with an operating reference and source type (`monitor` or
+   `window`).
+2. The adapter checks capabilities, lists fonts and opens the selector.
+3. The user chooses a source or cancel. The selection produces a single terminal response: `ready`,
+   `cancelled`, `unavailable` or `error`.
+4. Upon acceptance of the operation, the coordinator calls `startCapture`. WGC creates the session
+   and begins delivering frames.
+5. `stopCapture` invalidates the operation, stops the capture and discards late callbacks. It is
+   idempotent.
 
-### Resultados de selección
+### Selection results
 
-| Situación | Resultado |
+| Status | Result |
 | --- | --- |
-| Fuente elegida y objeto de captura creado | `ready` |
-| Usuario cancela o cierra el selector | `cancelled` |
-| Ya hay una selección o captura activa para otra referencia | `error` |
-| Tipo no soportado, lista vacía o no se puede crear el objeto de captura | `unavailable` |
-| No se puede crear la ventana del selector | `cancelled` |
+| Selected Source and Capture Object Created | `ready` |
+| User cancels or closes selector | `cancelled` |
+| There is already an active selection or capture for another reference | `error` |
+| Unsupported Type, Empty List or Unable to Create Capture Object | `unavailable` |
+| Cannot create selector window | `cancelled` |
 
-Windows no muestra un diálogo de consentimiento del sistema para WGC: la
-autorización funcional y la selección local son la barrera. El adaptador no
-devuelve `denied` en el flujo actual; ese resultado queda para plataformas o
-permisos que sí tengan una decisión explícita del sistema.
+Windows does not display a system consent dialogue for WGC: functional authorization and local
+selection are the barrier. The adapter does not return `denied` in the current flow; that result is
+left for platforms or permissions that do have an explicit system decision.
 
-## Contrato público
+## Public contract
 
-La implementación satisface [`DesktopVisualCapture`](../../desktop.hpp):
+Implementation satisfied [`DesktopVisualCapture`](../../desktop.hpp):
 
-| Operación | Responsabilidad |
+| Operation | Responsabilidad |
 | --- | --- |
-| `visualCapabilities()` | Indica si WGC y la interoperabilidad están disponibles. Es una comprobación de capacidad, no una garantía de que una fuente concreta se pueda capturar. |
-| `selectSource()` | Enumera, pregunta y adopta una fuente. Retiene una sola selección o captura por adaptador. |
-| `startCapture()` | Arranca la adquisición para la referencia ya seleccionada. Si la referencia no coincide, publica `closed`. |
-| `stopCapture()` | Cancela una selección pendiente o libera la captura activa. No vuelve a entregar frames de esa referencia. |
+| `visualCapabilities()` | It indicates whether WGC and interoperability are available. It is a capacity check, not a guarantee that a particular source can be captured. |
+| `selectSource()` | List, ask, and adopt a font. It retains a single selection or capture per adapter. |
+| `startCapture()` | Starts the acquisition for the already selected reference. If the reference does not match, publish `closed`. |
+| `stopCapture()` | Cancel a pending selection or release the active capture. Do not re-deliver frames from that reference. |
 
-Los callbacks también forman parte del contrato:
+Callbacks are also part of the contract:
 
-- `frame` entrega `VisualFrame` por valor;
+- `frame` passes `VisualFrame` by value;
 - `state_changed` entrega `available`, `suspended` o `closed`;
-- los callbacks se publican mediante `ModuleRuntime.post`, nunca se ejecutan
-  dentro del hilo nativo del frame pool;
-- el consumidor debe tratarlos como serializados en el hilo del módulo y no
-  debe bloquear ni lanzar excepciones desde ellos.
+- callbacks are published by `ModuleRuntime.post`, never executed within the native thread of the
+  frame pool;
+- the consumer must treat them as serialized in the module thread and must not block or release
+  exceptions from them.
 
 ### Estados
 
 | Estado | Significado |
 | --- | --- |
-| `available` | La fuente sigue siendo la seleccionada y puede entregar contenido. No se garantiza que haya un frame en cada instante. |
-| `suspended` | La ventana está minimizada; se dejan de publicar frames hasta que se restaure. |
-| `closed` | La ventana desapareció, cambió de proceso, el monitor ya no coincide o WGC falló. La operación debe terminar. |
+| `available` | The source is still selected and can deliver content. It is not guaranteed that there is a frame in every instant. |
+| `suspended` | The window is minimized; frames are not published until restored. |
+| `closed` | The window disappeared, changed process, the monitor no longer matches or WGC failed. Operation must end. |
 
-No hay un estado `available` inicial garantizado antes del primer frame. La
-primera imagen puede ser la primera señal de contenido; el coordinador no debe
-quedarse esperando un `available` inicial. Tampoco hay un estado de error con
-detalle: un fallo de adquisición se representa como `closed` y el coordinador
-decide cómo informar al usuario.
+There is no initial `available` state guaranteed before the first frame. The first image can be the first sign of content; the coordinator should not stay waiting for an initial `available`. There is also no state of error in detail: an acquisition failure is represented as `closed` and the coordinator decides how to inform the user.
 
-## Implementación
+## Implementation
 
-### Archivos
+### Files
 
-| Archivo | Papel |
+| File | Papel |
 | --- | --- |
-| [`windows_capture_factory.cpp`](windows_capture_factory.cpp) | Elige el puerto WGC real o el puerto de indisponibilidad según las cabeceras. |
-| [`capture_model.cpp`](capture_model.cpp) | Modelo portable: selección, una operación activa, validación BGRA, orden de estados y descarte de callbacks tardíos. |
-| [`win32_capture_port.hpp`](win32_capture_port.hpp) | Puerto entre el modelo y la plataforma: enumerar, preguntar, adoptar y arrancar/parar. |
-| [`win32_selector.cpp`](win32_selector.cpp) | Enumeración Win32, diálogo local y creación del objeto de captura. |
-| [`wgc_capture_core.cpp`](wgc_capture_core.cpp) | Bucle de captura independiente de WinRT: pool, frames, estados y parada. |
-| [`wgc_capture.cpp`](wgc_capture.cpp) | Adaptadores reales de WinRT/D3D11: `GraphicsCaptureItem`, frame pool, textura de staging y copia BGRA. |
-| [`unavailable_port.cpp`](unavailable_port.cpp) | Puerto que declara cero capacidades cuando WGC no está compilado. No simula captura. |
-| [`win32_parent_qt.cpp`](win32_parent_qt.cpp) | Obtiene el `HWND` padre desde `PlatformContext.parent` si se compila con Qt. |
-| [`win32_parent_default.cpp`](win32_parent_default.cpp) | Padre nulo cuando no hay Qt. |
+| [`windows_capture_factory.cpp`](windows_capture_factory.cpp) | Choose the real port WGC or the port of unavailability according to the headers. |
+| [`capture_model.cpp`](capture_model.cpp) | Portable model: selection, active operation, BGRA validation, order of states and discard of late callbacks. |
+| [`win32_capture_port.hpp`](win32_capture_port.hpp) | Port between model and platform: list, ask, adopt and arrancar/parar. |
+| [`win32_selector.cpp`](win32_selector.cpp) | Win32 listing, local dialogue and creation of the capture object. |
+| [`wgc_capture_core.cpp`](wgc_capture_core.cpp) | WinRT independent capture loop: pool, frames, states and stop. |
+| [`wgc_capture.cpp`](wgc_capture.cpp) | Actual adapters of WinRT/D3D11: `GraphicsCaptureItem`, frame pool, tagging texture and copy BGRA. |
+| [`unavailable_port.cpp`](unavailable_port.cpp) | Port that declares zero capabilities when WGC is not compiled. It does not simulate capture. |
+| [`win32_parent_qt.cpp`](win32_parent_qt.cpp) | He gets the `HWND` father from `PlatformContext.parent` if compiled with Qt. |
+| [`win32_parent_default.cpp`](win32_parent_default.cpp) | Null parent when there is no Qt. |
 
-### Selección y selector
+### Selection and Selector
 
-La enumeración de ventanas usa `EnumWindows` y descarta:
+The list of windows uses `EnumWindows` and discards:
 
-- la ventana del selector;
-- ventanas no visibles;
-- ventanas sin título;
-- ventanas con `WS_EX_TOOLWINDOW`;
-- ventanas del proceso actual;
-- ventanas "cloaked" de DWM.
+- the selector window;
+- windows not visible;
+- Untitled windows;
+- windows with `WS_EX_TOOLWINDOW`;
+- windows of the current process;
+- "cloaked" windows of DWM.
 
-Para cada ventana conserva `HWND`, título y tamaño calculado con
-`DWMWA_EXTENDED_FRAME_BOUNDS` (con `GetWindowRect` como respaldo). El título y
-el tamaño son **sólo para la selección local**: no se envían al par ni se usan
-para volver a localizar la ventana.
+For each window it retains `HWND`, title and size calculated with `DWMWA_EXTENDED_FRAME_BOUNDS`
+(with `GetWindowRect` as backup).The title and size are **only for the local selection**: they are
+not sent to the pair and are not used to relocate the window.
 
-Los monitores se enumeran con `EnumDisplayMonitors`. La etiqueta incluye el
-nombre de dispositivo, el tamaño y si es el principal. La identidad retenida es
-el `HMONITOR`; además se guarda el nombre de dispositivo para detectar que el
-monitor ya no es el mismo.
+Monitors are listed with `EnumDisplayMonitors`. The label includes the device name, size and if it
+is the main one. The retained identity is `HMONITOR`; in addition the device name is saved to detect
+that the monitor is no longer the same.
 
-El selector es una ventana Win32 propia con una lista y botones. Mientras está
-abierto desactiva el `HWND` padre, si existe. Al cerrarse:
+The selector is a Win32 window of its own with a list and buttons. While it is open it disables the
+`HWND` parent, if it exists.
 
-- entrega la fuente elegida o `std::nullopt`;
-- reactiva el padre;
-- garantiza una sola entrega por medio de `PromptState::delivered`.
+- hand over the chosen source or `std::nullopt`;
+- reactivates the father;
+- guarantees a single delivery through `PromptState::delivered`.
 
-`cancelPrompt()` publica `WM_CLOSE`; no destruye la ventana de forma síncrona.
-El callback del selector se ejecuta en el hilo de UI y el modelo lo reenvía a
-`ModuleRuntime.post`.
+`cancelPrompt()` publishes `WM_CLOSE`; it does not destroy the window synchronously. The selector
+callback runs on the UI thread and the model forwards it to `ModuleRuntime.post`.
 
 ### WGC y D3D11
 
 `createWin32Capture`:
 
-1. comprueba `GraphicsCaptureSession::IsSupported()` y la fábrica de
-   interoperabilidad;
-2. crea un `GraphicsCaptureItem` con `CreateForWindow` o `CreateForMonitor`;
+1. checks `GraphicsCaptureSession::IsSupported()` and the interoperability plant;
+2. creates `GraphicsCaptureItem` with `CreateForWindow` or `CreateForMonitor`;
 3. crea un `ID3D11Device` **hardware** con `D3D11_CREATE_DEVICE_BGRA_SUPPORT`;
-4. convierte el dispositivo DXGI en `IDirect3DDevice` para WGC;
-5. crea un frame pool libre de hilos (`CreateFreeThreaded`) con formato
-   `B8G8R8A8UIntNormalized` y dos buffers;
-6. entrega el `WgcCaptureCore` con un `WgcSource` que comprueba la identidad.
+4. converts the DXGI device to `IDirect3DDevice` for WGC;
+5. creates a `CreateFreeThreaded` wire-free frame pool with `B8G8R8A8UIntNormalized` format and two
+   buffers;
+6. delivers the `WgcCaptureCore` with a `WgcSource` that checks the identity.
 
-El bucle de `WgcCaptureCore`:
+The `WgcCaptureCore` loop:
 
-- comprueba disponibilidad y minimización cada 200 ms;
-- no adquiere frames mientras está suspendido;
-- usa `TryGetNextFrame` y espera 10 ms si no hay frame;
-- si el tamaño de contenido cambia, cierra el frame de transición, recrea el
-  pool y continúa con el siguiente frame;
-- copia la textura a una textura de staging con CPU read access, recorre las
-  filas respetando `RowPitch`, compacta a BGRA y fuerza alpha opaco;
-- publica `closed` si el frame pool, la fuente o la copia fallan de forma
-  irrecuperable.
+- Check availability and minimization every 200 ms;
+- does not acquire frames while suspended;
+- use `TryGetNextFrame` and wait 10 ms if there is no frame;
+- if the content size changes, closes the transition frame, recreates the pool and continues with
+  the next frame;
+- copies the texture to a tagging texture with CPU read access, crosses the rows respecting
+  `RowPitch`, compact to BGRA and opaque alpha strength;
+- publishes `closed` if the frame pool, source or copy fail irrecoverably.
 
-La copia es una lectura completa a CPU. No hay camino cero-copia ni conversión
-a cargo del backend.
+The copy is a full reading at CPU. There is no zero-copy path or backend conversion.
 
-### Hilos y propiedad
+### Threads and property
 
-- Las entradas de `CaptureModel` deben ejecutarse en el hilo del módulo
-  (`ModuleRuntime`), normalmente el hilo principal de Qt.
-- `ModuleRuntime.post` debe encolar, no ejecutar inline. El modelo usa ese
-  ejecutor para serializar frames, estados y resultados de selección.
-- `WgcCaptureCore` crea un `std::thread` propio. Los callbacks del núcleo llegan
-  desde ese hilo y el modelo los publica.
-- `stop()` es síncrono: marca la parada, hace `join` del hilo y libera sesión,
-  pool y fábrica. No debe llamarse desde el propio callback del hilo de captura.
-- La captura no se reinicia después de `stop()`; para volver a compartir hace
-  falta una selección y una invitación nuevas.
-- El modelo usa un `epoch` y la referencia de operación para descartar frames y
-  estados que lleguen después de una parada.
+- Inputs of `CaptureModel` must be executed in the module thread (`ModuleRuntime`), usually the main
+  thread of Qt.
+- `ModuleRuntime.post` must glue, not run inline. The model uses that executor to serialize frames,
+  states and selection results.
+- `WgcCaptureCore` creates its own `std::thread`. Core callbacks come from that thread and the model
+  publishes them.
+- `stop()` is synchronous: marks the stop, makes `join` thread and releases session, pool and
+  factory. It should not be called from the catch thread callback itself.
+- Capture is not restarted after `stop()`; to reshare requires a new selection and invitation.
+- The model uses a `epoch` and the operating reference to rule out frames and states that arrive
+  after a stop.
 
-## Construcción
+## Construction
 
 Requisitos:
 
-- Windows 10/11 con una sesión gráfica interactiva para la captura real;
-- Visual Studio 2022 con herramientas C++ y Windows SDK **10.0.19041** o
-  posterior;
+- Windows 10/11 with an interactive graphical session for real capture;
+- Visual Studio 2022 with C++ and Windows SDK **10.0.19041** or later tools;
 - CMake 3.24 o posterior;
-- Qt 6 Widgets sólo si se quiere usar el padre del selector;
+- Qt 6 Widgets only if you want to use the selector parent;
 - C++17.
 
 ```powershell
@@ -247,13 +229,11 @@ cmake --build build/capture_windows --config Release
 ctest --test-dir build/capture_windows -C Release --output-on-failure
 ```
 
-`ONEINTWO_REQUIRE_WGC=ON` hace que la configuración falle si faltan las
-cabeceras de WGC, en lugar de construir silenciosamente el puerto de
-indisponibilidad. Es la opción usada por CI.
+`ONEINTWO_REQUIRE_WGC=ON` causes the configuration to fail if the headers of WGC are missing,
+instead of quietly constructing the port of indisponibility. It is the option used by IC.
 
-En Linux se puede construir el modelo portable y sus pruebas, pero el target
-nativo Windows no se compila. El modelo usa un puerto falso y no necesita WGC,
-D3D11 ni un escritorio:
+On Linux you can build the portable model and its tests, but the native Windows target is not
+compiled. The model uses a fake port and does not need WGC, D3D11 or a desktop:
 
 ```bash
 cmake -S cmake/capture_windows -B build/capture_windows \
@@ -264,267 +244,226 @@ ctest --test-dir build/capture_windows --output-on-failure
 
 ### SDK y CMake
 
-- El SDK mínimo es **10.0.19041** porque el código usa
-  `IGraphicsCaptureSession2`/`IsCursorCaptureEnabled` en las cabeceras.
-- En runtime la propiedad del cursor se obtiene por QI y es opcional. Un
-  Windows que soporte WGC pero no esa interfaz puede capturar, aunque el cursor
-  puede aparecer en la imagen.
-- La lane de SDK 19041 usa `/permissive` para `oneintwo_capture_windows` porque
-  el cppwinrt incluido en ese SDK no compila con `/permissive-` y MSVC v143
-  actual. No se debe aplicar `/permissive` globalmente ni cambiar la lane a
-  `/permissive-` sin volver a probar ese SDK.
-- El target del modelo conserva `/permissive-`; la excepción es sólo para el
-  target nativo antiguo.
-- `ONEINTWO_CAPTURE_QT=ON` busca Qt6 Widgets. Si no está disponible, se usa el
-  padre nulo; CI lo desactiva para no depender de Qt.
-- Los import libs incluyen `runtimeobject` y `windowsapp`. `runtimeobject.lib`
-  aporta las importaciones de Windows Runtime, pero no existe un
-  `runtimeobject.dll` que se deba cargar en el probe: `RoGetActivationFactory`
-  se comprueba en `combase.dll`.
-- `windowsapp.lib` es una umbrella library y `windowsapp.dll` puede no existir
-  como DLL independiente; el probe lo trata como opcional. `GraphicsCapture.dll`
-  también se comprueba de forma opcional y el veredicto final lo da
-  `IsSupported` más la interoperabilidad.
+- The minimum SDK is **10.0.19041** because the code uses
+  `IGraphicsCaptureSession2`/`IsCursorCaptureEnabled` in the headers.
+- In runtime the cursor property is obtained by QI and is optional. A Windows that supports WGC but
+  not that interface can capture, although the cursor can appear in the image.
+- The SDK 19041 lane uses `/permissive` for `oneintwo_capture_windows` because the cppwinrt included in that SDK does not compile with current `/permissive-` and MSVC v143. `/permissive` should not be applied globally or changed to `/permissive-` without retesting SDK.
+- The target of the model retains `/permissive-`; the exception is only for the old native target.
+- `ONEINTWO_CAPTURE_QT=ON` searches for Qt6 Widgets. If not available, the null parent is used; IC
+  disables it to not depend on Qt.
+- Import libs include `runtimeobject` and `windowsapp`. `runtimeobject.lib` contributes imports of
+  Windows Runtime, but there is no `runtimeobject.dll` to be loaded into the test:
+  `RoGetActivationFactory` is checked at `combase.dll`.
+- `windowsapp.lib` is a library umbrella and `windowsapp.dll` may not exist as independent DLL; the
+  test treats it as optional. `GraphicsCapture.dll` is also checked optionally and the final verdict
+  gives `IsSupported` plus interoperability.
 
-### Pruebas
+### Evidence
 
-| Prueba | Qué cubre |
+| Test | What it covers |
 | --- | --- |
-| `capture_windows` | Modelo portable con puerto falso: capacidades, selección, cancelación, frames BGRA, alpha, tamaños, orden de estados y callbacks tardíos. |
-| `capture_windows_wgc` | Núcleo WGC con dobles: cursor opcional, orden de configuración, parada sin callbacks posteriores y recreación del pool. |
-| `capture_windows_wgc_probe` | Probe con runtime falso: DLL/entry point ausente y WGC no soportado. |
-| `capture_windows_wgc_probe_process` | Ejecución del probe falso como proceso y comprobación de códigos de salida. |
-| `capture_windows_wgc_smoke` | Win32 + WGC real: crea una ventana, recibe al menos un frame BGRA válido, la cierra y comprueba que no hay callbacks después de `stop`. |
-| `test_cmake_guards.ps1` | Guardas negativas de CMake: SDK anterior a 19041 y API de cursor ausente. |
+| `capture_windows` | Portable model with false port: capabilities, selection, cancellation, frames BGRA, alpha, sizes, order of states and late callbacks. |
+| `capture_windows_wgc` | WGC core with doubles: optional cursor, configuration order, stop without subsequent callbacks and pool recreation. |
+| `capture_windows_wgc_probe` | Test with false runtime: DLL/entry point absent and WGC unsupported. |
+| `capture_windows_wgc_probe_process` | Fake test execution as process and check output codes. |
+| `capture_windows_wgc_smoke` | Win32 + Royal WGC: creates a window, receives at least one valid BGRA frame, closes it and checks that there are no callbacks after `stop`. |
+| `test_cmake_guards.ps1` | CMake negative guards: SDK prior to 19041 and API missing cursor. |
 
-El smoke test devuelve **77** y CTest lo marca como skip cuando no hay una
-estación de ventanas visible o WGC no está soportado. Es el comportamiento
-correcto en un runner sin escritorio interactivo, en RDP/headless o en una
-sesión bloqueada; no debe interpretarse como una captura verificada. En un
-equipo Windows real hay que ejecutarlo en una sesión desbloqueada para validar
-el camino nativo.
+The smoke test returns **77** and CTest marks it as skip when there is no visible window station or
+WGC is not supported. It is the correct behavior in a runner without interactive desktop, in
+RDP/headless or in a locked session; it should not be interpreted as a verified capture. On a real
+Windows computer you have to run it in a unlocked session to validate the native path.
 
-El workflow `Windows MSVC` compila y ejecuta las pruebas en dos lanes: SDK
-`10.0.19041.0` y SDK por defecto del runner. También construye el link check,
-el probe real y el smoke. La rama no debe declarar compatibilidad de captura
-sólo por tener CI verde: el smoke puede haberse omitido.
+The workflow `Windows MSVC` compiles and executes the tests in two yarns: SDK `10.0.19041.0` and SDK
+by default of the runner. It also builds the link check, the real test and the smoke. The branch
+should not declare catch compatibility just because it has green CI: the smike may have been
+omitted.
 
-## Problemas y factores importantes
+## Major challenges and factors
 
-### 1. WGC no es una API de captura universal
+### 1. WGC is not a API of universal capture
 
-`IsSupported()` puede ser cierto y la creación del objeto de captura fallar
-igualmente por política, por el adaptador gráfico, por una sesión no
-interactiva o por el estado del escritorio. `visualCapabilities()` es una
-comprobación gruesa; el resultado real se conoce al adoptar y arrancar. Hay que
-tratar `unavailable` y `closed` como resultados normales, no como errores
-imposibles.
+`IsSupported()` may be true and the creation of the capture object fails equally by policy, by the
+graphic adapter, by a non-interactive session or by the state of the desktop. `visualCapabilities()`
+is a thick check; the actual result is known when adopting and booting. `unavailable` and `closed`
+must be treated as normal results, not as impossible errors.
 
-La captura de contenido protegido (DRM, algunas aplicaciones elevadas o
-superficies del sistema) puede producir negro o fallar sin un estado distinto.
-No hay detección de contenido protegido. UAC, el escritorio seguro, la pantalla
-de bloqueo y algunas superficies del sistema no son capturables; el coordinador
-debe detener la operación al bloquearse la sesión.
+The capture of protected content (DRM, some high applications or system surfaces) can produce black
+or fail without a different state. There is no detection of protected content. UAC, the secure
+desktop, the lock screen and some surfaces of the system are not captureable; the coordinator must
+stop the operation when the session is blocked.
 
-Windows puede dibujar un borde o un indicador de captura sobre la fuente. El
-backend no controla esa decoración del sistema y no debe intentar ocultarla.
+Windows can draw an edge or capture indicator over the source. The backend does not control that
+system decoration and should not attempt to hide it.
 
-### 2. Requisitos de GPU y formato
+### 2. GPU requirements and format
 
-El backend crea un dispositivo D3D11 **hardware**, sin fallback WARP. En una VM
-sin GPU, en RDP, en un servidor headless o con un adaptador que no permite el
-formato BGRA, `D3D11CreateDevice` o la creación del pool pueden fallar y la
-fuente queda no disponible.
+The backend creates a D3D11 **hardware** device, without fallback WARP. In a VM without GPU, in RDP,
+on a headless server or with an adapter that does not allow BGRA, `D3D11CreateDevice` format or pool
+creation may fail and the source is unavailable.
 
-La copia sólo acepta `DXGI_FORMAT_B8G8R8A8_UNORM`. Si la textura llega en otro
-formato, `WinRtFrameCopier::copy` devuelve `false` y el frame se descarta. El
-bucle no cambia a `closed` por un fallo de copia repetido: el consumidor puede
-ver una imagen congelada sin recibir un estado de error. Un cambio de formato,
-HDR/10 bits o un fallo de mapeo debe investigarse con instrumentación local; no
-se resuelve reintentando la captura desde el coordinador.
+The copy only accepts `DXGI_FORMAT_B8G8R8A8_UNORM`. If the texture arrives in another format,
+`WinRtFrameCopier::copy` returns `false` and the frame is discarded. The loop does not change to
+`closed` due to a repeated copy failure: the consumer can see a frozen image without receiving an
+error state. A format change, HDR/10 bits or a mapping failure must be investigated with local
+instrumentation; it is not resolved by retrieving the capture from the coordinator.
 
-### 3. Identidad de la fuente y reutilización de handles
+### 3. Source identity and reuse of handles
 
-La selección conserva el `HWND` o `HMONITOR` y el objeto de captura. No se
-vuelve a buscar por título. Para una ventana, `available()` comprueba `IsWindow`
-y que el PID siga siendo el mismo; para un monitor, `GetMonitorInfo` y el nombre
-de dispositivo.
+The selection retains the `HWND` or `HMONITOR` and the catch object. You don't search by title again. For a window, `available()` checks `IsWindow` and PID remains the same; for a monitor, `GetMonitorInfo` and device name.
 
-Estas comprobaciones reducen el riesgo, pero **no eliminan** la reutilización de
-un `HWND`/`HMONITOR` por otro objeto si el sistema recicla el handle entre dos
-comprobaciones. La barrera principal es el objeto de captura retenido y el
-cierre de la operación; no se debe adoptar una ventana nueva con el mismo título
-ni reutilizar la referencia. Si la ventana se cierra, la operación termina y
-hace falta una invitación nueva.
+These checks reduce the risk, but **do not eliminate** the reuse of a `HWND`/`HMONITOR` for another
+object if the system recycles the handle between two checks. The main barrier is the retained
+capture object and the closing of the operation; a new window with the same title should not be
+adopted or the reference reused. If the window closes, the operation ends and a new invitation is
+needed.
 
-Los monitores pueden cambiar de topología, resolverse de nuevo o reconectarse.
-El backend no hace fallback a otro monitor: si la identidad no coincide, publica
-`closed`.
+Monitors can change topology, resolve again, or reconnect. The backend does not fail another
+monitor: if the identity does not match, it publishes `closed`.
 
-### 4. Ciclo de vida del selector
+### 4. Selector life cycle
 
-Hay dos puntos que el integrador debe respetar:
+There are two points that the integrator must respect:
 
-- El callback del selector captura el `CaptureModel`. `cancelPrompt()` sólo
-  publica `WM_CLOSE`, por lo que la respuesta puede llegar de forma asíncrona.
-  No se debe destruir el adaptador con un selector pendiente: hay que entregar
-  la respuesta terminal y drenar `ModuleRuntime.post` antes de liberar el
-  modelo y su runtime.
-- `prompt_window_` no se limpia cuando el usuario cierra el selector de forma
-  normal. Una llamada posterior a `cancelPrompt()` podría enviar `WM_CLOSE` a un
-  `HWND` reciclado. `IsWindow` reduce la ventana de riesgo, pero no acredita la
-  identidad del handle. Es un punto a endurecer si se cambia el ciclo de vida
-  del selector.
+- The selector's callback captures the `CaptureModel`. `cancelPrompt()` only publishes `WM_CLOSE`,
+  so the answer can arrive asynchronously. The adapter must not be destroyed with a pending
+  selector: the terminal response must be delivered and `ModuleRuntime.post` drained before
+  releasing the model and its runtime.
+- `prompt_window_` is not cleaned when the user closes the selector normally. A call after
+  `cancelPrompt()` could send `WM_CLOSE` to a recycled `HWND`. `IsWindow` reduces the risk window,
+  but does not prove the handle identity. It is a point to harden if the selector life cycle is
+  changed.
 
-Tampoco se debe destruir el `QWidget` padre mientras el selector está abierto:
-`WM_DESTROY` intenta reactivarlo con `EnableWindow`, y el handle puede haber
-dejado de ser válido.
+Nor should the `QWidget` parent be destroyed while the selector is open: `WM_DESTROY` tries to
+reactivate it with `EnableWindow`, and the handle may have ceased to be valid.
 
-### 5. Hilos, apartamento COM y parada
+### 5. Wires, apartment COM and stop
 
-El modelo no impone el hilo, pero el contrato del producto exige que sus
-entradas se ejecuten en el hilo del módulo y que `post` no ejecute inline. Si se
-llama a `selectSource` o `startCapture` desde otro hilo, la serialización y el
-`epoch` dejan de proteger el estado de la forma prevista.
+The model does not impose the thread, but the product contract requires that its entries be executed
+in the module thread and that `post` do not execute inline. If you call `selectSource` or
+`startCapture` from another thread, serialization and `epoch` cease to protect the state of the
+intended form.
 
-Los objetos WinRT se crean en el hilo que llama a `createWin32Capture` y el
-bucle los usa desde su propio hilo. `initialiseApartment` intenta MTA y tolera
-que el hilo ya esté inicializado, pero no se usan referencias ágiles ni
-marshalling explícito. No cambiar el hilo de creación o de consumo sin revisar
-la agilidad de los objetos y el apartamento COM.
+WinRT objects are created in the thread that calls `createWin32Capture` and the loop uses them from
+its own thread. `initialiseApartment` tries MTA and tolerates that the thread is already
+initialized, but no agile references or explicit marshalling are used. Do not change the thread of
+creation or consumption without checking the agility of the objects and apartment COM.
 
-`WgcCaptureCore::stop()` hace `join`. Llamarlo desde el callback del frame
-pool, desde el hilo de captura o desde una ruta que pueda esperar a ese hilo
-produce un bloqueo. El modelo lo llama desde el hilo del módulo después de
-invalidar la operación; mantener esa dirección.
+`WgcCaptureCore::stop()` does `join`. Calling it from the frame pool callback, from the catch thread
+or from a path that can wait for that thread produces a lock. The model calls it from the module
+thread after invalidating the operation; maintaining that direction.
 
-### 6. Sin frame no significa fuente cerrada
+### 6. Without frame does not mean closed source
 
-El backend no tiene un temporizador de inactividad de frames. Una ventana
-minimizada se detecta por `IsIconic` y produce `suspended`; una ventana que
-sigue existiendo pero no entrega frames (por ejemplo, una superficie bloqueada
-o un fallo de copia) puede dejar al consumidor sin imagen y sin `closed`. El
-módulo común debe usar su temporizador de actividad y su política de cierre; no
-basta con esperar un frame para saber que la fuente está viva.
+The backend does not have a frame inactivity timer. A minimized window is detected by `IsIconic` and
+produces `suspended`; a window that still exists but does not deliver frames (e.g. a blocked surface
+or a copy failure) can leave the consumer without image and without `closed`. The common module must
+use its activity timer and its closing policy; it is not enough to wait for a frame to know that the
+source is alive.
 
-En un monitor, el bloqueo de sesión o el apagado de pantalla no se convierten
-automáticamente en `suspended` o `closed`. El coordinador debe atender
-`DesktopEvents::locked` y los cambios de autorización, y detener la operación.
+On a monitor, the session lock or screen shutdown is not automatically converted to `suspended` or
+`closed`. The coordinator must attend `DesktopEvents::locked` and the authorization changes, and
+stop the operation.
 
-### 7. Privacidad y seguridad
+### 7. Privacy and security
 
-Las imágenes son contenido de pantalla sin cifrar en memoria. El backend no
-borra buffers al liberarlos, no aplica redacción y no distingue contenido
-sensible. El coordinador debe:
+Images are unencrypted screen content in memory. The backend does not delete buffers when releasing
+them, does not apply wording and does not distinguish sensitive content. The coordinator should:
 
-- no registrar títulos, etiquetas de fuente ni frames;
-- no enviar `NativeSource.label` por el protocolo;
-- tratar `VisualFrame` como dato sensible y liberar la operación cuanto antes;
-- cerrar la captura al bloquear la sesión, retirar permisos o perder la
-  conexión.
+- not record titles, source labels or frames;
+- do not send `NativeSource.label` per protocol;
+- treat `VisualFrame` as sensitive data and release the operation as soon as possible;
+- close capture by blocking the session, withdrawing permissions, or losing the connection.
 
-Los títulos se usan sólo en el selector local. La etiqueta de una ventana no es
-una identidad estable: no se debe usar para reencontrarla.
+Titles are used only in the local selector. A window tag is not a stable identity: it should not be
+used to find it again.
 
 ### 8. Rendimiento
 
-Cada frame se copia de GPU a una textura de staging y de ahí a un
-`std::vector`. Es una operación de ancho × alto × 4 bytes por frame, además del
-coste de `Map`/`Unmap`. En 4K o en ventanas grandes el coste de CPU y memoria
-puede ser alto; el backend no escala antes de copiar ni limita a 30 fps.
+Each frame is copied from GPU to a tagging texture and from there to a `std::vector`. It is an operation of width × high × 4 bytes per frame, plus the cost of `Map`/`Unmap`. In 4K or large windows the cost of CPU and memory can be high; backend does not scale before copying or limits to 30 fps.
 
-El bucle no introduce una espera entre frames cuando el pool entrega frames de
-forma continua. El control de frecuencia, la escala y el descarte por cola
-pertenecen al módulo común. No añadir aquí una cola de frames: la propiedad y
-los límites ya están definidos en el contrato.
+The loop does not introduce a wait between frames when the pool delivers frames continuously.
+Frequency control, scale and discard by queue belong to the common module. Do not add a queue of
+frames here: the property and limits are already defined in the contract.
 
-Los tamaños máximos internos (16384/64 Mi píxeles) son una defensa contra
-reservas absurdas, no un objetivo de rendimiento. Un frame dentro de esos
-límites todavía puede ser demasiado grande para el presupuesto de salida.
+The internal maximum sizes (16384/64 My pixels) are a defense against absurd reserves, not a
+performance target. A frame within those limits can still be too big for the output budget.
 
-### 9. DPI, ventanas y contenido
+### 9. DPI, windows and contents
 
-La etiqueta de tamaño de una ventana usa los bounds extendidos de DWM; el
-tamaño real del contenido de WGC puede diferir por bordes, sombras o DPI. No
-uses esa etiqueta para recortar ni para calcular la imagen. El tamaño de la
-imagen es siempre el que entrega el frame.
+The window size tag uses extended bounds of DWM; the actual size of the WGC content may differ by
+edges, shadows or DPI. Do not use that label to crop or calculate the image. The image size is
+always the one that delivers the frame.
 
-La aplicación debe ser consciente de DPI por monitor para que la posición del
-selector y las etiquetas sean coherentes. Una aplicación DPI-unaware puede ver
-coordenadas virtualizadas; la captura sigue siendo del sistema, pero la UI de
-selección puede quedar mal colocada.
+The application must be aware of DPI per monitor so that the selector position and labels are
+consistent. An application DPI-oneware can see virtualized coordinates; the capture remains system,
+but the selection IU may be misplaced.
 
-WGC entrega la superficie que el sistema considera la ventana elegida. Los
-menús, diálogos y popups que el sistema trate como ventanas independientes
-quedan fuera; no se recorta una región del escritorio. Una ventana con título
-vacío o una ventana de herramienta no aparece en la lista.
+WGC delivers the surface that the system considers the selected window. Menus, dialogs and popups
+that the system treats as independent windows are left out; a desktop region is not cut off. A
+window with an empty title or a tool window does not appear in the list.
 
-### 10. Cobertura de pruebas
+### 10. Evidence coverage
 
-Las pruebas portables no ejercitan WGC, D3D11, el selector Win32 ni el
-comportamiento de una sesión real. El smoke test real sólo comprueba que llega
-un frame con tamaño y buffer válidos, que el cierre produce `closed` y que no
-hay callbacks después de `stop`; no verifica contenido, oclusión, cambio de
-monitor, DPI, HDR, DRM ni interacción con el selector.
+The portable tests do not exercise WGC, D3D11, the Win32 selector or the behavior of a real session. The actual smoke test only checks that a valid frame with size and buffer arrives, that the closure produces `closed` and that there are no callbacks after `stop`; does not verify content, occlusion, change of monitor, DPI, HDR, DRM or interaction with the selector.
 
-En CI el smoke puede omitirse por falta de escritorio visible. La validación
-manual en Windows debe incluir, como mínimo:
+In IC the smoke can be omitted due to lack of a visible desktop. Manual validation in Windows should
+include at least:
 
-1. dos ventanas con patrones distintos, solapadas y en monitores distintos;
-2. mover y redimensionar la ventana original;
-3. minimizar y restaurar;
-4. cerrar la ventana y abrir otra con el mismo título;
-5. cancelar el selector y cerrarlo con la X;
-6. probar una ventana protegida o una aplicación elevada;
-7. comprobar el cursor y el borde/indicador de captura del sistema;
-8. repetir con el SDK mínimo y con el SDK actual.
+1. two windows with different patterns, overlapped and on different monitors;
+2. move and resize the original window;
+3. minimize and restore;
+4. close the window and open another with the same title;
+5. cancel the selector and close it with the X;
+6. test a protected window or a high application;
+7. check the cursor and the border or indicator system capture;
+8. repeat with the minimum SDK and with the current SDK.
 
-## Relación con Wayland
+## Relationship with Wayland
 
-El backend Wayland está en [`../../linux/visual`](../../linux/visual/) y
-implementa la misma fachada. No comparte código nativo con Windows:
+The Wayland backend is at [`../../linux/visual`](../../linux/visual/) and implements the same
+facade. It does not share native code with Windows:
 
 | Aspecto | Windows | Wayland |
 | --- | --- | --- |
-| Selección | Lista Win32 de ventanas/monitores. | Diálogo del portal ScreenCast; la aplicación no enumera ventanas. |
-| Autorización | Selección local; no hay diálogo WGC. | Portal y compositor; puede devolver cancelado o denegado. |
-| Tipo de fuente | `HWND`/`HMONITOR` retenido. | El portal devuelve `source_type`; sin atestación se considera no disponible. |
-| Datos | D3D11/WGC, copia BGRA. | PipeWire, conversión desde BGRA/BGRx/RGBA/RGBx. |
-| Cursor | QI opcional de `IGraphicsCaptureSession2`. | `cursor_mode` del portal. |
-| Cierre | `IsWindow`/PID y monitor; WGC. | Cierre de sesión del portal y cierre de PipeWire. |
+| Selection | Win32 window and monitor list. | ScreenCast portal dialogue; the application does not list windows. |
+| Authorisation | Local selection; no WGC dialogue. | Portal and composer; may return cancelled or denied. |
+| Source type | `HWND`/`HMONITOR` retenido. | The portal returns `source_type`; without attestation it is considered unavailable. |
+| Datos | D3D11/WGC, copia BGRA. | PipeWire, conversion from BGRA/BGRx/RGBA/RGBx. |
+| Cursor | Optional QI of `IGraphicsCaptureSession2`. | `cursor_mode` from the portal. |
+| Shutdown | `IsWindow`, PID, monitor identity, and WGC. | Closure of the PipeWire portal and closure. |
 
-Las diferencias de disponibilidad, formato y selección no deben ocultarse con
-un fallback de Windows a monitor ni con una captura de región. El contrato
-común exige que cada backend declare lo que realmente puede acreditar.
+Differences in availability, format and selection should not be hidden with a Windows failback on
+monitor or a region capture. The common contract requires each backend to declare what it can
+actually prove.
 
-## Lista de comprobación para el integrador
+## Checklist for the integrator
 
-- [ ] Llamar a las operaciones desde el hilo del módulo y usar un
-      `ModuleRuntime.post` que encole de verdad.
-- [ ] Esperar una respuesta terminal de `selectSource`; no crear una segunda
-      selección mientras hay una pendiente.
-- [ ] Tras `ready`, llamar a `startCapture` sólo para la referencia aceptada.
-- [ ] No esperar un estado `available` inicial; aceptar el primer frame como
-      contenido.
-- [ ] Vaciar el visor al recibir `suspended` y cerrar la operación al recibir
+- [ ] Call operations from the module thread and use a real `ModuleRuntime.post` that I actually
+      plow.
+- [ ] Wait for a terminal response of `selectSource`; do not create a second selection while there
+      is a slope.
+- [ ] After `ready`, call `startCapture` only for the accepted reference.
+- [ ] Do not expect an initial `available` state; accept the first frame as content.
+- [ ] Empty the viewfinder upon receipt of `suspended` and close the operation upon receipt of
       `closed`.
-- [ ] Detener la captura al bloquear la sesión, retirar permisos, cerrar el
-      visor o perder la conexión.
-- [ ] Escalar y limitar la frecuencia en el módulo común; no asumir que el
-      backend entrega 1920×1080 o 30 fps.
-- [ ] No registrar títulos, etiquetas ni frames; no enviar identificadores
-      nativos por el protocolo.
-- [ ] Probar el camino real en una sesión Windows desbloqueada, no sólo CTest.
-- [ ] Si se cambia el selector o el ciclo de vida, volver a probar cancelación,
-      cierre del padre y destrucción durante una selección pendiente.
+- [ ] Stop the capture by blocking the session, withdrawing permissions, closing the viewer or
+      losing the connection.
+- [ ] Scale and limit frequency in the common module; do not assume that the backend delivers
+      1920×1080 or 30 fps.
+- [ ] Do not register titles, tags or frames; do not send native identifiers by protocol.
+- [ ] Test the real path in a unlocked Windows session, not just CTest.
+- [ ] If the selector or life cycle is changed, try again cancellation, parent closure and
+      destruction during an outstanding selection.
 
-## Documentación relacionada
+## Related documentation
 
-- [Compartir una ventana](../../../../docs/COMPARTIR_VENTANA.md)
-- [Compartir una pantalla](../../../../docs/COMPARTIR_PANTALLA.md)
-- [Implementación paralela y contrato común](../../../../docs/IMPLEMENTACION_PARALELA.md)
-- [Contrato visual común](../../../features/visual_share.hpp)
-- [Contrato de escritorio](../../desktop.hpp)
-- [CMake del paquete](../../../../cmake/capture_windows/CMakeLists.txt)
+- [Share a window](../../../../docs/SHARE_WINDOW.md)
+- [Share a screen](../../../../docs/SHARE_SCREEN.md)
+- [Parallel implementation and common contract](../../../../docs/PARALLEL_IMPLEMENTATION.md)
+- [Common visual contract](../../../features/visual_share.hpp)
+- [ Desktop contract](../../desktop.hpp)
+- [package CMake](../../../../cmake/capture_windows/CMakeLists.txt)
 - [Smoke test WGC](../../../../tests/capture_windows/wgc_smoke.cpp)
 - [Backend Wayland](../../linux/visual/wayland_visual_capture.hpp)

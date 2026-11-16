@@ -10,7 +10,7 @@ enum class ProfileId {
     paused,
 };
 
-// Devuelve los límites del perfil. La sesión calcula los permisos efectivos.
+// Returns the profile limits. The session calculates the actual permissions.
 FeatureSet requestedFeatures(ProfileId profile);
 
 } // namespace oneintwo

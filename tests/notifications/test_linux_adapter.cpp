@@ -126,7 +126,7 @@ TEST_CASE(linux_adapter_announces_presentation_and_no_observation) {
 
     std::promise<DesktopResult> presented;
     auto presented_future = presented.get_future();
-    adapter->presentNotice("PORTATIL-A", remote(NotificationMode::manual, "Reunión ☕", "Cuerpo"),
+    adapter->presentNotice("LAPTOP-A", remote(NotificationMode::manual, "Meeting ☕", "Body"),
                            [&presented](DesktopResult result) { presented.set_value(result); });
     REQUIRE(presented_future.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     CHECK(presented_future.get() == DesktopResult::ready);
@@ -135,8 +135,8 @@ TEST_CASE(linux_adapter_announces_presentation_and_no_observation) {
     const auto presentations = fake->presentations();
     REQUIRE(presentations.size() == 1);
     CHECK_EQUAL(presentations.front().application_name, std::string("OneInTwo"));
-    CHECK_EQUAL(presentations.front().title, std::string("Reunión ☕"));
-    CHECK(presentations.front().body.find("Cuerpo") != std::string::npos);
+    CHECK_EQUAL(presentations.front().title, std::string("Meeting ☕"));
+    CHECK(presentations.front().body.find("Body") != std::string::npos);
     CHECK(presentations.front().body.find("De PORTATIL-A") != std::string::npos);
     CHECK(presentations.front().replaces_id == 0);
     CHECK(presentations.front().timeout_ms == -1);
@@ -157,8 +157,8 @@ TEST_CASE(linux_adapter_attributes_forwarded_application_as_plain_text) {
     std::promise<DesktopResult> presented;
     auto presented_future = presented.get_future();
     adapter->presentNotice(
-        "PORTATIL-A",
-        remote(NotificationMode::forwarded, "Mensaje", "Cuerpo", "Visor de Documentos"),
+        "LAPTOP-A",
+        remote(NotificationMode::forwarded, "Mensaje", "Body", "Document Viewer"),
         [&presented](DesktopResult result) { presented.set_value(result); });
     REQUIRE(presented_future.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     CHECK(presented_future.get() == DesktopResult::ready);
@@ -166,8 +166,8 @@ TEST_CASE(linux_adapter_attributes_forwarded_application_as_plain_text) {
     REQUIRE(fake->wait_for_presentations(1));
     const auto presentations = fake->presentations();
     REQUIRE(presentations.size() == 1);
-    CHECK(presentations.front().body.find("Visor de Documentos\n") == 0);
-    CHECK(presentations.front().body.find("Cuerpo") != std::string::npos);
+    CHECK(presentations.front().body.find("Document Viewer\n") == 0);
+    CHECK(presentations.front().body.find("Body") != std::string::npos);
     CHECK(presentations.front().body.find("De PORTATIL-A") != std::string::npos);
 }
 
@@ -181,7 +181,7 @@ TEST_CASE(linux_adapter_reports_service_availability) {
 
     std::promise<DesktopResult> presented;
     auto presented_future = presented.get_future();
-    adapter->presentNotice("PORTATIL-A", remote(NotificationMode::manual, "Título", "Cuerpo"),
+    adapter->presentNotice("LAPTOP-A", remote(NotificationMode::manual, "Title", "Body"),
                            [&presented](DesktopResult result) { presented.set_value(result); });
     REQUIRE(presented_future.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
     CHECK(presented_future.get() == DesktopResult::unavailable);
@@ -204,17 +204,17 @@ TEST_CASE(linux_adapter_maps_service_failures) {
 
     std::promise<DesktopResult> unavailable;
     auto unavailable_future = unavailable.get_future();
-    adapter->presentNotice("PORTATIL-A", remote(NotificationMode::manual, "Título"),
+    adapter->presentNotice("LAPTOP-A", remote(NotificationMode::manual, "Title"),
                            [&unavailable](DesktopResult result) {
                                unavailable.set_value(result);
                            });
     REQUIRE(unavailable_future.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     CHECK(unavailable_future.get() == DesktopResult::unavailable);
 
-    fake->set_next_result(PresentationResult{false, false, 0, "error del servicio"});
+    fake->set_next_result(PresentationResult{false, false, 0, "service error"});
     std::promise<DesktopResult> failed;
     auto failed_future = failed.get_future();
-    adapter->presentNotice("PORTATIL-A", remote(NotificationMode::manual, "Título"),
+    adapter->presentNotice("LAPTOP-A", remote(NotificationMode::manual, "Title"),
                            [&failed](DesktopResult result) { failed.set_value(result); });
     REQUIRE(failed_future.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     CHECK(failed_future.get() == DesktopResult::error);
@@ -229,8 +229,8 @@ TEST_CASE(linux_adapter_sanitises_presentation_controls) {
     std::promise<DesktopResult> presented;
     auto presented_future = presented.get_future();
     adapter->presentNotice(
-        "PORTATIL-A",
-        remote(NotificationMode::manual, std::string("Ti\x01tulo"), "Cuerpo"),
+        "LAPTOP-A",
+        remote(NotificationMode::manual, std::string("Ti\x01tulo"), "Body"),
         [&presented](DesktopResult result) { presented.set_value(result); });
     REQUIRE(presented_future.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     CHECK(presented_future.get() == DesktopResult::ready);

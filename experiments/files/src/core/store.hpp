@@ -1,5 +1,5 @@
-// Responsabilidad: almacén del lado emisor. Solo permite leer elementos incluidos
-// en el manifiesto vigente, mediante identificadores opacos, nunca rutas remotas.
+// Liability: warehouse on the issuing side. Only read elements included
+// in the current manifest, using opaque identifiers, never remote routes.
 #pragma once
 
 #include "core/manifest.hpp"
@@ -25,8 +25,8 @@ public:
     const SourceItem* find(const std::string& entryId) const;
     bool has(const std::string& entryId) const { return find(entryId) != nullptr; }
 
-    // Copia hasta len bytes desde offset del elemento ofrecido.
-    // Devuelve bytes copiados (0 en fin de archivo) o lanza Error.
+    // Copy up to len bytes from offset of the item offered.
+    // Returns copied bytes (0 in order of file) or launches Error.
     std::size_t read(const std::string& entryId, std::uint64_t offset, void* buffer,
                      std::size_t len) const;
 

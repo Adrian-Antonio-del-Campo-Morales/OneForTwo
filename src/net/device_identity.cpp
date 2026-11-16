@@ -39,7 +39,7 @@ using X509Ptr = std::unique_ptr<X509, decltype(&X509_free)>;
 std::string opensslError() {
     const unsigned long code = ERR_get_error();
     if (code == 0) {
-        return "libcrypto no devolvió un error";
+        return "libcrypto did not return an error";
     }
     char buffer[256] = {};
     ERR_error_string_n(code, buffer, sizeof(buffer));
@@ -57,7 +57,7 @@ std::vector<unsigned char> randomBytes(std::size_t count,
     std::vector<unsigned char> bytes(count);
     if (count == 0 ||
         RAND_bytes(bytes.data(), static_cast<int>(bytes.size())) != 1) {
-        setOpenSslError(error, "no se pudo obtener aleatoriedad de libcrypto");
+        setOpenSslError(error, "libcrypto randomness could not be obtained");
         return {};
     }
     return bytes;
@@ -90,7 +90,7 @@ std::string readFile(const fs::path& path, std::string* error) {
     QFile file(QString::fromStdString(path.string()));
     if (!file.open(QIODevice::ReadOnly)) {
         if (error != nullptr) {
-            *error = "no se pudo leer " + path.string();
+            *error = "could not be read " + path.string();
         }
         return {};
     }
@@ -102,13 +102,13 @@ bool writeFile(const fs::path& path, const QByteArray& data,
     QSaveFile file(QString::fromStdString(path.string()));
     if (!file.open(QIODevice::WriteOnly)) {
         if (error != nullptr) {
-            *error = "no se pudo escribir " + path.string();
+            *error = "could not write " + path.string();
         }
         return false;
     }
     if (file.write(data) != data.size() || !file.commit()) {
         if (error != nullptr) {
-            *error = "no se pudo guardar " + path.string();
+            *error = "could not be saved " + path.string();
         }
         return false;
     }
@@ -135,7 +135,7 @@ std::optional<DeviceIdentity> parseIdentity(const std::string& device_id,
     if (!isDeviceId(device_id) || certificate_pem.empty() ||
         private_key_pem.empty()) {
         if (error != nullptr) {
-            *error = "la identidad TLS guardada está incompleta";
+            *error = "identity TLS saved is incomplete";
         }
         return std::nullopt;
     }
@@ -145,14 +145,14 @@ std::optional<DeviceIdentity> parseIdentity(const std::string& device_id,
                       QSsl::Pem, QSsl::PrivateKey);
     if (certificate.isNull() || key.isNull()) {
         if (error != nullptr) {
-            *error = "el certificado o la clave TLS guardados no son válidos";
+            *error = "the certificate or key TLS saved is invalid";
         }
         return std::nullopt;
     }
     const std::string fingerprint = certFingerprint(certificate);
     if (fingerprint.size() != 64) {
         if (error != nullptr) {
-            *error = "el certificado TLS no tiene una huella SHA-256 válida";
+            *error = "certificate TLS does not have a valid SHA-256 fingerprint";
         }
         return std::nullopt;
     }
@@ -171,7 +171,7 @@ std::optional<DeviceIdentity> DeviceIdentityStore::load(
     const std::string id = readFile(root / "identity.id", error);
     if (id.empty()) {
         if (error != nullptr && error->empty()) {
-            *error = "no hay identidad TLS guardada";
+            *error = "no identity TLS saved";
         }
         return std::nullopt;
     }
@@ -188,7 +188,7 @@ std::optional<DeviceIdentity> DeviceIdentityStore::create(
     fs::create_directories(root, filesystem_error);
     if (filesystem_error) {
         if (error != nullptr) {
-            *error = "no se pudo crear el directorio de identidad: " +
+            *error = "could not create identity directory: " +
                      filesystem_error.message();
         }
         return std::nullopt;
@@ -220,7 +220,7 @@ std::optional<DeviceIdentity> DeviceIdentityStore::generate(
                            &EVP_PKEY_CTX_free);
     if (!context || EVP_PKEY_keygen_init(context.get()) <= 0 ||
         EVP_PKEY_CTX_set_rsa_keygen_bits(context.get(), 3072) <= 0) {
-        setOpenSslError(error, "no se pudo preparar la clave RSA");
+        setOpenSslError(error, "Could not prepare key RSA");
         return std::nullopt;
     }
     EVP_PKEY* raw_key = nullptr;
@@ -232,7 +232,7 @@ std::optional<DeviceIdentity> DeviceIdentityStore::generate(
 
     X509Ptr certificate(X509_new(), &X509_free);
     if (!certificate) {
-        setOpenSslError(error, "no se pudo crear el certificado TLS");
+        setOpenSslError(error, "Could not create certificate TLS");
         return std::nullopt;
     }
     if (X509_set_version(certificate.get(), 2) != 1) {
@@ -258,11 +258,11 @@ std::optional<DeviceIdentity> DeviceIdentityStore::generate(
             nullptr ||
         X509_gmtime_adj(X509_getm_notAfter(certificate.get()),
                         3650L * 24L * 60L * 60L) == nullptr) {
-        setOpenSslError(error, "no se pudo fechar el certificado TLS");
+        setOpenSslError(error, "Could not date certificate TLS");
         return std::nullopt;
     }
     if (X509_set_pubkey(certificate.get(), key.get()) != 1) {
-        setOpenSslError(error, "no se pudo asociar la clave al certificado");
+        setOpenSslError(error, "could not associate key to certificate");
         return std::nullopt;
     }
     X509_NAME* subject = X509_get_subject_name(certificate.get());
@@ -287,14 +287,14 @@ std::optional<DeviceIdentity> DeviceIdentityStore::generate(
         PEM_write_bio_X509(certificate_bio.get(), certificate.get()) != 1 ||
         PEM_write_bio_PrivateKey(key_bio.get(), key.get(), nullptr, nullptr, 0,
                                  nullptr, nullptr) != 1) {
-        setOpenSslError(error, "no se pudo serializar la identidad TLS");
+        setOpenSslError(error, "could not serialize identity TLS");
         return std::nullopt;
     }
     const std::string certificate_pem = bioContents(certificate_bio.get());
     const std::string key_pem = bioContents(key_bio.get());
     if (certificate_pem.empty() || key_pem.empty()) {
         if (error != nullptr) {
-            *error = "libcrypto generó una identidad TLS vacía";
+            *error = "libcrypto generated an empty TLS identity";
         }
         return std::nullopt;
     }
@@ -326,7 +326,7 @@ std::optional<DeviceIdentity> DeviceIdentityStore::loadOrCreate(
     }
     if (has_certificate || has_key) {
         if (error != nullptr) {
-            *error = "la identidad TLS guardada está incompleta";
+            *error = "identity TLS saved is incomplete";
         }
         return std::nullopt;
     }

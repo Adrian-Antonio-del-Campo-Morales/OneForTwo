@@ -1,6 +1,6 @@
-// Responsabilidad: interfaz de consola explícita. Ningún modo se ejecuta sin
-// argumentos; las auto-pruebas y el inventario no tocan el portapapeles.
-// Sólo los modos documentados leen, escriben u observan el portapapeles real.
+// Responsibility: explicit console interface. No mode runs without
+// arguments; self-tests and inventory do not touch the clipboard.
+// Only documented modes read, write or observe the actual clipboard.
 
 #include "cli.hpp"
 
@@ -276,14 +276,14 @@ int run_emit_samples(const std::string& directory) {
 
   std::string large;
   for (int line = 1; line <= 2000; ++line) {
-    large += "línea " + std::to_string(line) + ": ñandú 😀 prueba\n";
+    large += "line " + std::to_string(line) + ": Unicode 😀 test\n";
   }
 
   const std::vector<Sample> samples = {
-      {"accents.txt", u8"Mañana, pingüino, José.\nCanción número 1.\n"},
-      {"emoji.txt", u8"Emoji: 😀 🚀 🧪 ñandú\nSegunda línea con 😃.\n"},
+      {"accents.txt", u8"Coffee, résumé, penguin.\nUnicode sample 1.\n"},
+      {"emoji.txt", u8"Emoji: 😀 🚀 🧪\nSecond line with 😃.\n"},
       {"multiline.txt",
-       u8"línea uno\nlínea dos\n\n\tlínea con tabulador\nfin\n"},
+       u8"Line one\nline two\n\n\tline with tab\nfin\n"},
       {"large.txt", large},
   };
 
@@ -308,33 +308,33 @@ int run_emit_samples(const std::string& directory) {
 
 void print_help() {
   std::cout
-      << "OneInTwo — experimento de portapapeles (prototipo 0.1)\n"
-      << "Uso: oneintwo-clipboard <modo> [opciones]\n\n"
+      << "OneInTwo — clipboard experiment (prototype 0.1)\n"
+      << "Use: oneintwo-clipboard <mode> [options]\n\n"
       << "Modos:\n"
-      << "  --help, -h           Muestra esta ayuda y termina.\n"
-      << "  --version            Muestra versión y protocolo.\n"
-      << "  --inventory          Plataforma, sesión y capacidades. No toca el portapapeles.\n"
-      << "  --self-test          Pruebas aisladas con datos sintéticos; sin escritorio ni red.\n"
-      << "  --read-text          Lee una vez el texto del portapapeles.\n"
-      << "  --publish-text <t>   Escribe <t> en el portapapeles y verifica la lectura.\n"
-      << "  --publish-file <p>   Escribe el contenido UTF-8 de <p> en el portapapeles.\n"
-      << "                       En Wayland mantiene la oferta hasta 60 s para pegar.\n"
-      << "  --watch              Observa cambios hasta Ctrl+C; contenido oculto por defecto.\n"
-      << "  --emit-samples <dir> Crea archivos UTF-8 de prueba en un directorio existente.\n"
-      << "  --serve              Escucha una conexión TLS; requiere --port y certificados.\n"
-      << "  --connect            Conecta a otro equipo; requiere --host, --port y certificados.\n\n"
+      << "  --help, -h Shows this help and ends.\n"
+      << "  --version Displays version and protocol.\n"
+      << "  --inventory Platform, session and capabilities. Do not touch clipboard.\n"
+      << "  --self-test Insulated tests with synthetic data; no desktop or network.\n"
+      << "  --read-text Read the clipboard text once.\n"
+      << "  --publish-text <t> Write <t > on the clipboard and check the reading.\n"
+      << "  --publish-file <p>   Writes the UTF-8 contents of <p> to the clipboard.\n"
+      << "                       In Wayland keeps the offer up to 60 s to paste.\n"
+      << "  --watch Observe changes to Ctrl+C; hidden content by default.\n"
+      << "  --emit-samples <dir> Create UTF-8 test files in an existing directory.\n"
+      << "  --serve Listen to a TLS connection; requires --port and certificates.\n"
+      << "  --connect Connects to other equipment; requires --host, --port and certificates.\n\n"
       << "Opciones:\n"
-      << "  --show-content       Muestra el texto observado (sólo datos sintéticos).\n"
-      << "  --bind <addr>        Dirección local para --serve (por defecto 0.0.0.0).\n"
-      << "  --host <addr>        Dirección del servidor para --connect.\n"
-      << "  --port <n>           Puerto TCP explícito (1-65535).\n"
-      << "  --cert <pem>         Certificado local.\n"
+      << "  --show-content Displays observed text (synthetic data only).\n"
+      << "  --bind <addr> Local address for --serve (default 0.0.0.0).\n"
+      << "  --host <addr> Server address for --connect.\n"
+      << "  --port <n> Port TCP explicit (1-65535).\n"
+      << "  --cert <pem> Local certificate.\n"
       << "  --key <pem>          Clave privada local.\n"
-      << "  --peer-cert <pem>    Certificado esperado del otro equipo (pin SHA-256).\n\n"
-      << "Sin argumentos sólo se muestra esta ayuda. Los certificados y claves\n"
-      << "quedan fuera del repositorio; el prototipo no descubre equipos ni\n"
-      << "guarda confianza. No se ejecutan pruebas con el portapapeles real\n"
-      << "desde --self-test.\n";
+      << "  --peer-cert <pem>    Expected peer certificate (SHA-256 pin).\n\n"
+      << "No arguments only this help is shown. Certificates and keys\n"
+      << "are outside the repository; the prototype does not discover equipment ni\n"
+      << "trust. No tests run on the actual clipboard\n"
+      << "from --self-test.\n";
 }
 
 int print_version() {

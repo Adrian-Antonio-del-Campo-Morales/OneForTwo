@@ -1,43 +1,44 @@
-> Estado actualizado: T1 superado; T2 recepción CLI, TLS negativo, corte/reintento y casos Windows automatizados superados. Pegado Explorer y bajo demanda pendientes. Véase RESULTS.md; los esperados de este guion no son resultados.
+> Updated status: T1 exceeded; T2 received CLI, TLS negative, corte/reintento and automated Windows
+> cases exceeded. Pasted Explorer and on demand pending. See RESULTS.md; expected from this script
+> are not results.
 
-# Manual de ejecución — experimento de archivos
+# Execution manual — file experiment
 
-Estado: prototipo implementado y compilado en Windows; self-tests aislados
-ejecutados. **Este manual conserva el guion de ejecución; el estado vigente está en RESULTS.md**: este documento es el guion para hacerlo
-y la matriz para registrar los resultados. Nada de lo que aparece como «esperado»
-está validado todavía.
+Status: prototype implemented and compiled on Windows; executed self-tests. **This manual retains
+the execution script; the current status is in RESULTS.md**: this document is the script to do so
+and the matrix to record the results. Nothing that appears as "expected" is yet validated.
 
-Responsabilidad de este archivo: permitir que el usuario reproduzca cada prueba
-sin confundirla con las comprobaciones automáticas, y recoger qué observar,
-cómo detener el prototipo y cómo dejar el sistema como estaba.
+Responsibility for this file: allow the user to play each test without confusing it with automatic
+checks, and collect what to observe, how to stop the prototype and how to leave the system as it
+was.
 
 ## 1. Alcance
 
-Se prueba copiar y pegar, en ambos sentidos:
+Copy and paste, in both directions:
 
-- un archivo pequeño, un archivo vacío y una carpeta con subcarpetas;
-- con el contenido ya descargado (alternativa **A, caché**);
-- con entrega del contenido al pegar (alternativa **B, bajo demanda**), solo
-  donde el prototipo la ofrece (Windows).
+- a small file, an empty file and a folder with subfolders;
+- with already downloaded content (alternative **A, cache**);
+- with content delivery when pasting (alternative **B, on demand**), only where the prototype offers
+  it (Windows).
 
-No forman parte de la prueba: cortar/mover, borrar originales, sincronizar
-carpetas, montar un sistema de archivos virtual ni compartir todo el disco.
+They are not part of the test: cortar/mover, delete originals, sync folders, mount a virtual file
+system or share the entire disk.
 
-## 2. Inventario del entorno (P0)
+## 2. Inventory of environment (P0)
 
-Rellenar antes de empezar; sin estos datos el resultado no es interpretable.
+Fill in before starting; without this data the result is not interpretable.
 
 | Dato | Windows | Ubuntu |
 | --- | --- | --- |
-| Sistema y compilación |  |  |
-| Escritorio y sesión (X11/Wayland) |  |  |
-| Explorador y versión |  |  |
-| Compilador y CMake |  |  |
+| System and compilation |  |  |
+| Desktop and session (X11/Wayland) |  |  |
+| Explorer and version |  |  |
+| Compiler and CMake |  |  |
 | OpenSSL |  |  |
 | GTK3 | no aplica |  |
-| Permisos y red usados |  |  |
+| Permissions and network used |  |  |
 
-Comandos útiles:
+Useful commands:
 
 ```powershell
 # Windows (PowerShell)
@@ -48,26 +49,26 @@ cmake --version
 
 ```bash
 # Ubuntu
-lsb_release -a; echo "sesión: $XDG_SESSION_TYPE"
+lsb_release -a; echo "session: $XDG_SESSION_TYPE"
 gnome-shell --version; nautilus --version
 cmake --version; openssl version; pkg-config --modversion gtk+-3.0
 ```
 
-## 3. Dependencias y compilación
+## 3. Units and compilation
 
 ### Windows
 
 Requisitos:
 
 - Windows 10/11 x64.
-- Visual Studio 2022/2026 **Build Tools** con «Desarrollo de escritorio con C++»
-  (proporciona `cl.exe` y `nmake.exe`) y Windows SDK.
+- Visual Studio 2022/2026 **Builded Tools** with "C++ Desktop Development" (proportion `cl.exe` and
+  `nmake.exe`) and Windows SDK.
 - CMake 3.16 o posterior.
-- OpenSSL 3 para Win64 con cabeceras y `libssl.lib`/`libcrypto.lib`
-  (probado con la instalación en `C:\Program Files\OpenSSL-Win64`).
+- OpenSSL 3 for Win64 with headers and `libssl.lib`/`libcrypto.lib` (tested with installation in
+  `C:\Program Files\OpenSSL-Win64`).
 
-Compilar en **«x64 Native Tools Command Prompt for VS»** (no en PowerShell
-normal: `nmake` no está en el PATH):
+Compile in **‘x64 Native Tools Command Prompt for VS’** (not in Normal PowerShell: `nmake` is not in
+the PATH):
 
 ```bat
 cd /d D:\DEVEL\OneInTwo\experiments\files
@@ -76,237 +77,222 @@ cmake -S . -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release ^
 cmake --build build
 ```
 
-Binario resultante: `build\oneintwo-files.exe`. Para ejecutarlo fuera del
-directorio de compilación, copiar junto a él `libssl-3-x64.dll` y
-`libcrypto-3-x64.dll`, o añadir `C:\Program Files\OpenSSL-Win64\bin` al PATH.
+Resulting binary: `build\oneintwo-files.exe`. To run it out of the compilation directory, copy with it `libssl-3-x64.dll` and `libcrypto-3-x64.dll`, or add `C:\Program Files\OpenSSL-Win64\bin` to PATH.
 
-Si OpenSSL no se encuentra, CMake avisa y compila sin TLS: `--share` y
-`--receive-offer` se bloquean con un error explícito; no se usa texto plano como
-sustituto.
+If OpenSSL is not found, CMake warns and compiles without TLS: `--share` and `--receive-offer` are
+blocked with an explicit error; plain text is not used as a substitute.
 
 ### Ubuntu
 
 ```bash
 sudo apt install build-essential cmake pkg-config libgtk-3-dev libssl-dev
-cd ~/OneInTwo/experiments/files        # ruta real del repositorio
+cd ~/OneInTwo/experiments/files        # use the actual repository path
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j"$(nproc)"
 ```
 
-Binario: `./build/oneintwo-files`. GTK3 es necesario para publicar en el
-portapapeles de Nautilus; sin él, CMake avisa y ese modo devuelve error. OpenSSL
-es necesario para el modo entre equipos.
+Binario: `./build/oneintwo-files`. GTK3 is necessary to publish in the Nautilus clipboard; without
+it, CMake warns and that mode returns error. OpenSSL is necessary for inter-computer mode.
 
-### Comprobación común
+### Common check
 
 ```bash
 # Windows: build\oneintwo-files.exe --self-test
 # Ubuntu:  ./build/oneintwo-files --self-test
 ```
 
-Esperado: recuento de comprobaciones con **0 fallos** y el texto
-«self-test correcto (sin portapapeles ni red)». Este modo no abre el
-portapapeles ni la red y puede ejecutarse siempre.
+Expected: count of checks with **0 bugs** and the correct self-test text (no clipboard or network)
+This mode does not open the clipboard or the network and can always be executed.
 
-## 4. Preparación de datos desechables
+## 4. Preparation of disposable data
 
-Usar carpetas nuevas, nunca documentos personales.
+Use new directories and synthetic files only.
 
 ```bat
 :: Windows
 mkdir D:\o2t-manual
-build\oneintwo-files.exe --make-fixtures D:\o2t-manual\datos
+build\oneintwo-files.exe --make-fixtures D:\o2t-manual\data
 ```
 
 ```bash
 # Ubuntu
 mkdir -p ~/o2t-manual
-./build/oneintwo-files --make-fixtures ~/o2t-manual/datos
+./build/oneintwo-files --make-fixtures ~/o2t-manual/data
 ```
 
-Contenido creado (determinista, sin datos reales):
+Generated contents (deterministic synthetic data):
 
-| Elemento | Tamaño | Para qué |
+| Elemento | Size | What for? |
 | --- | --- | --- |
-| `file-small.txt` | 1024 B | archivo normal |
-| `empty.dat` | 0 B | archivo vacío |
-| `ñandú-日本語.txt` | 46 B | nombres Unicode |
-| `folder/nested/deep.bin` | 300 KiB | anidamiento y bloques |
-| `folder/empty-subdir/` | carpeta vacía | estructura |
-| `large-5mb.bin` | 5 MiB | progreso, cancelación y tiempos |
+| `file-small.txt` | 1024 B | normal file |
+| `empty.dat` | 0 B | empty file |
+| `resume-日本語-🚀.txt` | 46 B | Unicode names |
+| `folder/nested/deep.bin` | 300 KiB | nesting and blocks |
+| `folder/empty-subdir/` | empty folder | estructura |
+| `large-5mb.bin` | 5 MiB | progress, cancellation and timing |
 
-`--inspect RUTA...` muestra el manifiesto sin publicar nada (rutas relativas,
-tamaños e identificadores acortados). No ejecuta el escritorio.
+`--inspect PATH...` displays the manifest without publishing anything (relative paths, short sizes
+and identifiers). It does not run the desktop.
 
-Comparación de contenido:
+Content comparison:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 D:\o2t-manual\pegado\datos\file-small.txt
+Get-FileHash -Algorithm SHA256 D:\o2t-manual\paste\data\file-small.txt
 ```
 
 ```bash
-sha256sum ~/o2t-manual/pegado/datos/file-small.txt
+sha256sum ~/o2t-manual/paste/data/file-small.txt
 ```
 
-## 5. Modos del ejecutable
+## 5. Executable Modes
 
 | Modo | Comando | Efecto |
 | --- | --- | --- |
-| Ayuda | `--help` (o sin argumentos) | solo texto; no toca el sistema |
-| Self-test | `--self-test [--verbose]` | comprobaciones aisladas |
-| Datos | `--make-fixtures DIR` | crea el conjunto sintético |
-| Manifiesto | `--inspect RUTA...` | resume la oferta; no publica |
-| Huella | `--fingerprint CERT.pem` | imprime el SHA-256; no abre red |
-| Caché local | `--publish-cache RUTA...` | publica rutas locales existentes |
-| Bajo demanda local | `--publish-ondemand --root RUTA` | Windows; contenido leído del disco al pegar |
-| Bajo demanda remoto | `--publish-ondemand --from HOST:PUERTO --pin HUELLA --cert CERT --key CLAVE` | Windows; contenido pedido al otro equipo |
-| Servir | `--share --root RUTA --cert CERT --key CLAVE --client-pin HUELLA_CLIENTE` | TLS mutuo + protocolo; Ctrl+C detiene |
-| Recibir | `--receive-offer --from HOST:PUERTO --pin HUELLA --cache DIR --cert CERT --key CLAVE` | descarga, verifica y cachea |
-| Recibir y pegar | añadir `--publish` a `--receive-offer` | publica en el portapapeles al verificar |
-| Copiar a destino | añadir `--to DESTINO` | copia verificada con colisiones resueltas |
-| Caché | `--cache-list --cache DIR` | lista ofertas; `--verbose` añade ruta |
+| Ayuda | `--help` (or no arguments) | text only; does not touch the system |
+| Self-test | `--self-test [--verbose]` | isolated checks |
+| Datos | `--make-fixtures DIR` | creates the synthetic set |
+| Manifest | `--inspect PATH...` | summarizes the offer without publishing it |
+| Fingerprint | `--fingerprint CERT.pem` | prints the SHA-256 fingerprint without using the network |
+| Local cache | `--publish-cache PATH...` | publishes existing local paths |
+| Local on-demand | `--publish-ondemand --root PATH` | Windows; read disk content when pasting |
+| Remote on-demand | `--publish-ondemand --from HOST:PORT --pin FINGERPRINT --cert CERT --key KEY` | Windows; content ordered from the other computer |
+| Serve | `--share --root PATH --cert CERT --key KEY --client-pin CLIENT_FINGERPRINT` | mutual TLS and the file protocol. Press Ctrl+C to stop |
+| Receive | `--receive-offer --from HOST:PORT --pin FINGERPRINT --cache DIR --cert CERT --key KEY` | downloads, verifies, and caches the files |
+| Receive and paste | add `--publish` to `--receive-offer` | publish on clipboard when verifying |
+| Copy to destination | add `--to DESTINO` | verified copy with collisions resolved |
+| Cache | `--cache-list --cache DIR` | list offers; `--verbose` adds route |
 | Limpieza | `--cache-gc --cache DIR [--max-age-hours N]` | elimina ofertas antiguas |
 
-Opciones comunes: `--port N` (por defecto 47654), `--timeout MS` (por defecto
-15000 ms) y `--verbose`.
+Common options: `--port N` (default 47654), `--timeout MS` (by default 15000 ms) and `--verbose`.
 
-Límites del prototipo: 4096 elementos, profundidad 32, 8 GiB por oferta y bloques
-de 256 KiB. En Windows, una ruta relativa del descriptor no puede superar 259
-caracteres. Se rechazan enlaces simbólicos y tipos especiales.
+Prototyping limits: 4096 elements, depth 32, 8 GiB per offer and 256 KiB blocks. In Windows, a
+relative path of the descriptor cannot exceed 259 characters. Symbolic links and special types are
+rejected.
 
-## 6. Pruebas locales (un solo equipo)
+## 6. Local testing (one equipment)
 
 ### L1. Self-test
 
-Ejecutar el comando de la sección 3. **Esperado:** 0 fallos, sin ventanas ni
-permisos. **Fallo:** código de salida distinto de cero; conservar la carpeta
-`.o2f-selftest-*` que imprime.
+Run the command in section 3. **Expected:** 0 bugs, no windows or permissions. **Fault:** output
+code other than zero; keep the `.o2f-selftest-*` folder you print.
 
-### L2. Caché local en Windows (Explorer)
+### L2. Local cache on Windows (Explorer)
 
-1. Ejecutar `build\oneintwo-files.exe --publish-cache D:\o2t-manual\datos`.
-   Debe imprimir «publicando N elementos locales» y quedarse esperando.
-2. Abrir Explorer, crear `D:\o2t-manual\pegado` y entrar en ella.
+1. Run `build\oneintwo-files.exe --publish-cache D:\o2t-manual\data`. You must print "posting N
+   local elements" and stay waiting.
+2. Open Explorer, create `D:\o2t-manual\paste` and enter it.
 3. Pegar con `Ctrl+V`.
-4. Comprobar que aparece `datos` con los 6 elementos y que los tamaños coinciden.
-5. Comparar `sha256sum`/`Get-FileHash` de `file-small.txt` y `large-5mb.bin`.
-6. Volver a la consola y pulsar `Ctrl+C`.
+4. Check that `data` appears with the 6 elements and that the sizes match.
+5. Compare `sha256sum`/`Get-FileHash` from `file-small.txt` and `large-5mb.bin`.
+6. Return to console and press `Ctrl+C`.
 
-**Esperado:** copia completa, originales intactos, carpeta vacía conservada.
-**Fallo:** el portapapeles aparece vacío, solo se pega texto, faltan archivos o
-el proceso no responde. Anotar si Explorer pidió permisos adicionales.
+**Expected:** Full copy, originals intact, empty folder preserved. **Fault:** The clipboard appears
+empty, only text is pasted, files are missing or the process is not responding. Write down if
+Explorer requested additional permissions.
 
-> En Windows, la oferta de este modo se materializa al pulsar `Ctrl+C`: el
-> portapapeles puede seguir pegando rutas a la caché después de cerrar el
-> proceso. Los archivos son locales y ya estaban verificados.
+> On Windows, the offer in this mode is materialized by pressing `Ctrl+C`: the
+> clipboard can continue pasting paths to the cache after closing the
+> The files are local and were already verified.
 
-### L3. Bajo demanda local en Windows (B)
+### L3. Local on-demand on Windows (B)
 
-1. `build\oneintwo-files.exe --publish-ondemand --root D:\o2t-manual\datos`
-2. Pegar en una carpeta nueva.
-3. Observar si Explorer crea los archivos y si la ventana se queda bloqueada
-   mientras se leen los 5 MiB.
-4. Medir tiempo hasta el primer archivo y hasta terminar (cronómetro).
-5. Pulsar `Ctrl+C`; intentar pegar de nuevo en otra carpeta.
+1. `build\oneintwo-files.exe --publish-ondemand --root D:\o2t-manual\data`
+2. Paste into a new folder.
+3. See if Explorer creates the files and if the window stays locked while reading the 5 MiBs.
+4. Measure time to first file and until finished (chronometer).
+5. Press `Ctrl+C`; try pasting back into another folder.
 
-**Esperado:** copia correcta, sin caché intermedia, con el proceso vivo durante
-el pegado. **Fallo:** Explorer no ofrece pegar, error al pegar, bloqueo sin
-mensaje o archivos incompletos. **Condición de bloqueo:** si Explorer no acepta
-`FileGroupDescriptorW`/`FileContents` en este entorno, B no es viable aquí y se
-registra como tal.
+**Expected:** Correct copy, no intermediate cache, with live process during pasting. **Fault:**
+Explorer does not offer pasting, pasting error, blocking without message or incomplete files. **
+Blocking condition:** If Explorer does not accept `FileGroupDescriptorW`/`FileContents` in this
+environment, B is not feasible here and is registered as such.
 
-> Al cerrar el proceso la oferta bajo demanda desaparece: no hay copia que
-> materializar. Es una diferencia esperada frente a L2.
+> When closing the process the supply on demand disappears: no copy that
+> materialize. It is an expected difference against L2.
 
-### L4. Caché local en Ubuntu (Nautilus)
+### L4. Local cache in Ubuntu, Nautilus
 
-1. `./build/oneintwo-files --publish-cache ~/o2t-manual/datos`
-2. En Wayland aparece una ventana de prueba: pulsar **Publicar archivos** y
-   dejarla abierta. Es una acción local necesaria para que GTK pueda entregar
-   una selección válida al compositor; el modo asistido no valida publicación
-   automática en segundo plano. En X11 no se requiere esa ventana.
-3. En Nautilus, abrir una carpeta nueva y pegar `Ctrl+V`. Preparar la carpeta
-   antes de publicar si hay que copiar su ruta: copiar texto después sustituye
-   la oferta de archivos.
-4. Comprobar estructura, tamaño y `sha256sum`.
-5. Cerrar la ventana de prueba o usar `Ctrl+C` en la terminal.
+1. `./build/oneintwo-files --publish-cache ~/o2t-manual/data`
+2. A test window appears in Wayland: press **Publish files** and leave it open. It is a local action
+   necessary for GTK to deliver a valid selection to the composer; assisted mode does not validate
+   automatic publication in the background. In X11 that window is not required.
+3. In Nautilus, open a new folder and paste `Ctrl+V`. Prepare the folder before publishing if you
+   have to copy its path: copy text then replace the file offer.
+4. Check structure, size and `sha256sum`.
+5. Close the test window or use `Ctrl+C` in the terminal.
 
-**Esperado:** pegado completo con nombres Unicode. **Fallo:** Nautilus no
-muestra la opción de pegar archivos, pega solo texto o faltan elementos.
-Registrar sesión (`XDG_SESSION_TYPE`), versión de Nautilus y de GTK.
+**Waited:** pasted complete with Unicode names. **Fault:** Nautilus does not show the option to
+paste files, paste text only or missing items. Register session (`XDG_SESSION_TYPE`), version of
+Nautilus and GTK.
 
-> La selección de GTK pertenece al proceso: al pulsar `Ctrl+C` la oferta
-> desaparece. No se materializa como en Windows.
+> The selection of GTK belongs to the process: when pressing `Ctrl+C` the offer
+> It doesn't materialize like Windows.
 
-### L5. Bajo demanda en Ubuntu (B)
+### L5. On-demand on Ubuntu (B)
 
 ```bash
-./build/oneintwo-files --publish-ondemand --root ~/o2t-manual/datos
+./build/oneintwo-files --publish-ondemand --root ~/o2t-manual/data
 ```
 
-**Esperado:** error explícito indicando que esta implementación solo publica
-rutas `file://` locales y que B requeriría un backend GIO/GVfs o FUSE, no
-implementado. **No es una prueba de inviabilidad técnica**: es una limitación de
-esta entrega y debe registrarse como tal.
+**Expected:** Explicit error indicating that this implementation only publishes local `file://`
+routes and that B would require a GIO/GVfs or FUSE backend, not implemented. **It is not a test of
+technical non-viability**: it is a limitation of this delivery and must be registered as such.
 
-### L6. Colisiones y destino sin escritura
+### L6. Collisions and destination without writing
 
-Con un servidor en el propio equipo (dos terminales, TLS):
+With a server on your own computer (two terminals, TLS):
 
-1. Crear los dos pares de la sección 7.1 y arrancar:
-   `--share --root D:\o2t-manual\datos --cert servidor-cert.pem --key servidor-key.pem --client-pin HUELLA_CLIENTE --bind 127.0.0.1`
-2. En otra terminal:
-   `--receive-offer --from 127.0.0.1 --pin HUELLA_SERVIDOR --cache D:\o2t-manual\cache --to D:\o2t-manual\copia --cert cliente-cert.pem --key cliente-key.pem`
-3. Repetir el mismo comando con el mismo destino.
-4. Comprobar que la segunda copia crea `datos (1)` y no sobrescribe nada.
-5. Crear una carpeta sin permiso de escritura y usar `--to` apuntando a ella.
+1. Create the two pairs of the 7.1 section and boot: `--share --root D:\o2t-manual\data --cert
+   server-cert.pem --key server-key.pem --client-pin CLIENT_FINGERPRINT --bind 127.0.0.1`
+2. En otra terminal: `--receive-offer --from 127.0.0.1 --pin FINGERPRINT_SERVIDOR --cache
+   D:\o2t-manual\cache --to D:\o2t-manual\copia --cert client-cert.pem --key client-key.pem`
+3. Repeat the same command with the same destination.
+4. Check that the second copy creates `data (1)` and does not overwrite anything.
+5. Create a folder without writing permission and use `--to` pointing to it.
 
-**Esperado:** sufijos `(1)`, `(2)`; contenido original intacto; en el destino sin
-escritura, mensaje de error, código de salida 1 y ningún archivo `.o2f-part`
-publicado. **Fallo:** sobrescritura silenciosa, éxito con archivos incompletos o
-restos en la carpeta de destino.
+**Expected:** `(1)` suffixes, `(2)`; original content intact; in the destination without writing,
+error message, output code 1 and no `.o2f-part` file published. **Fault:** silent overwriting,
+success with incomplete files or remains in the destination folder.
 
-### L7. Cancelación
+### L7. Cancellation
 
-1. Arrancar de nuevo el servidor del paso L6.
-2. Lanzar `--receive-offer ... --cache DIR` con los 5 MiB y pulsar `Ctrl+C`
-   cuando ya se haya descargado algún archivo.
+1. Start the L6 step server again.
+2. Launch `--receive-offer ... --cache DIR` with the 5 MiBs and press `Ctrl+C` when some file has
+   already been downloaded.
 3. Revisar `DIR\incoming` y `DIR\offers`.
 
-**Esperado:** mensaje de cancelación, sin oferta publicada, `incoming` vacío y
-ningún `.o2f-part`. **Fallo:** la oferta aparece como completa o quedan
-temporales sin dueño.
+**Expected:** cancellation message, no published offer, empty `incoming` and no `.o2f-part`.
+**Fault:** the offer appears as complete or remains temporary without owner.
 
-### L8. Vida de la caché
+### L8. Life of the cache
 
 1. Tras L6/L7: `--cache-list --cache D:\o2t-manual\cache`.
 2. `--cache-gc --cache D:\o2t-manual\cache --max-age-hours 0`.
 3. Repetir `--cache-list`.
 
-**Esperado:** la primera lista muestra las ofertas verificadas; el gc con 0 horas
-las elimina (salvo una concesión vigente, que aquí ya no existe); la segunda
-lista queda vacía. **Fallo:** se elimina una oferta en uso o quedan carpetas
-huérfanas.
+**Expected:** the first list shows verified offers; the gc with 0 hours removes them (except for a
+valid concession, which no longer exists here); the second list is empty. **Fault:** an offer in use
+is deleted or orphan folders are left.
 
-## 7. Pruebas entre dos equipos
+## 7. Testing between two teams
 
-Orden obligatorio: primero local; después dos equipos. Solo un experimento
-activo en la misma sesión gráfica.
+Mandatory order: first local; then two teams. Only one experiment active in the same graphic
+session.
 
-### 7.1 Certificados de prueba (fuera del repositorio)
+### 7.1 Test certificates (outside the repository)
 
-El modo remoto usa **TLS mutuo**: cada equipo presenta su propio certificado y
-fija la huella del otro. No hay CA ni confianza implícita. Generar un par en
-**cada** equipo, en una carpeta fuera del repositorio.
+The remote mode uses **TLS mutual**: each computer presents its own certificate and fixes the
+footprint of the other. There is no CA or implicit confidence. Generate a pair in **each** computer,
+in a folder outside the repository.
 
-En el equipo **servidor**:
+On the **server** team:
 
 ```bat
 :: Windows
 mkdir "%USERPROFILE%\o2t-certs"
 cd /d "%USERPROFILE%\o2t-certs"
 "C:\Program Files\OpenSSL-Win64\bin\openssl.exe" req -x509 -newkey rsa:3072 ^
-  -sha256 -days 2 -nodes -keyout servidor-key.pem -out servidor-cert.pem ^
+  -sha256 -days 2 -nodes -keyout server-key.pem -out server-cert.pem ^
   -subj "/CN=OneInTwo files experiment"
 ```
 
@@ -314,164 +300,159 @@ cd /d "%USERPROFILE%\o2t-certs"
 # Ubuntu
 mkdir -p ~/o2t-certs && cd ~/o2t-certs
 openssl req -x509 -newkey rsa:3072 -sha256 -days 2 -nodes \
-  -keyout servidor-key.pem -out servidor-cert.pem \
+  -keyout server-key.pem -out server-cert.pem \
   -subj "/CN=OneInTwo files experiment"
-chmod 600 servidor-key.pem
+chmod 600 server-key.pem
 ```
 
-En el equipo **cliente**, repetir el mismo comando cambiando `servidor-` por
-`cliente-`. Cada equipo conserva su clave privada; intercambiar solo los
-certificados públicos por un canal fuera de banda. Calcular las huellas con el
-propio prototipo:
+On the computer **client**, repeat the same command by changing `server-` to `client-`. Each team
+retains its private key; exchange only public certificates for a channel out of band. Calculate the
+footprints with the prototype itself:
 
 ```bash
-# En el servidor: huella que usará el cliente
-./build/oneintwo-files --fingerprint servidor-cert.pem
+# On the server: fingerprint for the client
+./build/oneintwo-files --fingerprint server-cert.pem
 
-# En el cliente: huella que usará el servidor
-./build/oneintwo-files --fingerprint cliente-cert.pem
-# Windows: build\oneintwo-files.exe --fingerprint cliente-cert.pem
+# On the client: fingerprint for the server
+./build/oneintwo-files --fingerprint client-cert.pem
+# Windows: build\oneintwo-files.exe --fingerprint client-cert.pem
 ```
 
-- El servidor arranca con `--client-pin HUELLA_DEL_CERTIFICADO_DE_CLIENTE`.
-- El cliente arranca con `--pin HUELLA_DEL_CERTIFICADO_DEL_SERVIDOR` y presenta
-  su par con `--cert` y `--key`.
+- The server starts with `--client-pin FINGERPRINT_DEL_CERTIFICADO_DE_CLIENTE`.
+- The customer starts with `--pin FINGERPRINT_DEL_CERTIFICADO_DEL_SERVIDOR` and presents its pair with
+  `--cert` and `--key`.
 
-Si se regenera cualquiera de los dos certificados, su huella cambia y el otro
-extremo rechazará el handshake hasta actualizar el pin correspondiente. Es el
-comportamiento esperado.
+If either certificate is regenerated, its footprint changes and the other end will reject the
+handshake until the corresponding pin is updated. It is the expected behavior.
 
-#### 7.1.1 Rechazo de identidades no fijadas (manual)
+#### 7.1.1 Rejecting unpinned identities (manual)
 
-1. Arrancar el servidor con un `--client-pin` distinto del certificado que usará
-   el cliente.
-2. Conectar el cliente con su par correcto: el servidor debe rechazar el
-   handshake («certificado de cliente no autorizado») y el cliente no debe
-   recibir el manifiesto.
-3. Arrancar el servidor con el pin correcto y conectar el cliente con un `--pin`
-   incorrecto: el cliente debe rechazar el certificado del servidor.
-4. Repetir con ambos pines correctos y comprobar que la transferencia funciona.
+1. Start the server with a `--client-pin` other than the certificate the client will use.
+2. Connect the client to its correct pair: the server must reject the handshake ("unauthorised
+   customer certificate") and the client must not receive the manifest.
+3. Start the server with the correct pin and connect the client with an incorrect `--pin`: the
+   client must reject the server certificate.
+4. Repeat with both correct pins and check that the transfer works.
 
-**Esperado:** error explícito en ambos rechazos, sin descarga ni publicación.
-**Fallo:** conexión aceptada con una huella distinta o mensaje genérico sin
-diagnóstico. Esta prueba abre red real: solo manual.
+**Explicit error in both rejections, without download or publication. **Fault:** Connection accepted
+with a different footprint or generic message without diagnosis. This test opens real network:
+manual only.
 
-### 7.2 Red y permisos
+### 7.2 Network and permissions
 
-- Anotar la IP del servidor: `ipconfig` (Windows) o `ip -4 addr show` (Ubuntu).
-- Windows puede mostrar un aviso de Firewall al escuchar; permitir solo en la
-  red privada. Alternativa con permisos de administrador (revertir al terminar):
-  `netsh advfirewall firewall add rule name="OneInTwo files experiment" dir=in action=allow protocol=TCP localport=47654`
-- Ubuntu con ufw: `sudo ufw allow 47654/tcp`, y retirar la regla al final.
-- No hace falta ejecutar como administrador ni instalar servicios.
+- Enter server IP: `ipconfig` (Windows) or `ip -4 addr show` (Ubuntu).
+- Windows can display a Firewall warning when listening; allow only on the private network.
+  Alternative with administrator permissions (revert upon completion): `netsh advfirewall firewall
+  add rule name="OneInTwo files experiment" dir=in action=allow protocol=TCP localport=47654`
+- Ubuntu with ufw: `sudo ufw allow 47654/tcp`, and remove the rule at the end.
+- No need to run as an administrator or install services.
 
-### T1. Windows → Ubuntu (caché)
+### T1. Windows → Ubuntu (cache)
 
 1. **Windows (origen):**
    ```bat
-   build\oneintwo-files.exe --share --root D:\o2t-manual\datos ^
-     --cert "%USERPROFILE%\o2t-certs\servidor-cert.pem" ^
-     --key  "%USERPROFILE%\o2t-certs\servidor-key.pem" ^
-     --client-pin HUELLA_CLIENTE --bind 0.0.0.0 --port 47654
+   build\oneintwo-files.exe --share --root D:\o2t-manual\data ^
+     --cert "%USERPROFILE%\o2t-certs\server-cert.pem" ^
+     --key  "%USERPROFILE%\o2t-certs\server-key.pem" ^
+     --client-pin CLIENT_FINGERPRINT --bind 0.0.0.0 --port 47654
    ```
-   Anotar la huella impresa y el mensaje «escuchando».
-2. **Ubuntu (destino):**
+   Write down the print print and message "listening".
+2. **Ubuntu (target):**
    ```bash
    ./build/oneintwo-files --receive-offer --from IP_DEL_WINDOWS \
-     --pin HUELLA_SERVIDOR --cache ~/o2t-manual/cache --publish \
-     --cert ~/o2t-certs/cliente-cert.pem --key ~/o2t-certs/cliente-key.pem
+     --pin FINGERPRINT_SERVIDOR --cache ~/o2t-manual/cache --publish \
+     --cert ~/o2t-certs/client-cert.pem --key ~/o2t-certs/client-key.pem
    ```
-   Debe verificar los 5 archivos y publicar en el portapapeles.
-3. En Nautilus, crear `~/o2t-manual/pegado` y pegar.
-4. Verificar: `datos/file-small.txt`, `datos/empty.dat` (0 B),
-   `datos/ñandú-日本語.txt`, `datos/folder/nested/deep.bin`,
-   `datos/folder/empty-subdir/`, `datos/large-5mb.bin`; comparar hashes.
-5. `Ctrl+C` en Ubuntu y después en Windows.
+   You must check the 5 files and post them to the clipboard.
+3. In Nautilus, create `~/o2t-manual/paste` and paste.
+4. Verify: `data/file-small.txt`, `data/empty.dat` (0 B), `data/resume-日本語-🚀.txt`,
+   `data/folder/nested/deep.bin`, `data/folder/empty-subdir/`, `data/large-5mb.bin`; comparar
+   hashes.
+5. `Ctrl+C` in Ubuntu and then on Windows.
 
-**Esperado:** pegado completo, hashes iguales, estructura conservada.
-**Fallo:** error TLS (huella o certificado), conexión rechazada (firewall/IP),
-manifiesto erróneo o archivos incompletos. Registrar el texto exacto.
+**Expected:** Complete pasted, equal hashes, preserved structure. **Fault:** TLS error (print or
+certificate), rejected connection (firewall/IP), erroneous manifest or incomplete files. Register
+the exact text.
 
-### T2. Ubuntu → Windows (caché)
+### T2. Ubuntu → Windows (cache)
 
 1. **Ubuntu (origen):**
    ```bash
-   ./build/oneintwo-files --share --root ~/o2t-manual/datos \
-     --cert ~/o2t-certs/servidor-cert.pem --key ~/o2t-certs/servidor-key.pem \
-     --client-pin HUELLA_CLIENTE --bind 0.0.0.0 --port 47654
+   ./build/oneintwo-files --share --root ~/o2t-manual/data \
+     --cert ~/o2t-certs/server-cert.pem --key ~/o2t-certs/server-key.pem \
+     --client-pin CLIENT_FINGERPRINT --bind 0.0.0.0 --port 47654
    ```
-2. **Windows (destino):**
+2. **Windows (target):**
    ```bat
    build\oneintwo-files.exe --receive-offer --from IP_DE_UBUNTU ^
-     --pin HUELLA_SERVIDOR --cache D:\o2t-manual\cache --publish ^
-     --cert "%USERPROFILE%\o2t-certs\cliente-cert.pem" ^
-     --key  "%USERPROFILE%\o2t-certs\cliente-key.pem"
+     --pin FINGERPRINT_SERVIDOR --cache D:\o2t-manual\cache --publish ^
+     --cert "%USERPROFILE%\o2t-certs\client-cert.pem" ^
+     --key  "%USERPROFILE%\o2t-certs\client-key.pem"
    ```
-3. Pegar en Explorer en `D:\o2t-manual\pegado` y comparar.
-4. `Ctrl+C` en Windows; la oferta queda materializada; repetir el pegado en otra
-   carpeta para comprobar que las rutas cacheadas siguen disponibles.
+3. Paste into Explorer in `D:\o2t-manual\paste` and compare.
+4. `Ctrl+C` on Windows; the offer is materialized; repeat pasting in another folder to check that
+   the paths searched are still available.
 5. `Ctrl+C` en Ubuntu.
 
-**Esperado:** idéntico a T1, incluido el nombre Unicode. **Fallo:** nombres
-alterados, carpetas perdidas o error al pegar.
+**Expected:** identical to T1, including Unicode name. **Fault:** altered names, missing folders or
+pasting error.
 
-### T3. Windows ← Ubuntu bajo demanda (B)
+### T3. Windows ← Ubuntu on demand (B)
 
-1. Ubuntu origen: el mismo `--share` de T2.
-2. Windows destino:
+1. Ubuntu origin: the same `--share` of T2.
+2. Windows target:
    ```bat
    build\oneintwo-files.exe --publish-ondemand --from IP_DE_UBUNTU ^
-     --pin HUELLA_SERVIDOR ^
-     --cert "%USERPROFILE%\o2t-certs\cliente-cert.pem" ^
-     --key  "%USERPROFILE%\o2t-certs\cliente-key.pem" --timeout 15000
+     --pin FINGERPRINT_SERVIDOR ^
+     --cert "%USERPROFILE%\o2t-certs\client-cert.pem" ^
+     --key  "%USERPROFILE%\o2t-certs\client-key.pem" --timeout 15000
    ```
-3. Pegar en una carpeta nueva. Cronometrar: tiempo hasta el primer archivo y
-   hasta terminar; anotar si la ventana de Explorer se bloquea.
-4. Con una transferencia en curso, detener el servidor Ubuntu (`Ctrl+C`) o
-   desconectar la red. Observar el error del explorador.
-5. Repetir sin la interrupción y comparar hashes.
+3. Paste into a new folder. Time: time to first file and until finished; note if Explorer window
+   crashes.
+4. With an ongoing transfer, stop the Ubuntu server (`Ctrl+C`) or disconnect the network. Observe
+   the browser error.
+5. Repeat without interruption and compare hashes.
 
-**Esperado:** pegado correcto con el servidor vivo; ante corte, error visible y
-ningún archivo declarado completo. **Fallo:** bloqueo indefinido, éxito falso o
-archivo incompleto presentado como válido. **Condición de bloqueo:** si Explorer
-no solicita `FileContents` o no admite el descriptor, registrar B como no viable
-en Windows para este entorno.
+**Expected:** pasted correctly with the live server; before cut, visible error and no declared
+complete file. **Fault:** Undefined blocking, false success or incomplete file presented as valid.
+** Blocking condition:** if Explorer does not request `FileContents` or does not support the
+descriptor, register B as not viable on Windows for this environment.
 
-> `--timeout` limita cada lectura TLS. Un servidor que deja de responder debe
-> producir un error acotado, no un bloqueo infinito.
+> `--timeout` limits each reading TLS. A server that stops responding must
+> report an error within the time limit rather than waiting indefinitely.
 
-### T4. Ubuntu bajo demanda
+### T4. Ubuntu on demand
 
-No se ejecuta: el prototipo devuelve «no soportado» porque esta implementación
-solo publica rutas `file://` locales. Una entrega perezosa requeriría un backend
-GIO/GVfs o FUSE, fuera del encargo; no se afirma que sea técnicamente imposible.
+Not executed: the prototype returns "unsupported" because this implementation only publishes local
+`file://` routes. A lazy delivery would require a backend GIO/GVfs or FUSE, outside the order; it is
+not claimed to be technically impossible.
 
-## 8. Comparación A frente a B
+## 8. Comparison A versus B
 
-Registrar con los mismos datos de 5 MiB y la misma red:
+Register with the same data of 5 MiB and the same network:
 
-| Métrica | A: caché | B: bajo demanda |
+| Metric | A: cache | B: on demand |
 | --- | --- | --- |
-| Tiempo hasta poder pegar |  |  |
-| Tiempo total de pegado |  |  |
-| Espacio en disco del prototipo |  |  |
-| Bloqueo percibido del explorador |  |  |
-| Comportamiento al cerrar el proceso |  |  |
-| Error si falla la red al pegar | no aplica |  |
-| Complejidad de integración | baja | alta |
+| Time until you can paste |  |  |
+| Total paste time |  |  |
+| Prototyping disk space |  |  |
+| Perceived Explorer Block |  |  |
+| Behavior when the process exits |  |  |
+| Error if the network fails while pasting | no aplica |  |
+| Integration complexity | baja | alta |
 
-Observaciones cualitativas que hay que anotar:
+Qualitative observations to be noted:
 
-- ¿Explorer/Nautilus muestra progreso? ¿Se puede cancelar desde el explorador?
-- ¿Se puede pegar dos veces seguidas?
-- ¿Qué ocurre si se pega antes de terminar la descarga (A)?
-- ¿La ventana del explorador responde mientras se lee un archivo grande (B)?
+- Does Explorer/Nautilus show progress? Can it be cancelled from the browser?
+- Can you hit it twice in a row?
+- What happens if it sticks before the discharge (A) ends?
+- Does the browser window respond while reading a large file (B)?
 
-## 9. Detener y restaurar el estado
+## 9. Stop and restore status
 
-1. `Ctrl+C` en cada proceso del prototipo. Debe imprimir el final de la
-   publicación o «servidor detenido»; el código de salida debe ser 0.
-2. Borrar los datos y la caché de prueba:
+1. `Ctrl+C` in each prototype process. You must print the end of the publication or "stop server";
+   the output code must be 0.
+2. Delete the data and the test cache:
    ```bat
    rmdir /s /q D:\o2t-manual
    rmdir /s /q "%USERPROFILE%\o2t-certs"
@@ -479,36 +460,36 @@ Observaciones cualitativas que hay que anotar:
    ```bash
    rm -rf ~/o2t-manual ~/o2t-certs
    ```
-3. Si se añadió la regla de firewall, retirarla:
+3. If the firewall rule was added, remove it:
    ```bat
    netsh advfirewall firewall delete rule name="OneInTwo files experiment"
    ```
    ```bash
    sudo ufw delete allow 47654/tcp
    ```
-4. El prototipo no instala servicios, no escribe en el registro ni crea inicio
-   automático. La carpeta `build/` puede borrarse en cualquier momento.
+4. The prototype does not install services, does not type in the record, or automatically start. The
+   `build/` folder can be deleted at any time.
 
-## 10. Matriz de resultados manuales
+## 10. Manual results matrix
 
-Una fila por ejecución. Copiar esta tabla a `RESULTS.md` o completarla aquí; no
-marcar como superado nada que no se haya observado.
+One row per run. Copy this table to `RESULTS.md` or complete it here; do not mark as exceeded
+anything that has not been observed.
 
-| Caso | Equipo y sesión | Esperado | Observado | Resultado |
+| Caso | Equipment and meeting | Esperado | Observado | Result |
 | --- | --- | --- | --- | --- |
-| L1 self-test |  | 0 fallos |  | Pendiente |
-| L2 caché Explorer |  | pegado completo y hash igual |  | Pendiente |
-| L3 bajo demanda local Windows |  | pegado completo o bloqueo documentado |  | Pendiente |
-| L4 caché Nautilus |  | pegado completo y hash igual |  | Pendiente |
-| L5 bajo demanda Linux |  | error explícito: limitación de implementación, no inviabilidad |  | Pendiente |
-| L6 colisiones y sin escritura |  | sufijos, sin sobrescritura, error claro |  | Pendiente |
-| L7 cancelación |  | sin oferta publicada ni temporales |  | Pendiente |
-| L8 caché y gc |  | ofertas eliminadas según edad |  | Pendiente |
-| T1 Windows→Ubuntu |  | pegado completo, hash igual |  | Pendiente |
-| T2 Ubuntu→Windows |  | pegado completo, hash igual |  | Pendiente |
-| T3 Windows←Ubuntu bajo demanda |  | pegado completo; corte con error |  | Pendiente |
-| T0 TLS mutuo negativo |  | rechazo de huella de cliente o servidor |  | Pendiente |
+| L1 self-test |  | 0 fallos |  | Pending |
+| L2 cache Explorer |  | complete paste with matching hashes |  | Pending |
+| L3 on demand local Windows |  | complete paste or a documented blocker |  | Pending |
+| L4 Nautilus cache |  | complete paste with matching hashes |  | Pending |
+| L5 on demand Linux |  | explicit error: implementation limitation, non-viability |  | Pending |
+| L6 collisions and no writing |  | suffixes, no overwrite, and a clear error |  | Pending |
+| L7 cancellation |  | no published offer or temporary files |  | Pending |
+| L8 cache and gc |  | offers eliminated by age |  | Pending |
+| T1 Windows→Ubuntu |  | complete paste with matching hashes |  | Pending |
+| T2 Ubuntu→Windows |  | complete paste with matching hashes |  | Pending |
+| T3 Windows←Ubuntu on demand |  | complete paste and error on interruption |  | Pending |
+| T0 mutual TLS rejection |  | Client or server footprint rejection |  | Pending |
 
-Condiciones de fallo que invalidan una fila: hash distinto, archivo incompleto
-presentado como terminado, sobrescritura sin aviso, bloqueo sin error, o
-publicación «correcta» sin que el explorador haya solicitado el contenido.
+Failure conditions that invalidate a row: different hash, incomplete file submitted as finished,
+overwrite without notice, lock without error, or "correct" publication without the browser
+requesting the content.

@@ -1,13 +1,14 @@
 /*
- * OneInTwo — Contexto del escritorio Linux.
- * Estado: estructura documental; implementación pendiente.
+ * OneInTwo — Linux desktop context. Status: documentary structure; pending implementation.
  *
- * Responsabilidades previstas:
- * - Detectar entorno, sesión gráfica y capacidades efectivamente disponibles.
- * - Coordinar ciclo de vida, bloqueo, geometría y selección del backend validado.
- * - Usar los componentes Wayland/portales previstos sin asumir compatibilidad por el nombre de la distribución.
- * - Conectar captura visual y avisos con los adaptadores de este directorio.
- * - Informar función no soportada si falta una capacidad y propagar retirada de permisos.
- * - X11 es una ampliación pendiente: no declarar compatibilidad ni crear un backend vacío que parezca funcional.
+ * Responsibilities envisaged:
+ * - Detect environment, graphical session and effectively available capabilities.
+ * - Coordinate life cycle, blocking, geometry and selection of validated backend.
+ * - Use the intended Wayland/portal components without assuming compatibility by the name of the
+ *   distribution.
+ * - Connect visual capture and warnings to the adapters of this directory.
+ * - Report unsupported function if capacity is missing and propagate withdrawal of permissions.
+ * - X11 is a pending enlargement: do not declare compatibility or create an empty backend that
+ *   looks functional.
  */
 

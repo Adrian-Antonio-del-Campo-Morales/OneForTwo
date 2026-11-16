@@ -49,7 +49,7 @@ enum class SendResult {
     denied,
 };
 
-// queued transfiere la propiedad a la sesión sin confirmar la entrega.
+// queued transfers the property to the session without confirming delivery.
 using SendFeatureMessage = std::function<SendResult(FeatureMessage)>;
 
 struct VisualDependencies {
@@ -93,7 +93,7 @@ inline constexpr auto visual_activity_interval = std::chrono::seconds{1};
 inline constexpr auto visual_activity_timeout = std::chrono::seconds{5};
 inline constexpr std::size_t visual_fragment_bytes = 64 * 1024;
 inline constexpr std::size_t notification_queue_capacity = 16;
-// Límite del canal interactivo y de la política local: tres por segundo.
+// Limit of interactive channel and local politics: three per second.
 inline constexpr unsigned notification_rate_per_second = 3;
 
 } // namespace oneintwo

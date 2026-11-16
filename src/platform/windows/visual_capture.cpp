@@ -3,12 +3,11 @@
 #include "visual/windows_capture_factory.hpp"
 
 /*
- * Selección y captura local de monitores y ventanas en Windows.
+ * Local selection and capture of monitors and windows on Windows.
  *
- * El adaptador retiene el objeto de captura nativo de la identidad elegida
- * (HWND o HMONITOR) y nunca vuelve a buscar la fuente por título. Los cambios
- * de disponibilidad, tamaño y cierre proceden del objeto retenido. Si Windows
- * Graphics Capture no está soportado, se informa unavailable.
+ * The adapter retains the native capture object of the chosen identity (HWND or HMONITOR) and
+ * never searches the source by title again. Changes in availability, size and closure come from
+ * the retained object. If Windows Graphics Capture is not supported, unavailable is reported.
  */
 
 namespace oneintwo {

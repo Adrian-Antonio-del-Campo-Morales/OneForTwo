@@ -8,11 +8,10 @@
 #include <thread>
 
 /*
- * Recorrido nativo de presentación en Ubuntu. Publica un aviso manual por
- * org.freedesktop.Notifications, espera el resultado del escritorio y comprueba
- * que la observación automática se anuncia como no disponible. Devuelve 77
- * cuando no hay bus de sesión o servicio, para que CTest lo registre como
- * omitido en lugar de aprobado.
+ * Native presentation tour at Ubuntu. Post a manual notice by org.freedesktop.Notifications, wait
+ * for the desktop result and check that automatic observation is advertised as unavailable.
+ * Returns 77 when there is no session bus or service, so that CTest records it as omitted rather
+ * than approved.
  */
 
 int main() {
@@ -25,7 +24,7 @@ int main() {
 
     auto desktop = makeLinuxNotifications(context);
     if (!desktop) {
-        std::fprintf(stderr, "fallo: makeLinuxNotifications devolvió null\n");
+        std::fprintf(stderr, "failure: makeLinuxNotifications returned null\n");
         return 1;
     }
 
@@ -33,11 +32,11 @@ int main() {
     std::printf("capacidades: present=%d observe=%d\n", capabilities.present ? 1 : 0,
                 capabilities.observe ? 1 : 0);
     if (!capabilities.present) {
-        std::printf("omitido: no hay bus de sesión configurado\n");
+        std::printf("omitted: no session bus configured\n");
         return 77;
     }
     if (capabilities.observe) {
-        std::fprintf(stderr, "fallo: Linux no debe anunciar observación automática\n");
+        std::fprintf(stderr, "failure: Linux must not announce automatic observation\n");
         return 1;
     }
 
@@ -49,12 +48,12 @@ int main() {
             observation_state.set_value(result);
         });
     if (observation_future.wait_for(std::chrono::seconds(5)) != std::future_status::ready) {
-        std::fprintf(stderr, "fallo: startObserving no informó estado\n");
+        std::fprintf(stderr, "failure: startObserving did not report status\n");
         return 1;
     }
     const DesktopResult observation_result = observation_future.get();
-    std::printf("observación: %s\n",
-                observation_result == DesktopResult::unavailable ? "no disponible" : "inesperada");
+    std::printf("observation: %s\n",
+                observation_result == DesktopResult::unavailable ? "unavailable" : "unexpected");
     if (observation_result != DesktopResult::unavailable) {
         return 1;
     }
@@ -62,32 +61,32 @@ int main() {
     RemoteNotification notice;
     notice.ref = NotificationRef{1, 1};
     notice.mode = NotificationMode::manual;
-    notice.content.title = "OneInTwo · aviso de prueba";
-    notice.content.body = "Texto plano con Unicode: ñandú, 日本語, 😀";
+    notice.content.title = "OneInTwo · test notice";
+    notice.content.body = "Plain Unicode text: café, 日本語, 😀";
 
     std::promise<DesktopResult> presented;
     auto presented_future = presented.get_future();
-    desktop->presentNotice("EQUIPO-DE-PRUEBA", notice,
+    desktop->presentNotice("TEST-DEVICE", notice,
                            [&presented](DesktopResult result) {
                                presented.set_value(result);
                            });
     if (presented_future.wait_for(std::chrono::seconds(10)) != std::future_status::ready) {
-        std::fprintf(stderr, "fallo: presentNotice no completó\n");
+        std::fprintf(stderr, "failure: presentNotice did not complete\n");
         return 1;
     }
     const DesktopResult result = presented_future.get();
     switch (result) {
     case DesktopResult::ready:
-        std::printf("presentación: aceptada por el servicio\n");
-        // El aviso permanece visible el tiempo suficiente para la inspección.
+        std::printf("presentation: accepted by the service\n");
+        // The warning remains visible long enough for inspection.
         std::this_thread::sleep_for(std::chrono::seconds(3));
         desktop->withdrawNotices();
         return 0;
     case DesktopResult::unavailable:
-        std::printf("omitido: el servicio de notificaciones no está disponible\n");
+        std::printf("omitted: notification service is not available\n");
         return 77;
     default:
-        std::fprintf(stderr, "fallo: presentación rechazada (%d)\n",
+        std::fprintf(stderr, "Judgment: rejected submission (%d)\n",
                      static_cast<int>(result));
         return 1;
     }

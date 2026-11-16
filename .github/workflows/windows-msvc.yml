@@ -37,7 +37,7 @@ jobs:
             $opensslRoot = "C:\Program Files\OpenSSL-Win64"
           }
           if (-not (Test-Path "$opensslRoot\include\openssl\ssl.h")) {
-            throw "No se encontró el SDK de OpenSSL"
+            throw "The OpenSSL SDK was not found"
           }
           "OPENSSL_ROOT_DIR=$opensslRoot" |
             Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -48,7 +48,7 @@ jobs:
         shell: pwsh
         run: |
           if (-not $env:QT_ROOT_DIR) {
-            throw "La acción de Qt no definió QT_ROOT_DIR"
+            throw "The Qt action did not set QT_ROOT_DIR"
           }
           cmake -S . -B build/windows-msvc `
             -G "Visual Studio 17 2022" -A x64 `
@@ -67,7 +67,7 @@ jobs:
         run: |
           $test = "build/windows-msvc/tests/application/Release/oneintwo_application_tests.exe"
           if (-not (Test-Path $test)) {
-            throw "No se generó $test"
+            throw "The build did not produce $test"
           }
           $env:QT_PLUGIN_PATH = Join-Path $env:QT_ROOT_DIR "plugins"
           $env:QT_QPA_PLATFORM = "offscreen"
@@ -76,7 +76,7 @@ jobs:
           $listedText = $listed -join "`n"
           $listedText | Write-Output
           if ($LASTEXITCODE -ne 0 -or $listedText -notmatch "Total Tests: 1") {
-            throw "CTest no registró exactamente la prueba de Application"
+            throw "CTest did not register exactly one Application test"
           }
           $result = ctest --test-dir build/windows-msvc -C Release `
             -R "^oneintwo_application$" --output-on-failure 2>&1
@@ -85,7 +85,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($resultText -notmatch "100% tests passed" -or
               $resultText -notmatch "oneintwo_application") {
-            throw "La prueba de arranque no se ejecutó correctamente"
+            throw "The startup test did not run successfully"
           }
 
   cmake-guards:
@@ -142,12 +142,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # El mínimo declarado por el backend.
+          # The minimum SDK declared by the backend.
           - sdk: "10.0.19041.0"
             platform: "x64,version=10.0.19041.0"
             expected_sdk: "10.0.19041.0"
             label: minimum
-          # SDK por defecto de la imagen; seguirá al SDK actual cuando se actualice.
+          # Use the image's default SDK so the job follows runner updates.
           - sdk: "default"
             platform: "x64"
             expected_sdk: "default"
@@ -189,7 +189,7 @@ jobs:
               $match = [regex]::Match($text, 'Selecting Windows SDK version ([0-9.]+) to target Windows')
             }
             if (-not $match.Success) {
-              throw "No se encontró el SDK seleccionado en $LogPath"
+              throw "The selected SDK was not found in $LogPath"
             }
             return $match.Groups[1].Value
           }
@@ -200,7 +200,7 @@ jobs:
           $expected = "${{ matrix.expected_sdk }}"
           if ($expected -ne 'default') {
             if ($selected -ne $expected) {
-              throw "La lane ${{ matrix.label }} seleccionó Windows SDK '$selected', pero se esperaba '$expected'."
+              throw "The ${{ matrix.label }} job selected Windows SDK '$selected', but expected '$expected'."
             }
             Write-Host "OK: ${{ matrix.label }} usa el SDK fijado $selected"
           } else {
@@ -210,14 +210,14 @@ jobs:
             & cmake -S $probeSource -B $probeBuild -G 'Visual Studio 17 2022' -A 'x64' 2>&1 | Tee-Object -FilePath $probeLog
             $probeExit = $LASTEXITCODE
             if ($probeExit -ne 0) {
-              throw "No se pudo configurar la sonda del SDK por defecto; revisa $probeLog."
+              throw "Failed to configure the default SDK probe. See $probeLog."
             }
             $defaultSdk = Get-SelectedSdk $probeLog
             Write-Host "Runner default Windows SDK: $defaultSdk"
             if ($selected -ne $defaultSdk) {
-              throw "La lane ${{ matrix.label }} seleccionó '$selected', pero el SDK por defecto del runner es '$defaultSdk'; debe usar -A x64 sin version=."
+              throw "The ${{ matrix.label }} job selected '$selected', but the runner defaults to '$defaultSdk'. Use -A x64 without version=."
             }
-            Write-Host "OK: ${{ matrix.label }} usa el SDK por defecto del runner ($selected)"
+            Write-Host "OK: ${{ matrix.label }} uses the runner's default SDK ($selected)"
           }
 
       - name: Build backend, link check and tests (${{ matrix.label }})

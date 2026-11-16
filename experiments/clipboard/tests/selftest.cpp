@@ -1,6 +1,6 @@
-// Responsabilidad: auto-pruebas aisladas con datos sintéticos y un adaptador
-// falso. No inicializan el portapapeles, no abren red, no capturan entrada y
-// no usan certificados reales. Se ejecutan con --self-test.
+// Responsibility: Self-tests isolated with synthetic data and an adapter
+// They don't initialize the clipboard, they don't open a network, they do not capture input and
+// do not use real certificates. They run with --self-test.
 
 #include <cstdint>
 #include <iostream>
@@ -114,11 +114,11 @@ struct Harness {
 
 void test_text_validation() {
   {
-    const Validation validation = validate_text(u8"hola ñ 😀");
+    const Validation validation = validate_text(u8"Hi! é 😀!");
     CHECK(validation.valid);
     CHECK(validation.metrics.codepoints == 8);
     CHECK(validation.metrics.lines == 1);
-    CHECK(validation.normalized == u8"hola ñ 😀");
+    CHECK(validation.normalized == u8"Hi! é 😀!");
     CHECK(validation.status.ok());
   }
   {
@@ -157,7 +157,7 @@ void test_text_validation() {
     CHECK(validation.metrics.lines == 3);
   }
   {
-    const Validation validation = validate_text(u8"línea\n");
+    const Validation validation = validate_text(u8"line\n");
     CHECK(validation.valid);
     CHECK(validation.metrics.codepoints == 6);
     CHECK(validation.metrics.lines == 2);
@@ -230,7 +230,7 @@ void test_protocol_roundtrip_and_limits() {
   clipboard.generation = 123;
   clipboard.logical = 7;
   clipboard.origin = "bbbb2222";
-  clipboard.text = u8"hola ñ 😀\nlínea 2";
+  clipboard.text = u8"Hi! é 😀!\nline 2";
   const Bytes valid = encode_clipboard(clipboard);
   CHECK(decode_message(valid, decoded, error));
   CHECK(decoded.type == MessageType::Clipboard);
@@ -298,13 +298,13 @@ void test_protocol_roundtrip_and_limits() {
 
 void test_engine_local_capture() {
   Harness harness;
-  harness.port.content = ClipboardContent{u8"hola ñ 😀", ""};
+  harness.port.content = ClipboardContent{u8"Hi! é 😀!", ""};
   harness.engine->on_local_clipboard(harness.port.content);
   CHECK(harness.sent.size() == 1);
   CHECK(harness.sent[0].generation == 42);
   CHECK(harness.sent[0].origin == "aaaa1111");
   CHECK(harness.sent[0].logical == 1);
-  CHECK(harness.sent[0].text == u8"hola ñ 😀");
+  CHECK(harness.sent[0].text == u8"Hi! é 😀!");
   CHECK(!harness.events.empty());
   CHECK(harness.events.back().kind == EngineEventKind::LocalSent);
   CHECK(harness.events.back().status.ok());
@@ -336,12 +336,12 @@ void test_engine_local_capture() {
 
 void test_engine_remote_and_echo() {
   Harness harness;
-  const ClipboardUpdate update = make_update(42, 5, "bbbb2222", u8"hola\nñ 😀");
+  const ClipboardUpdate update = make_update(42, 5, "bbbb2222", u8"Hi!\né 😀!");
   const ApplyResult applied = harness.engine->apply_remote(update);
   CHECK(applied.applied);
   CHECK(applied.status.ok());
   CHECK(harness.port.writes == 1);
-  CHECK(harness.port.content.text == u8"hola\nñ 😀");
+  CHECK(harness.port.content.text == u8"Hi!\né 😀!");
   CHECK(harness.port.content.marker.rfind("oit1:aaaa1111:", 0) == 0);
   CHECK(harness.engine->is_self_marker(harness.port.content.marker));
   CHECK(harness.engine->is_self_marker("oit1:aaaa1111:any-prefix"));

@@ -1,5 +1,5 @@
-// Responsabilidad: serialización little-endian del mensaje de control y rechazo
-// de tramas mal formadas o de versión desconocida.
+// Responsibility: small-endian serialization of the message of control and rejection
+// of poorly formed or unexplained plots.
 #include "protocol.hpp"
 
 namespace oit {
@@ -45,7 +45,7 @@ Frame encodeMessage(const Message& message) {
   frame[3] = '2';
   frame[4] = kProtocolVersion;
   frame[5] = static_cast<uint8_t>(message.type);
-  putU16(frame.data() + 6, 16);  // longitud del cuerpo
+  putU16(frame.data() + 6, 16);  // length of the body
   putU32(frame.data() + 8, message.generation);
   putU32(frame.data() + 12, message.sequence);
   putU16(frame.data() + 16, static_cast<uint16_t>(message.x));
@@ -60,27 +60,27 @@ Frame encodeMessage(const Message& message) {
 
 bool decodeMessage(const uint8_t* data, size_t size, Message& out, std::string& error) {
   if (data == nullptr || size != kFrameSize) {
-    error = "trama de tamaño incorrecto";
+    error = "wrong size plot";
     return false;
   }
   if (data[0] != 'O' || data[1] != 'I' || data[2] != 'T' || data[3] != '2') {
-    error = "marca de trama incorrecta";
+    error = "wrong plotting mark";
     return false;
   }
   if (data[4] != kProtocolVersion) {
-    error = "versión de protocolo no compatible";
+    error = "non-compatible protocol version";
     return false;
   }
   if (getU16(data + 6) != 16 || getU16(data + 26) != 0) {
-    error = "longitud o reservado inválidos";
+    error = "invalid length or reserved";
     return false;
   }
   if (!knownType(data[5])) {
-    error = "tipo de mensaje desconocido";
+    error = "type of message unknown";
     return false;
   }
   if (data[22] > 1) {
-    error = "indicador de pulsación inválido";
+    error = "Invalid pulsation indicator";
     return false;
   }
 
@@ -97,14 +97,14 @@ bool decodeMessage(const uint8_t* data, size_t size, Message& out, std::string& 
 
   if (message.type == MsgType::EnterRequest) {
     if (message.code > 1) {
-      error = "borde inválido en EnterRequest";
+      error = "invalid border in EnterRequest";
       return false;
     }
   }
   if (message.type == MsgType::EnterReject || message.type == MsgType::Leave ||
       message.type == MsgType::ReleaseAll) {
     if (!validReason(message.reason)) {
-      error = "motivo inválido";
+      error = "invalid ground";
       return false;
     }
   }

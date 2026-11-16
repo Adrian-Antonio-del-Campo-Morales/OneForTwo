@@ -1,7 +1,7 @@
 #pragma once
 
-// Responsabilidad: modelo común de texto, límites, huellas y orden lógico.
-// No depende del escritorio, de la red ni de ninguna biblioteca externa.
+// Responsibility: common text model, boundaries, footprints and logical order.
+// It does not depend on the desktop, network or any external library.
 
 #include <cstddef>
 #include <cstdint>
@@ -10,7 +10,7 @@
 
 namespace oit {
 
-// Límite del experimento para texto UTF-8. No es un valor de producto.
+// Test limit for text UTF-8. It is not a product value.
 inline constexpr std::size_t kMaxTextBytes = 256u * 1024u;
 inline constexpr std::uint16_t kProtocolVersion = 1;
 inline constexpr std::uint16_t kDefaultPort = 47831;
@@ -51,26 +51,26 @@ struct Validation {
   bool valid = false;
   Status status;
   TextMetrics metrics;
-  std::string normalized;  // UTF-8 con finales de línea LF.
+  std::string normalized;  // UTF-8 with LF line ends.
 };
 
-// Valida UTF-8 estricto, rechaza NUL y texto vacío, aplica el límite y
-// normaliza CRLF a LF. No recorta ni reemplaza contenido.
+// Validation UTF-8 strict, rejects NUL and empty text, applies limit and
+// normalizes CRLF to LF. It does not crop or replace content.
 Validation validate_text(std::string_view text,
                          std::size_t max_bytes = kMaxTextBytes);
 
 std::string normalize_line_endings(std::string_view text);
 std::string to_windows_line_endings(std::string_view text);
 
-// Huella no criptográfica (FNV-1a de 64 bits) para diagnóstico y para la
-// heurística local de eco. No se usa como autenticación.
+// Non-cryptographic fingerprint (FNV-1a of 64 bits) for diagnosis and
+// Local echo heuristics. Not used as authentication.
 std::uint64_t fingerprint(std::string_view text) noexcept;
 std::string fingerprint_hex(std::uint64_t value);
 std::string hex_u64(std::uint64_t value);
 
 struct ClipboardContent {
   std::string text;    // UTF-8
-  std::string marker;  // Marcador interno de escritura propia; vacío si es ajena.
+  std::string marker;  // Self-write internal marker; empty if foreign.
 };
 
 struct ClipboardUpdate {
@@ -80,8 +80,8 @@ struct ClipboardUpdate {
   std::string text;
 };
 
-// Orden determinista independiente de relojes de pared: primero el contador
-// lógico y, en empate, el identificador de origen mayor.
+// Independent deterministic order of wall clocks: first counter
+// logical and, in a tie, the identifier of major origin.
 int compare_updates(const ClipboardUpdate& a,
                     const ClipboardUpdate& b) noexcept;
 bool update_is_newer(const ClipboardUpdate& candidate,

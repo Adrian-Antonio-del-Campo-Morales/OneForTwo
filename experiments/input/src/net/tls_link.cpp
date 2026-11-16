@@ -1,6 +1,6 @@
-// Responsabilidad: transporte fiable entre las dos instancias. Usa TLS con
-// certificado propio y fija la huella SHA-256 del par; no hay confianza
-// implícita por nombre de equipo ni por dirección de red.
+// Responsibility: reliable transport between the two instances. Use TLS with
+// self-certificate and fix the footprint SHA-256 of the pair; no confidence
+// implied by team name or network address.
 #include "net/link.hpp"
 
 #include "core/protocol.hpp"
@@ -85,7 +85,7 @@ bool wouldBlock(int error) {
 
 std::string socketErrorText() {
 #if defined(_WIN32)
-  return "error de socket " + std::to_string(lastSocketError());
+  return "socket error " + std::to_string(lastSocketError());
 #else
   return std::string(std::strerror(lastSocketError()));
 #endif
@@ -133,7 +133,7 @@ Socket connectTo(const std::string& host, uint16_t port, std::string& error) {
   addrinfo* results = nullptr;
   const int lookup = getaddrinfo(host.c_str(), service.c_str(), &hints, &results);
   if (lookup != 0 || results == nullptr) {
-    error = "no se pudo resolver la dirección del destino";
+    error = "the destination address could not be resolved";
     return kInvalidSocket;
   }
 
@@ -173,7 +173,7 @@ Socket connectTo(const std::string& host, uint16_t port, std::string& error) {
 
   freeaddrinfo(results);
   if (connected == kInvalidSocket) {
-    error = "no se pudo conectar con el destino (" + socketErrorText() + ")";
+    error = "could not be connected to destination (" + socketErrorText() + ")";
   }
   return connected;
 }
@@ -181,7 +181,7 @@ Socket connectTo(const std::string& host, uint16_t port, std::string& error) {
 Socket createListener(uint16_t port, std::string& error) {
   Socket socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (socket == kInvalidSocket) {
-    error = "no se pudo crear el socket de escucha";
+    error = "could not create listening socket";
     return kInvalidSocket;
   }
 
@@ -193,12 +193,12 @@ Socket createListener(uint16_t port, std::string& error) {
   address.sin_addr.s_addr = htonl(INADDR_ANY);
   address.sin_port = htons(port);
   if (bind(socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
-    error = "no se pudo abrir el puerto " + std::to_string(port) + " (" + socketErrorText() + ")";
+    error = "could not open port " + std::to_string(port) + " (" + socketErrorText() + ")";
     closeSocket(socket);
     return kInvalidSocket;
   }
   if (listen(socket, 1) != 0) {
-    error = "no se pudo escuchar en el puerto indicado";
+    error = "could not be heard in the indicated port";
     closeSocket(socket);
     return kInvalidSocket;
   }
@@ -212,7 +212,7 @@ struct PinHolder {
 
 std::string opensslError() {
   const unsigned long code = ERR_get_error();
-  if (code == 0) return "error TLS sin detalle";
+  if (code == 0) return "error TLS without detail";
   char buffer[256];
   ERR_error_string_n(code, buffer, sizeof(buffer));
   return std::string(buffer);
@@ -262,13 +262,13 @@ bool normalizeFingerprint(const std::string& input, std::string& normalized, std
     const bool hex = (character >= '0' && character <= '9') ||
                      (character >= 'a' && character <= 'f');
     if (!hex) {
-      error = "la huella debe ser hexadecimal SHA-256 (64 dígitos)";
+      error = "the print must be hexadecimal SHA-256 (64 digits)";
       return false;
     }
     normalized.push_back(character);
   }
   if (normalized.size() != 64) {
-    error = "la huella debe contener 64 dígitos hexadecimales";
+    error = "the print must contain 64 hexadecimal digits";
     return false;
   }
   return true;
@@ -279,7 +279,7 @@ SSL_CTX* createTlsContext(bool server, const std::string& certFile, const std::s
   holder = nullptr;
   SSL_CTX* context = SSL_CTX_new(server ? TLS_server_method() : TLS_client_method());
   if (context == nullptr) {
-    error = "no se pudo crear el contexto TLS: " + opensslError();
+    error = "Could not create context TLS: " + opensslError();
     return nullptr;
   }
   SSL_CTX_set_min_proto_version(context, TLS1_2_VERSION);
@@ -289,13 +289,13 @@ SSL_CTX* createTlsContext(bool server, const std::string& certFile, const std::s
 
   const int index = pinContextIndex();
   if (index < 0) {
-    error = "no se pudo registrar la huella en OpenSSL";
+    error = "could not record print on OpenSSL";
     SSL_CTX_free(context);
     return nullptr;
   }
   holder = new PinHolder{pin};
   if (SSL_CTX_set_ex_data(context, index, holder) != 1) {
-    error = "no se pudo fijar la huella del par en el contexto TLS";
+    error = "could not fix torque footprint in context TLS";
     delete holder;
     holder = nullptr;
     SSL_CTX_free(context);
@@ -303,21 +303,21 @@ SSL_CTX* createTlsContext(bool server, const std::string& certFile, const std::s
   }
 
   if (SSL_CTX_use_certificate_chain_file(context, certFile.c_str()) != 1) {
-    error = "no se pudo cargar el certificado '" + certFile + "': " + opensslError();
+    error = "Could not load certificate '" + certFile + "': " + opensslError();
     SSL_CTX_free(context);
     delete holder;
     holder = nullptr;
     return nullptr;
   }
   if (SSL_CTX_use_PrivateKey_file(context, keyFile.c_str(), SSL_FILETYPE_PEM) != 1) {
-    error = "no se pudo cargar la clave privada '" + keyFile + "': " + opensslError();
+    error = "Could not load private key '" + keyFile + "': " + opensslError();
     SSL_CTX_free(context);
     delete holder;
     holder = nullptr;
     return nullptr;
   }
   if (SSL_CTX_check_private_key(context) != 1) {
-    error = "el certificado y la clave privada no coinciden";
+    error = "the certificate and the private key do not match";
     SSL_CTX_free(context);
     delete holder;
     holder = nullptr;
@@ -350,13 +350,13 @@ class TlsLink : public Link {
     }
     X509* peer = SSL_get_peer_certificate(ssl_);
     if (peer == nullptr) {
-      error = "el par no presentó certificado";
+      error = "the pair did not submit a certificate";
       return false;
     }
     const bool matches = certificateMatchesPin(peer, pin_);
     X509_free(peer);
     if (!matches) {
-      error = "la huella SHA-256 del certificado del par no coincide";
+      error = "the print SHA-256 of the pair certificate does not match";
       return false;
     }
     handshaked_ = true;
@@ -377,12 +377,12 @@ class TlsLink : public Link {
         const int code = SSL_get_error(ssl_, written);
         if (code == SSL_ERROR_WANT_READ || code == SSL_ERROR_WANT_WRITE) {
           if (!waitWritable(2000)) {
-            error = "tiempo de espera agotado escribiendo TLS";
+            error = "waiting time exhausted by writing TLS";
             return false;
           }
           continue;
         }
-        error = "error de escritura TLS: " + opensslError();
+        error = "write error TLS: " + opensslError();
         return false;
       }
       offset += static_cast<size_t>(written);
@@ -409,7 +409,7 @@ class TlsLink : public Link {
           select(static_cast<int>(socket_) + 1, &readable, nullptr, nullptr, &timeout);
       if (ready == 0) return true;
       if (ready < 0) {
-        error = "select falló esperando datos TLS";
+        error = "select failed waiting data TLS";
         return false;
       }
     }
@@ -424,10 +424,10 @@ class TlsLink : public Link {
       const int code = SSL_get_error(ssl_, received);
       if (code == SSL_ERROR_WANT_READ || code == SSL_ERROR_WANT_WRITE) break;
       if (code == SSL_ERROR_ZERO_RETURN) {
-        error = "el par cerró la conexión";
+        error = "the pair closed the connection";
         return false;
       }
-      error = "error de lectura TLS: " + opensslError();
+      error = "reading error TLS: " + opensslError();
       return false;
     }
     return parseBuffered(out, error);
@@ -485,7 +485,7 @@ std::unique_ptr<Link> makeTlsLink(Socket socket, bool server, const std::string&
   }
   SSL* ssl = SSL_new(context);
   if (ssl == nullptr) {
-    error = "no se pudo crear la sesión TLS";
+    error = "Could not create session TLS";
     SSL_CTX_free(context);
     delete holder;
     closeSocket(socket);
@@ -503,7 +503,7 @@ bool netInit(std::string& error) {
 #if defined(_WIN32)
   WSADATA data{};
   if (WSAStartup(MAKEWORD(2, 2), &data) != 0) {
-    error = "no se pudo inicializar Winsock";
+    error = "could not initialise Winsock";
     return false;
   }
 #else
@@ -527,7 +527,7 @@ std::unique_ptr<Link> openTlsClient(const std::string& host, uint16_t port,
   (void)certFile;
   (void)keyFile;
   (void)peerFingerprint;
-  error = "este ejecutable se compiló sin TLS; reconstruya con OpenSSL";
+  error = "this executable was compiled without TLS; reconstruct with OpenSSL";
   return nullptr;
 #else
   std::string pin;
@@ -547,7 +547,7 @@ std::unique_ptr<Link> openTlsServer(uint16_t port, const std::string& certFile,
   (void)keyFile;
   (void)peerFingerprint;
   (void)shouldStop;
-  error = "este ejecutable se compiló sin TLS; reconstruya con OpenSSL";
+  error = "this executable was compiled without TLS; reconstruct with OpenSSL";
   return nullptr;
 #else
   std::string pin;
@@ -563,7 +563,7 @@ std::unique_ptr<Link> openTlsServer(uint16_t port, const std::string& certFile,
     timeval timeout{0, 200000};
     const int ready = select(static_cast<int>(listener) + 1, &readable, nullptr, nullptr, &timeout);
     if (ready < 0) {
-      error = "select falló esperando conexión";
+      error = "select failed waiting for connection";
       closeSocket(listener);
       return nullptr;
     }
@@ -571,7 +571,7 @@ std::unique_ptr<Link> openTlsServer(uint16_t port, const std::string& certFile,
 
     Socket client = accept(listener, nullptr, nullptr);
     if (client == kInvalidSocket) {
-      error = "accept falló";
+      error = "accept failed";
       closeSocket(listener);
       return nullptr;
     }
@@ -582,7 +582,7 @@ std::unique_ptr<Link> openTlsServer(uint16_t port, const std::string& certFile,
   }
 
   closeSocket(listener);
-  error = "cancelado antes de recibir conexión";
+  error = "cancelled before receiving connection";
   return nullptr;
 #endif
 }

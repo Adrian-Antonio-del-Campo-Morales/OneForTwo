@@ -1,12 +1,11 @@
 /*
- * OneInTwo — Contexto del escritorio Windows.
- * Estado: estructura documental; implementación pendiente.
+ * OneInTwo — Windows desktop context. Status: documentary structure; pending implementation.
  *
- * Responsabilidades previstas:
- * - Crear y cerrar los recursos nativos de sesión y despachar notificaciones a los componentes de Windows.
- * - Observar bloqueo, fin de sesión y cambios de pantalla; publicar geometría y capacidades reales.
- * - Coordinar ventanas auxiliares, bucle de mensajes y afinidad de hilo que exijan las APIs.
- * - Conectar el contrato común con portapapeles, archivos, entrada, captura visual y avisos.
- * - No ejecutar como administrador toda la aplicación ni prometer control del escritorio seguro.
+ * Responsibilities envisaged:
+ * - Create and close native session resources and send notifications to Windows components.
+ * - Observe blocking, end of session and screen changes; publish geometry and real capabilities.
+ * - Coordinate auxiliary windows, message loop and thread affinity required by APIs.
+ * - Connect the common contract with clipboards, files, input, visual capture and warnings.
+ * - Do not run the entire application as administrator or promise secure desktop control.
  */
 

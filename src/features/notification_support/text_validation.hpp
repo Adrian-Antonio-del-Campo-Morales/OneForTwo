@@ -6,16 +6,16 @@
 
 namespace oneintwo::notification_support {
 
-// Rechaza secuencias truncadas, continuaciones sueltas, formas sobrelargas,
-// sustitutos UTF-16 y puntos de código fuera del rango Unicode.
+// Rejects truncated sequences, loose continuations, overlong forms,
+// UTF-16 substitutes and code points outside the Unicode range.
 bool is_valid_utf8(std::string_view text);
 
-// Un título compuesto solo por espacio ASCII no satisface la obligación.
+// A title composed of only ASCII space does not satisfy the obligation.
 bool is_blank(std::string_view text);
 
-// Conserva el texto validado y sustituye controles C0 (salvo tabulador y salto
-// de línea) y DEL por un espacio. Se usa al presentar en el escritorio, nunca
-// para decidir la validez del mensaje.
+// Keeps validated text and replaces C0 controls (except tab and jump)
+// line) and DEL for a space. Used when presenting on the desktop, never
+// to decide the validity of the message.
 std::string sanitize_plain_text(std::string_view text);
 
 } // namespace oneintwo::notification_support

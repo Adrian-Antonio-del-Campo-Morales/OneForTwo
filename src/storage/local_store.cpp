@@ -63,7 +63,7 @@ void LocalStore::load() {
             const std::string value = rest.substr(separator + 1);
             ProfileId parsed = ProfileId::paused;
             if (!parseProfile(value, parsed)) {
-                parsed = ProfileId::paused; // valor inválido: Pausa
+                parsed = ProfileId::paused; // invalid value: Pause
             }
             if (peer_device_.empty()) {
                 peer_device_ = peer;

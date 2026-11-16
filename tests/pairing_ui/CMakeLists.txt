@@ -1,5 +1,5 @@
 if(NOT TARGET oneintwo_tls)
-    message(FATAL_ERROR "oneintwo_tls debe existir antes de la prueba de UI de emparejamiento")
+    message(FATAL_ERROR "The pairing UI test requires the oneintwo_tls target")
 endif()
 
 get_filename_component(ONEINTWO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)

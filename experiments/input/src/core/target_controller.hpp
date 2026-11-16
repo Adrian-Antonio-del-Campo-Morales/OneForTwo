@@ -1,6 +1,6 @@
 #pragma once
-// Responsabilidad: máquina de estados del destino: aceptar una entrada,
-// inyectar eventos, detectar el retorno y liberar todo ante cualquier salida.
+// Responsibility: destination state machine: accept an entry,
+// inject events, detect return and release everything before any exit.
 
 #include "input_state.hpp"
 #include "types.hpp"

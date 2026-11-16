@@ -1,8 +1,6 @@
-# Compilación independiente del experimento de portapapeles.
-# No depende del CMake raíz, del código de producto ni de otros experimentos.
-# Responsabilidad: construir el prototipo, sus adaptadores y el ejecutable de
-# auto-pruebas aisladas. El transporte TLS sólo se incluye si OpenSSL está
-# disponible; en caso contrario se informa y se compila sin ese modo.
+# Standalone build for the clipboard experiment, its native adapters, and isolated self-tests.
+# The build is independent of the root CMake project, product code, and other experiments.
+# TLS transport requires OpenSSL and is disabled with a diagnostic if unavailable.
 
 cmake_minimum_required(VERSION 3.16)
 project(oneintwo_clipboard_experiment LANGUAGES CXX)
@@ -11,12 +9,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(OIT_ENABLE_PEER "Compilar el transporte TLS entre dos equipos" ON)
-option(OIT_ENABLE_PORTAL "Compilar el adaptador Wayland con xdg-desktop-portal" ON)
+option(OIT_ENABLE_PEER "Build TLS transport between two devices" ON)
+option(OIT_ENABLE_PORTAL "Build the Wayland adapter with xdg-desktop-portal" ON)
 
 find_package(Threads REQUIRED)
 
-# Núcleo sin dependencias de plataforma: texto, orden lógico y protocolo.
+# Platform-independent core: text, logical ordering, and protocol.
 add_library(clipboard_core STATIC
   src/model.cpp
   src/engine.cpp
@@ -24,8 +22,7 @@ add_library(clipboard_core STATIC
 )
 target_include_directories(clipboard_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# Adaptador nativo del portapapeles. Sólo se compila el backend de la
-# plataforma actual; el ajeno no se incluye ni se simula.
+# Build the native clipboard backend for the current platform.
 add_library(clipboard_platform STATIC)
 if(WIN32)
   target_sources(clipboard_platform PRIVATE src/platform/windows_clipboard.cpp)
@@ -33,9 +30,9 @@ if(WIN32)
 else()
   target_sources(clipboard_platform PRIVATE src/platform/linux_clipboard.cpp)
   if(OIT_ENABLE_PORTAL)
-    # libdbus necesita dbus.h y, en Linux multiarch, dbus-arch-deps.h desde
-    # otro directorio. pkg-config devuelve ambos; el respaldo permite indicar
-    # DBUS_INCLUDE_DIR y DBUS_ARCH_INCLUDE_DIR manualmente.
+    # libdbus needs dbus.h and, on multiarch Linux, dbus-arch-deps.h from a
+    # separate directory. pkg-config provides both. Alternatively, set
+    # DBUS_INCLUDE_DIR and DBUS_ARCH_INCLUDE_DIR manually.
     find_package(PkgConfig QUIET)
     if(PkgConfig_FOUND)
       pkg_check_modules(DBUS QUIET dbus-1)
@@ -68,8 +65,8 @@ else()
       message(STATUS "xdg-desktop-portal backend enabled (libdbus: ${OIT_DBUS_LIBRARIES})")
     else()
       message(WARNING
-        "libdbus-1 no encontrado: el adaptador Wayland se compila como "
-        "limitación explícita. Instale libdbus-1-dev y vuelva a configurar.")
+        "libdbus-1 was not found, so the Wayland backend is unavailable. "
+        "Install libdbus-1-dev and configure again.")
     endif()
   endif()
 endif()
@@ -88,17 +85,17 @@ if(OpenSSL_FOUND)
     PUBLIC clipboard_core clipboard_platform Threads::Threads
            OpenSSL::SSL OpenSSL::Crypto)
   if(WIN32)
-    # Sockets de Winsock usados por el transporte TLS.
+    # The TLS transport uses Winsock sockets.
     target_link_libraries(clipboard_net PRIVATE ws2_32)
   endif()
   target_compile_definitions(clipboard_net PUBLIC OIT_HAVE_OPENSSL=1)
-  # Regresión aislada de PEM/DLL; no crea sockets ni inicializa el escritorio.
+  # Isolated PEM and DLL regression test. It opens no sockets or desktop services.
   add_executable(clipboard_tls_certificate_test tests/tls_certificate_test.cpp)
   target_link_libraries(clipboard_tls_certificate_test PRIVATE clipboard_net)
 else()
   message(WARNING
-    "OpenSSL no encontrado: se compila sin el modo entre equipos. "
-    "Consulte MANUAL.md para instalar las dependencias de desarrollo.")
+    "OpenSSL was not found, so the build disables cross-device mode. "
+    "See MANUAL.md for development dependencies.")
   add_library(clipboard_net STATIC src/net/peer_unavailable.cpp)
   target_link_libraries(clipboard_net PUBLIC clipboard_core clipboard_platform)
 endif()
@@ -112,12 +109,12 @@ target_link_libraries(oneintwo-clipboard PRIVATE
   clipboard_core clipboard_platform clipboard_net Threads::Threads)
 
 if(WIN32)
-  # CommandLineToArgvW: argumentos Unicode en Windows.
+  # CommandLineToArgvW handles Unicode arguments on Windows.
   target_link_libraries(oneintwo-clipboard PRIVATE shell32)
 endif()
 
 if(MSVC)
-  # Los literales de los datos sintéticos están en UTF-8.
+  # The synthetic data literals are UTF-8.
   target_compile_options(oneintwo-clipboard PRIVATE /utf-8 /W4)
   target_compile_options(clipboard_core PRIVATE /utf-8 /W4)
   target_compile_options(clipboard_platform PRIVATE /utf-8 /W4)

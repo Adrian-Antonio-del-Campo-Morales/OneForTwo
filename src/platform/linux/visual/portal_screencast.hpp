@@ -8,13 +8,12 @@
 #include <string>
 
 /*
- * Cliente de org.freedesktop.portal.ScreenCast.
+ * Customer org.freedesktop.portal.ScreenCast.
  *
- * Se usa una sesión propia por operación: CreateSession, SelectSources con el
- * tipo exacto solicitado y una única fuente, Start y OpenPipeWireRemote. La
- * solicitud y la sesión se conservan juntas hasta que el consumidor cierra o
- * el portal emite Closed. La cancelación cierra también una solicitud que aún
- * espera respuesta.
+ * One session per operation is used: CreateSession, SelectSources with the exact type requested
+ * and a single source, Start and OpenPipeWireRemote. The application and the session are kept
+ * together until the consumer closes or the portal issues Closed. Cancellation also closes a
+ * request that still awaits a response.
  */
 
 namespace oneintwo::wayland {
@@ -51,15 +50,15 @@ public:
     virtual ~PortalScreencastClient() = default;
 
     virtual void probe(CapabilitiesResult complete) = 0;
-    // Retiene la sesión portal y su descriptor PipeWire hasta close().
-    // parent_window es el identificador local del padre del diálogo ("" si no hay).
+    // Retains the portal session and its descriptor PipeWire up to close().
+    // parent_window is the local identifier of the parent of the dialog ("" if not).
     virtual void open(VisualSourceKind kind, std::string parent_window, SessionClosed on_closed,
                       SessionResult complete) = 0;
-    // Respuesta terminal una sola vez; cierra una solicitud pendiente.
+    // Terminal response only once; closes an outstanding request.
     virtual void cancel() = 0;
-    // Libera sesión y descriptor. No entrega estados al consumidor.
+    // Releases session and descriptor. Does not deliver states to the consumer.
     virtual void close() = 0;
-    // Copia del descriptor autorizado, propiedad de quien la recibe.
+    // Copy of the authorized descriptor, owned by the recipient.
     virtual int duplicatePipeWireFd() const = 0;
 };
 
