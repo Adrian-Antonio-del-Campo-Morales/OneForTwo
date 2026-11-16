@@ -7,8 +7,8 @@ namespace oneintwo::windows {
 namespace {
 
 /*
- * Sustituto cuando la compilación no incluye Windows Graphics Capture.
- * Informa de indisponibilidad por el contrato; no simula una captura.
+ * Replace when the build does not include Windows Graphics Capture. Report unavailability by
+ * contract; do not simulate a capture.
  */
 class UnavailablePort final : public WindowsCapturePort {
 public:

@@ -1,38 +1,36 @@
-# Instrucciones para agentes de experimentos
+# Instructions for experiment agents
 
-## Alcance y propiedad
+## Scope and ownership
 
-Estas instrucciones se aplican a los tres experimentos. El encargo recibido debe identificar exactamente uno: `clipboard`, `input` o `files`. Lee el README de ese directorio y el README común antes de trabajar.
+These instructions apply to all three experiments. Your assignment must identify exactly one of `clipboard`, `input`, or `files`. Read that directory's README and the shared README before starting.
 
-Modifica exclusivamente tu subdirectorio asignado, incluidos código, pruebas, documentación, descargas locales permitidas y salidas de compilación. No edites este archivo, el README común, el estudio, la arquitectura, el CMake raíz, el código de producto ni los otros experimentos. Si necesitas un cambio común, descríbelo en tu RESULTS.md.
+Modify only the subdirectory assigned to you, including code, tests, documentation, permitted local downloads, and build outputs. Leave this file, the shared README, the preliminary study, the architecture, the root CMake project, product code, and the other experiments untouched. Describe any required shared change in your RESULTS.md.
 
-No hagas commits, cambios de rama, limpieza general del repositorio ni operaciones sobre archivos ajenos como parte de este encargo. Trabaja con los archivos existentes sin sobrescribir modificaciones ajenas.
+Keep the existing branch and repository state. The assignment does not include commits, branch changes, repository-wide cleanup, or operations on another owner's files. Preserve existing work.
 
-## Objetivo de la fase
+## Phase objective
 
-Implementar el prototipo y dejarlo listo para que el usuario lo ejecute manualmente. Está autorizado compilar y ejecutar pruebas aisladas de tu código. No ejecutar operaciones sobre el escritorio real ni iniciar comunicación de red de prueba.
+Implement the prototype and prepare it for the user's manual run. The assignment authorizes compilation and isolated tests of your code. Leave the real desktop and test network communication untouched.
 
-En particular, no leer/escribir el portapapeles, capturar/inyectar dispositivos, abrir diálogos de portales, crear ofertas en el explorador ni arrancar procesos de demostración. No ejecutar ciegamente una suite que contenga esos casos. Los self-tests solo deben usar datos sintéticos y no inicializar esos servicios.
+In particular, leave the clipboard and input devices alone. Do not open portal dialogs, publish offers in the file manager, or start demonstration processes. Check a suite's scope before running it. Self-tests must use synthetic data without initializing those services.
 
-Consulta documentación y declara dependencias. No instales herramientas globalmente, no cambies permisos/cortafuegos y no eleves el proceso. Si falta una dependencia, documenta el bloqueo y continúa con el trabajo independiente.
+Consult documentation and declare dependencies. Keep installations local, preserve permissions and firewall settings, and work without elevating the process. If a dependency is missing, document the blocker and continue independent work.
 
-## Diseño y entrega
+## Design and delivery
 
-- Implementación propia; no reutilizar motores de aplicaciones existentes.
-- C++ provisional y compilación independiente dentro de tu carpeta.
-- Evitar infraestructura de producto: cuentas, descubrimiento, actualizadores, instaladores y UI completa.
-- Arranque sin argumentos inocuo; modos reales siempre explícitos.
-- Ningún stub puede informar éxito como si fuera una integración nativa.
-- README con decisiones, MANUAL con comandos reproducibles, RESULTS con evidencia.
-- Cada archivo de código debe describir su responsabilidad.
-- Limitar datos de prueba y logs; no registrar contenido privado.
-- Proteger o ignorar material privado y artefactos generados.
-- Separar implementado, compilado, self-test verificado y ejecución manual pendiente.
-- Si no hay acceso a un sistema operativo, no afirmar que se ha validado.
+- Implement your own prototype using C++ and a standalone build within your directory. Existing application engines are outside scope.
+- Keep product infrastructure outside scope, including accounts, discovery, updaters, installers, and a complete UI.
+- Starting with no arguments must be inert. Real modes require explicit selection.
+- A stub must report its actual status so it cannot be mistaken for successful native integration.
+- Record design decisions in README, reproducible commands in MANUAL, and evidence in RESULTS.
+- Document each source file's responsibility.
+- Limit test data and logs. Keep private content out of logs.
+- Protect or ignore private material and generated artifacts.
+- Distinguish implementation, successful compilation, verified self-tests, and pending manual execution.
+- Claim validation only for operating systems you actually accessed.
 
-No iniciar nuevos agentes para este encargo. Las tres carpetas están diseñadas para poder trabajar sin coordinación de edición ni de sesiones gráficas.
+Work directly on this assignment. The three experiment directories support independent work without coordination of edits or desktop sessions.
 
-## Condición de finalización
+## Completion condition
 
-Entregar el prototipo dentro del alcance del README, las comprobaciones aisladas posibles y el manual. Enumerar limitaciones concretas y trabajo que no pudo completarse. No ampliar el proyecto para resolver mejoras opcionales ni realizar pruebas manuales por iniciativa propia.
-
+Deliver the prototype within the README scope, the isolated checks you can run, and the manual. List concrete limitations and incomplete work. Optional improvements and manual tests are outside the assignment.

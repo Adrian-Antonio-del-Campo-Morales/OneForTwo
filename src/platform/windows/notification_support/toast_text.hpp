@@ -5,8 +5,8 @@
 
 namespace oneintwo::windows_notifications {
 
-// Contenido ya validado por el módulo común. El nombre de la aplicación solo
-// aparece en los avisos reenviados y el nombre del par es la atribución local.
+// Content already validated by the common module. Name of the application only
+// appears in forwarded notices and the name of the pair is local attribution.
 struct ToastText {
     std::string title;
     std::string app_name;
@@ -14,11 +14,11 @@ struct ToastText {
     std::string peer_name;
 };
 
-// Escapa marcado XML y sustituye caracteres que XML 1.0 no admite. Mantiene el
-// texto Unicode válido y no introduce elementos activos.
+// Escape marked XML and replaces characters that XML 1.0 does not support.
+// valid Unicode text and does not enter active elements.
 std::string escape_xml_text(std::string_view text);
 
-// Construye un toast genérico sin acciones, sin launch y sin imágenes.
+// Build a generic toast without actions, without launch and without images.
 std::string build_toast_xml(const ToastText& text);
 
 } // namespace oneintwo::windows_notifications

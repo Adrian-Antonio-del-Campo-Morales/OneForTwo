@@ -1,11 +1,16 @@
-# Distribución para Windows
+# Distribution for Windows
 
-Estado: pendiente; no hay instalador ni scripts de instalación.
-Responsabilidad: alojar la definición del instalador cuando exista un binario verificable.
+Status: pending; no installer or installation scripts. Responsibility: Host the installer definition
+when a verifiable binary exists.
 
-Deberá instalar la aplicación en la sesión del usuario, ofrecer inicio de sesión automático opcional de la aplicación, crear acceso desde el menú de inicio y gestionar actualización/desinstalación. El arranque opcional significa iniciar OneInTwo al entrar el usuario; no iniciar sesión en Windows.
+You will need to install the application in the user session, offer optional automatic login of the
+application, create access from the home menu and manage updates and uninstallation. Optional boot
+means to start OneInTwo when the user enters; do not sign in to Windows.
 
-Documentará las reglas de cortafuegos necesarias y las bibliotecas redistribuidas. No elevará permanentemente toda la aplicación para sortear restricciones de entrada.
+You will document the necessary firewall rules and redistributed libraries. You will not permanently
+raise the entire application to circumvent entry restrictions.
 
-Antes de publicar: elegir formato de instalador, arquitecturas y versiones soportadas, política de firma y conservación/eliminación de configuración. Probar en una máquina limpia, incluyendo desinstalación con una transferencia o sesión de entrada activa.
+Before publishing: choose installer format, supported architectures and versions, signature policy
+and whether to retain or delete configuration. Try a clean machine, including uninstalling with an
+active transfer or input session.
 

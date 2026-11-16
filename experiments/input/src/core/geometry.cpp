@@ -1,4 +1,4 @@
-// Responsabilidad: cálculo de coordenadas y puerta de activación del borde.
+// Responsibility: calculation of coordinates and trigger door of the border.
 #include "geometry.hpp"
 
 #include <algorithm>

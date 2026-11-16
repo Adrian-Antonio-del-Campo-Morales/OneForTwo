@@ -26,16 +26,16 @@ struct MockPortalConfig {
 };
 
 /*
- * Servicio org.freedesktop.portal.ScreenCast de prueba sobre un bus D-Bus
- * privado. Implementa solicitudes (Request), sesiones (Session), propiedades y
- * el descriptor PipeWire. Registra lo que observa para afirmar el contrato.
+ * Service org.freedesktop.portal.ScreenCast test on a private D-Bus bus. Implement requests
+ * (Request), sessions (Session), properties and descriptor PipeWire. Record what you observe to
+ * affirm the contract.
  */
 class MockPortal {
 public:
     MockPortal();
     ~MockPortal();
 
-    bool start(); // inicia el bus privado
+    bool start(); // Start the private bus
     bool ownName();
     void unownName();
     void stop();
@@ -58,7 +58,7 @@ public:
 
     GDBusConnection* connection() const { return connection_; }
 
-    // Trampolín del servicio simulado.
+    // Service trampoline simulated.
     bool handleMethod(const char* sender, const char* object_path, const char* interface_name,
                       const char* method_name, GVariant* parameters,
                       GDBusMethodInvocation* invocation);

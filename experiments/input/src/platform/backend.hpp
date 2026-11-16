@@ -1,5 +1,5 @@
 #pragma once
-// Responsabilidad: contrato común de los adaptadores de escritorio. El núcleo no
+// Responsibility: common contract of the desktop adapters. The kernel does not
 // conoce Windows, X11, hooks ni portales.
 
 #include "core/types.hpp"
@@ -32,31 +32,31 @@ class Backend {
   virtual BackendCaps caps() const = 0;
   virtual std::string sessionType() const = 0;
 
-  // Autoriza y prepara el mecanismo del escritorio antes de exigir geometría o
+  // Authorizes and prepares the desk mechanism before requiring geometry or
   // red: portal InputCapture (origen) o RemoteDesktop + GlobalShortcuts
-  // (destino). Los backends sin autorización previa lo implementan como no-op.
+  // (destiny) Backends without prior authorization implement it as non-op.
   virtual bool prepareSource(Edge edge, std::string& error) = 0;
   virtual bool prepareTarget(std::string& error) = 0;
 
-  // Wayland lo separa de RemoteDesktop/EIS para probar la salida sin control.
+  // Wayland separates it from RemoteDesktop/EIS to test the output without control.
   virtual bool prepareTargetExit(std::string& error) {
     return prepareTarget(error) && startTarget(error);
   }
   virtual const char* targetExitShortcut() const { return "Ctrl+Alt+F12"; }
 
-  // Origen: observa el escritorio sin bloquear hasta que se active la captura.
+  // Origin: Observe the desktop unblocked until capture is activated.
   virtual bool startSource(std::string& error) = 0;
   virtual void stopSource() = 0;
   virtual bool setCaptureActive(bool active, std::string& error) = 0;
   virtual bool nextSourceEvent(RawEvent& event, int waitMs) = 0;
   virtual void warpLocalCursor(int x, int y) = 0;
-  // Describe un fallo irrecuperable de la captura (por ejemplo, portal cerrado).
+  // Describes an unrecoverable catch failure (e.g. closed portal).
   virtual bool sourceFatal(std::string& reason) {
     (void)reason;
     return false;
   }
 
-  // Destino: instala las guardas locales y habilita la inyección.
+  // Destination: install the local guards and enable the injection.
   virtual bool startTarget(std::string& error) = 0;
   virtual void stopTarget() = 0;
   virtual void setTargetGuardArmed(bool armed) = 0;
@@ -72,7 +72,7 @@ class Backend {
 std::unique_ptr<Backend> makePlatformBackend(std::string& error);
 
 #ifdef OIT_WITH_WAYLAND
-// Regresiones de Response y señales del atajo en memoria; sin bus ni escritorio.
+// Response regressions and shortcut signals in memory; no bus or desktop.
 bool runWaylandPortalResponseChecks();
 #endif
 

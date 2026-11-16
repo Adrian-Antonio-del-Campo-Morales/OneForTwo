@@ -1,5 +1,5 @@
 #pragma once
-// Responsabilidad: tipos comunes del experimento (geometría, mensajes y eventos normalizados).
+// Responsibility: common types of the experiment (geometry, messages and normalized events).
 
 #include <cstdint>
 
@@ -9,11 +9,11 @@ constexpr uint8_t kProtocolVersion = 1;
 constexpr uint16_t kRoleSource = 1;
 constexpr uint16_t kRoleTarget = 2;
 
-// Borde compartido que ocupa el origen. Right significa que el origen está a la
-// izquierda del destino; Left, que está a su derecha.
+// Shared border that occupies the origin. Right means that the origin is to the
+// left of destination; Left, which is on your right.
 enum class Edge : uint8_t { Right = 0, Left = 1 };
 
-// Motivos de liberación/cierre. Se transportan como un byte.
+// Release and shutdown reasons are sent as a single byte.
 enum class LeaveReason : uint8_t {
   Returned = 0,
   Emergency = 1,
@@ -25,8 +25,8 @@ enum class LeaveReason : uint8_t {
   InjectionFailed = 7,
 };
 
-// Rectángulo del escritorio virtual. En el alcance del experimento se espera un
-// solo monitor por equipo.
+// Virtual Desktop Rectangle. In the scope of the experiment a
+// Only monitor per team.
 struct Geo {
   int32_t x = 0;
   int32_t y = 0;
@@ -51,30 +51,30 @@ enum class MsgType : uint8_t {
   Pong = 13,
 };
 
-// Mensaje del canal de control. El formato de red es fijo (28 bytes) y cada
-// campo tiene un significado según el tipo.
+// Control channel message. Network format is fixed (28 bytes) and each
+// field has a meaning depending on the type.
 struct Message {
   MsgType type = MsgType::Ping;
   uint32_t generation = 0;
   uint32_t sequence = 0;
-  int16_t x = 0;          // movimiento (delta) o rueda horizontal
-  int16_t y = 0;          // movimiento (delta) o rueda vertical
-  uint16_t code = 0;      // uso HID, botón o borde
+  int16_t x = 0;          // movement (delta) or horizontal wheel
+  int16_t y = 0;          // motion (delta) or vertical wheel
+  uint16_t code = 0;      // use HID, button or edge
   uint8_t reason = 0;     // LeaveReason
-  uint16_t ratio = 0;     // entrada vertical normalizada 0..65535
+  uint16_t ratio = 0;     // standard vertical input 0.65535
   bool pressed = false;
 };
 
 enum class RawKind : uint8_t {
-  MotionAbs,    // posición absoluta del cursor local
-  MotionDelta,  // delta capturado para el destino
+  MotionAbs,    // absolute position of the local cursor
+  MotionDelta,  // delta caught for destination
   Button,
   Wheel,
   Key,
-  Hotkey,       // Ctrl+Alt+F12 detectado por el backend
-  LocalActivity, // actividad física en el destino (solo backend Windows)
-  PortalEdge,   // barrera InputCapture cruzada; x/y son la posición notificada
-  CaptureLost   // el compositor retiró la captura; hay que volver a local
+  Hotkey,       // Ctrl+Alt+F12 detected by the backend
+  LocalActivity, // physical activity in the destination (Windows backend only)
+  PortalEdge,   // InputCapture cross barrier; x/y are the notified position
+  CaptureLost   // the composer withdrew the capture; we have to go back to local
 };
 
 struct RawEvent {

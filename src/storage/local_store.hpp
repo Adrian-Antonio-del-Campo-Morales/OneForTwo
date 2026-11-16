@@ -7,14 +7,14 @@
 
 namespace oneintwo {
 
-// Preferencias locales no secretas: perfil por par y aplicaciones autorizadas.
-// No guarda contenidos, imágenes, credenciales ni historial.
+// Non-secret local preferences: peer profile and authorized applications.
+// It doesn't save content, images, credentials, or history.
 class LocalStore {
 public:
     explicit LocalStore(std::string path);
 
-    // Un par sin preferencia empieza en Habitual; un valor inválido se
-    // interpreta como Pausa.
+    // A pair without preference starts in Custom; an invalid value is
+    // interprets as Pause.
     ProfileId loadProfile(const std::string& peer) const;
     void saveProfile(const std::string& peer, ProfileId profile);
 

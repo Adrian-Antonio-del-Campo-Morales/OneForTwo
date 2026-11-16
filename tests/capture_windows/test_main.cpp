@@ -194,7 +194,7 @@ void testWindowTypeIsPreserved()
     CHECK(!frameContainsColor(fixture.harness.frames[0], 240, 0, 240));
     CHECK(!frameMatches(fixture.harness.frames[0], occluder));
 
-    // Mover la ventana a otro monitor no cambia la identidad retenida (HWND).
+    // Moving the window to another monitor does not change the retained identity (HWND).
     const auto saved_monitors = fixture.port->monitors;
     fixture.port->monitors.clear();
     fixture.port->last_capture->pushFrame(toVisualFrame(window));
@@ -238,7 +238,7 @@ void testDeferredPromptAndCancellation()
         CHECK(fixture.port->cancel_prompt_calls >= 1);
         CHECK(fixture.port->adopted_handles.empty());
 
-        // Respuesta nativa tardía del selector cerrado.
+        // Late native response of the selector closed.
         fixture.port->completePrompt(0);
         fixture.runtime.drain();
         CHECK(fixture.harness.results.size() == 1);
@@ -393,7 +393,7 @@ void testCloseAndLateCallbacks()
         }
     }
     CHECK(closed_states == 1);
-    // La ventana nueva con el mismo título no se adopta sin una invitación nueva.
+    // The new window with the same title is not adopted without a new invitation.
     CHECK(fixture.port->adopted_handles.size() == 1);
     fixture.capture->stopCapture(reference);
 

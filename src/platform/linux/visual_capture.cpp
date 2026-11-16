@@ -5,10 +5,9 @@
 #include "visual/wayland_visual_capture.hpp"
 
 /*
- * Selección y captura local de monitores y ventanas en Wayland mediante
- * ScreenCast y PipeWire. El tipo solicitado se comprueba contra el anuncio
- * del portal y contra la fuente devuelta; sin atestación se informa de
- * indisponibilidad en lugar de recortar una región del escritorio.
+ * Local selection and capture of monitors and windows in Wayland via ScreenCast and PipeWire. The
+ * type requested is checked against the portal ad and against the returned source; without
+ * attestation unavailability is reported instead of trimming a desktop region.
  */
 
 namespace oneintwo {

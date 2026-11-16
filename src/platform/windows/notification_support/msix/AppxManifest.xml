@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Paquete de comprobación nativa del módulo de notificaciones.
+  Native validation package for the notifications module.
 
-  No es el manifiesto del producto: empaqueta el recorrido
-  oneintwo_notifications_native_windows.exe para que tenga identidad de paquete
-  y la capacidad userNotificationListener. El integrador debe trasladar la
-  capacidad y la identidad de producto a su propio AppxManifest.xml.
+  This manifest packages oneintwo_notifications_native_windows.exe with a
+  package identity and the userNotificationListener capability. Add the
+  capability and product identity to the product's own AppxManifest.xml.
 -->
 <Package
     xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -44,7 +43,7 @@
             EntryPoint="Windows.FullTrustApplication">
             <uap:VisualElements
                 DisplayName="OneInTwo Native Notifications Check"
-                Description="Comprobación nativa del paquete de notificaciones"
+                Description="Native check of the notification package"
                 BackgroundColor="#0078D4"
                 Square150x150Logo="Assets\Square150x150Logo.png"
                 Square44x44Logo="Assets\Square44x44Logo.png" />

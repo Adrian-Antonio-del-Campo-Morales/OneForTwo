@@ -32,21 +32,21 @@ enum class SessionLinkError {
 struct SessionLinkOptions {
     std::string local_device_id;
     std::string peer_device_id;
-    // Huella verificada del certificado del par. Nunca se acepta un par sin
+    // Verified print of the pair certificate. A pair is never accepted without
     // identidad fijada.
     std::string peer_fingerprint;
 
-    // Permisos concedidos por el par; los límites del perfil se aplican aparte.
+    // Permissions granted by the pair; profile limits apply separately.
     FeatureSet granted_send;
     FeatureSet granted_receive;
     FeatureSet profile_limits;
     bool has_profile_limits = false;
 
-    // Debe devolver una generación nueva y creciente por conexión. Si se omite,
-    // se usa un contador interno del proceso.
+    // You must return a new and growing generation by connection. If omitted,
+    // an internal process counter is used.
     std::function<SessionGeneration()> allocate_generation;
-    // Última generación conocida del par, para rechazar repeticiones tras
-    // reconectar. La persistencia entre reinicios pertenece al almacenamiento.
+    // Last known generation of the pair, to reject repetitions after
+    // reconnect. Persistence between restarts belongs to storage.
     std::function<SessionGeneration(const std::string&)> last_peer_generation;
     std::function<void(const std::string&, SessionGeneration)> remember_peer_generation;
 };
@@ -58,10 +58,10 @@ struct SessionLinkHandlers {
     std::function<void(FeatureMessage)> message;
 };
 
-// Sesión autenticada sobre un transporte ya cifrado. Realiza el intercambio de
-// identidad y generaciones, traduce ambas generaciones y autoriza cada mensaje
-// por sentido y modalidad. El canal de datos solo se acepta dentro de esta
-// sesión establecida y de una operación aceptada.
+// Authenticated session on an already encrypted transport.
+// identity and generations, translates both generations and authorizes each message
+// by meaning and modality. The data channel is only accepted within this
+// established session and an accepted operation.
 class AuthenticatedSession {
 public:
     AuthenticatedSession(SessionLinkOptions options, SessionTransport& transport,

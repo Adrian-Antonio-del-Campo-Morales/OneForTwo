@@ -1,5 +1,5 @@
-// Responsabilidad: obtener los argumentos de forma segura para Unicode y
-// entregarlos a la interfaz de consola. No ejecuta modos por sí mismo.
+// Responsibility: securely obtain arguments for Unicode and
+// deliver them to the console interface. It does not run modes by itself.
 
 #include "cli.hpp"
 

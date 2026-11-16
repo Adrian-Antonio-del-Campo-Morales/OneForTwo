@@ -1,5 +1,5 @@
 if(NOT TARGET oneintwo_visual)
-    message(FATAL_ERROR "oneintwo_visual debe existir antes de las pruebas visuales")
+    message(FATAL_ERROR "Visual tests require the oneintwo_visual target")
 endif()
 
 get_filename_component(ONEINTWO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
@@ -28,8 +28,8 @@ add_test(NAME oneintwo_visual_viewer COMMAND oneintwo_visual_viewer_tests)
 set_tests_properties(oneintwo_visual_viewer PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
-# Arnes de composicion: UI real + coordinador real, con dobles de sesion,
-# captura, visor y modulo de avisos. No enlaza los paquetes de V ni N.
+# Composition harness with the real UI and coordinator, plus doubles for the
+# session, capture, viewer, and notification module. It omits the capture and notification backends.
 add_executable(oneintwo_composition_harness
     composition_harness.cpp
     "${ONEINTWO_ROOT}/src/app/coordinator.cpp"

@@ -1,4 +1,4 @@
-// Responsabilidad: mantener y liberar el estado de entradas pulsadas.
+// Responsibility: maintain and release the state of pressed inputs.
 #include "input_state.hpp"
 
 #include <algorithm>

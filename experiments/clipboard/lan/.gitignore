@@ -1,2 +1,2 @@
-# Caché de Python del asistente, sin artefactos versionables.
+# Exclude the helper's Python cache.
 __pycache__/

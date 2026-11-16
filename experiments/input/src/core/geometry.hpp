@@ -1,31 +1,31 @@
 #pragma once
-// Responsabilidad: geometría de un monitor, conversión de coordenadas y
-// detección del cruce de borde con anti-rebote.
+// Responsibility: Monitor geometry, coordinate conversion and
+// detection of border crossing with anti-rebound.
 
 #include "types.hpp"
 #include <cstdint>
 
 namespace oit {
 
-// Convierte la coordenada vertical absoluta en una proporción 0..65535.
+// Converts the absolute vertical coordinate into a ratio 0.65535.
 uint16_t ratioFromY(const Geo& geo, int32_t y);
 
-// Convierte una proporción en la coordenada vertical del rectángulo indicado.
+// Converts a proportion into the vertical coordinate of the indicated rectangle.
 int32_t yFromRatio(const Geo& geo, uint16_t ratio);
 
-// El borde de retorno del destino es el opuesto al borde compartido del origen.
+// The return edge of the destination is the opposite of the shared border of the origin.
 Edge returnEdge(Edge sourceEdge);
 
 class EdgeGate {
  public:
   EdgeGate(const Geo& geo, Edge edge, int antiBouncePx, int cooldownMs);
 
-  // Alimenta una posición local (relativa al rectángulo). Devuelve true una
-  // sola vez por cruce y escribe la proporción vertical de entrada.
+  // Feeds a local position (relative to the rectangle).
+  // just once per crossing and write down the vertical input ratio.
   bool observe(int32_t localX, int32_t localY, int64_t nowMs, uint16_t& ratioY);
 
-  // Debe llamarse al volver al control local: exige alejarse del borde antes de
-  // permitir otro cruce y aplica el enfriamiento.
+  // It should be called when returning to local control: it requires moving away from the edge before
+  // allow another crossing and apply cooling.
   void noteReturn(int64_t nowMs);
 
  private:

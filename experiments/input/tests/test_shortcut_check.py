@@ -1,4 +1,4 @@
-"""Regresiones aisladas de recuperación: ningún comando real ni GTK."""
+"""Isolated recovery regressions: no real command or GTK."""
 import importlib.util
 import json
 import os
@@ -56,13 +56,13 @@ class RecoveryTests(unittest.TestCase):
             data["deadline_monotonic"] = time.monotonic() - 1
             guide.save(case / "case.json", data)
             with self.assertRaisesRegex(RuntimeError, "vencido"):
-                guide.child_command(case, lambda *a: self.fail("No debe lanzar comandos"))
+                guide.child_command(case, lambda *a: self.fail("You must not launch commands"))
 
     def test_timer_failure_prevents_preparation(self):
         def run(args, **kwargs):
             text = "1" if "show-user" in args else f"User={os.getuid()}\nType=wayland\nVTNr=2\n"
             failed = args[0] == "systemd-run" and "--on-active=30s" in args
-            return subprocess.CompletedProcess(args, int(failed), text, "fallo simulado" if failed else "")
+            return subprocess.CompletedProcess(args, int(failed), text, "simulated failure" if failed else "")
         with tempfile.TemporaryDirectory() as directory, patch.object(guide, "INPUT", Path(directory)):
             with self.assertRaisesRegex(RuntimeError, "armar"):
                 guide.prepare_case(run)

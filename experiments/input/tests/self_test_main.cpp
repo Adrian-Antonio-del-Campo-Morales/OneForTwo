@@ -1,4 +1,4 @@
-// Responsabilidad: ejecutable de pruebas aisladas del núcleo, sin backends.
+// Responsibility: Test executable isolated from the core, without backends.
 #include "self_test.hpp"
 
 int main() {

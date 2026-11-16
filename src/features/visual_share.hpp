@@ -26,7 +26,7 @@ enum class VisualInitiator {
     peer,
 };
 
-// El iniciador es relativo a este equipo. Protocolo lo deduce del sentido.
+// The initiator is related to this equipment. Protocol deduces it from meaning.
 struct VisualShareRef {
     SessionGeneration generation;
     VisualInitiator initiator;
@@ -50,7 +50,7 @@ enum class VisualSourceState {
     closed,
 };
 
-// Identifica una etapa de la fuente dentro de una operación visual.
+// Identify a source stage within a visual operation.
 using VisualSourceRevision = std::uint64_t;
 
 struct VisualSize {
@@ -58,13 +58,13 @@ struct VisualSize {
     std::uint32_t height;
 };
 
-// Imagen local en memoria con filas BGRA contiguas. No es una trama de red.
+// Local image in memory with rows BGRA contiguous. It is not a network plot.
 struct VisualFrame {
     VisualSize size;
     std::vector<std::uint8_t> bgra;
 };
 
-// Unidad completa tras el reensamblado acotado del canal de datos.
+// Complete unit after reassembly of the data channel.
 struct VisualEncodedFrame {
     VisualShareRef ref;
     VisualSourceRevision revision;
@@ -74,7 +74,7 @@ struct VisualEncodedFrame {
     std::vector<std::uint8_t> bytes;
 };
 
-// Entradas del coordinador y de la sesión. Una operación visual por par.
+// Inputs from the coordinator and the session. One visual operation per pair.
 struct VisualDependencies;
 
 class VisualShare {
@@ -101,7 +101,7 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
-// Puerto de presentación implementado por la UI. El coordinador conecta el cierre.
+// Presentation port implemented by the UI. The coordinator connects the closure.
 class VisualViewer {
 public:
     virtual ~VisualViewer() = default;

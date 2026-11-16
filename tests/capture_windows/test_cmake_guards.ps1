@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
-# Un fallo esperado de CMake es un resultado del guard; no debe abortar el script
-# antes de comprobar el código y el mensaje.
+# These CMake cases are expected to fail. Continue so the script can check
+# the exit code and diagnostic.
 $PSNativeCommandUseErrorActionPreference = $false
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -14,7 +14,7 @@ if (Test-Path -LiteralPath $buildRoot) {
 New-Item -ItemType Directory -Force -Path $buildRoot | Out-Null
 
 if (-not (Test-Path -LiteralPath (Join-Path $fakeInclude 'windows.graphics.capture.h'))) {
-    throw "Falta la cabecera falsa en $fakeInclude"
+    throw "The test header is missing from $fakeInclude"
 }
 
 function Stop-WithDiagnostic {
@@ -38,12 +38,12 @@ function Invoke-ExpectedFailure {
     Write-Host $output
 
     if ($exitCode -eq 0) {
-        Stop-WithDiagnostic "El caso '$Name' configuró correctamente; se esperaba un error.`n$output"
+        Stop-WithDiagnostic "The '$Name' case configured successfully. An error was expected.`n$output"
     }
     if ($output -notmatch [regex]::Escape($ExpectedText)) {
-        Stop-WithDiagnostic "El caso '$Name' falló sin el mensaje esperado: '$ExpectedText'. Salida:`n$output"
+        Stop-WithDiagnostic "The '$Name' case failed without the expected message: '$ExpectedText'. Output:`n$output"
     }
-    Write-Host "OK: '$Name' falló con el mensaje esperado."
+    Write-Host "OK: '$Name' failed with the expected message."
 }
 
 $common = @(
@@ -58,7 +58,7 @@ $oldSdkArgs = $common + @(
     '-B', (Join-Path $buildRoot 'sdk-old')
 )
 Invoke-ExpectedFailure -Name 'sdk-old' -CMakeArguments $oldSdkArgs `
-    -ExpectedText 'OneInTwo requiere Windows SDK 10.0.19041 o posterior'
+    -ExpectedText 'OneInTwo requires Windows SDK 10.0.19041 or later'
 
 $missingApiArgs = $common + @(
     '-A', 'x64',
@@ -70,5 +70,5 @@ Invoke-ExpectedFailure -Name 'api-missing' -CMakeArguments $missingApiArgs `
     -ExpectedText 'IGraphicsCaptureSession2/IsCursorCaptureEnabled'
 
 Write-Host 'CMake guard negative checks passed.'
-# Los cmake esperados dejan $LASTEXITCODE en 1; el guard ha terminado bien.
+# The expected CMake failures leave $LASTEXITCODE at 1. Report guard success explicitly.
 exit 0

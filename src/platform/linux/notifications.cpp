@@ -5,9 +5,8 @@
 #include <utility>
 
 /*
- * Fábrica del backend Linux. Selecciona el servicio del bus de sesión y deja la
- * observación automática como no disponible mientras no exista un proveedor
- * autorizado de lectura de avisos ajenos.
+ * Linux backend factory. Select the session bus service and leave automatic observation as
+ * unavailable as long as there is no authorized provider for reading other people's notices.
  */
 
 namespace oneintwo {

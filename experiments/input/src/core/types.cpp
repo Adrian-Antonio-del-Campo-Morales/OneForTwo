@@ -1,4 +1,4 @@
-// Responsabilidad: nombres legibles de estados y motivos para la salida de consola.
+// Responsibility: readable names of states and reasons for console output.
 #include "types.hpp"
 
 namespace oit {
@@ -11,12 +11,12 @@ const char* leaveReasonName(LeaveReason reason) {
   switch (reason) {
     case LeaveReason::Returned: return "retorno";
     case LeaveReason::Emergency: return "salida local";
-    case LeaveReason::LocalOverride: return "actividad local en destino";
-    case LeaveReason::LinkLost: return "conexión perdida";
+    case LeaveReason::LocalOverride: return "local activity in destination";
+    case LeaveReason::LinkLost: return "missing connection";
     case LeaveReason::Timeout: return "tiempo agotado";
     case LeaveReason::Shutdown: return "cierre";
     case LeaveReason::Stale: return "mensaje obsoleto";
-    case LeaveReason::InjectionFailed: return "inyección no disponible";
+    case LeaveReason::InjectionFailed: return "injection not available";
   }
   return "desconocido";
 }

@@ -94,12 +94,12 @@ LRESULT CALLBACK pickerProcedure(HWND window, UINT message, WPARAM wparam, LPARA
             WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | LBS_NOTIFY | LBS_NOINTEGRALHEIGHT,
             margin, margin, client.right - margin * 2, listHeight, window,
             reinterpret_cast<HMENU>(static_cast<INT_PTR>(kListId)), nullptr, nullptr);
-        HWND ok = CreateWindowExW(0, L"BUTTON", L"Compartir",
+        HWND ok = CreateWindowExW(0, L"BUTTON", L"Share",
                                   WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
                                   client.right - margin - 220, client.bottom - 44, 100, 30, window,
                                   reinterpret_cast<HMENU>(static_cast<INT_PTR>(kOkId)), nullptr,
                                   nullptr);
-        CreateWindowExW(0, L"BUTTON", L"Cancelar", WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+        CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE | WS_TABSTOP,
                         client.right - margin - 110, client.bottom - 44, 100, 30, window,
                         reinterpret_cast<HMENU>(static_cast<INT_PTR>(kCancelId)), nullptr, nullptr);
 
@@ -318,8 +318,8 @@ public:
 
         HWND window = CreateWindowExW(
             WS_EX_DLGMODALFRAME, kPickerClass,
-            kind == VisualSourceKind::window ? L"Compartir una ventana"
-                                             : L"Compartir un monitor",
+            kind == VisualSourceKind::window ? L"Share a window"
+                                             : L"Share a Monitor",
             WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, x, y, width, height, owner_, nullptr,
             GetModuleHandleW(nullptr), state);
         if (window == nullptr) {

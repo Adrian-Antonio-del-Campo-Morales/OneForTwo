@@ -1,5 +1,5 @@
-// Responsabilidad: flujo en memoria con contrapresión acotada para los
-// self-tests del protocolo. No abre descriptores ni red.
+// Responsibility: memory flow with counterpressure tapered for the
+// protocol self-tests. It does not open descriptors or network.
 #include "core/stream.hpp"
 
 #include <algorithm>
@@ -61,7 +61,7 @@ public:
             outgoing_->writable.wait(lock, [this] {
                 return outgoing_->available() < kMaxBuffered || outgoing_->closed || closed_;
             });
-            if (outgoing_->closed || closed_) throw Error("flujo de prueba cerrado");
+            if (outgoing_->closed || closed_) throw Error("closed test flow");
             const std::size_t space = kMaxBuffered - outgoing_->available();
             const std::size_t take = std::min(len, space);
             outgoing_->data.insert(outgoing_->data.end(), bytes, bytes + take);
@@ -100,7 +100,7 @@ void readExact(Stream& stream, void* buffer, std::size_t len) {
     std::size_t done = 0;
     while (done < len) {
         const std::size_t got = stream.readSome(bytes + done, len - done);
-        if (got == 0) throw Error("flujo terminado antes de completar la lectura");
+        if (got == 0) throw Error("flow completed before completion of reading");
         done += got;
     }
 }

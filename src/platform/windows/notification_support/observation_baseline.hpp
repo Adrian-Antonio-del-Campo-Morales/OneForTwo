@@ -8,10 +8,10 @@
 
 namespace oneintwo::windows_notifications {
 
-// Separa la carga inicial del centro de notificaciones de los avisos nuevos.
-// Al abrir una suscripción se siembra con los identificadores nativos ya
-// existentes; solo los añadidos posteriores se entregan. Una nueva línea base
-// (reconexión, salida de suspensión) se toma reiniciando la instancia.
+// Separates the initial loading of the notification center from new notices.
+// By opening a subscription you will be seeded with native identifiers already
+// existing; only subsequent additions are delivered. A new baseline
+// (reconnection, suspension output) is taken by restarting the instance.
 class ObservationBaseline {
 public:
     explicit ObservationBaseline(std::size_t recent_capacity = 4096)
@@ -27,10 +27,10 @@ public:
         baseline_.insert(existing_ids.begin(), existing_ids.end());
     }
 
-    // Devuelve true solo la primera vez que aparece un identificador nuevo.
+    // Returns true only the first time a new identifier appears.
     bool accept(std::uint32_t native_id) {
         if (baseline_.erase(native_id) > 0) {
-            // Era una existencia previa, no una incorporación nueva.
+            // It was a previous existence, not a new incorporation.
             remember(native_id);
             return false;
         }

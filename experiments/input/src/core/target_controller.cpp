@@ -1,5 +1,5 @@
-// Responsabilidad: validar generación/secuencia, inyectar solo entradas
-// autorizadas y liberar teclas/botones ante retorno, fallo o cierre.
+// Responsibility: validate the generation and sequence, inject only inputs
+// authorized and release teclas/botones upon return, failure or closure.
 #include "target_controller.hpp"
 
 #include "geometry.hpp"
@@ -18,8 +18,8 @@ void TargetController::onMessage(const Message& message, int64_t nowMs) {
 
   switch (message.type) {
     case MsgType::Ping: {
-      // Un origen que ya no controla (generación 0 o distinta) no renueva el
-      // watchdog; de lo contrario un ping inactivo mantendría viva la sesión.
+      // A source that no longer controls (generation 0 or different) does not renew the
+      // watchdog; otherwise an inactive ping would keep the session alive.
       if (state_ != TargetState::Remote || message.generation == activeGen_) {
         lastSourceMs_ = nowMs;
       }
@@ -146,7 +146,7 @@ void TargetController::applyMotion(const Message& message, int64_t nowMs) {
   int nx = cursorX_ + message.x;
   int ny = cursorY_ + message.y;
 
-  // El borde de retorno del destino es el opuesto al compartido por el origen.
+  // The return edge of the destination is the opposite of the one shared by the origin.
   if (edge_ == Edge::Right) {
     if (nx <= geo_.x && message.x < 0) {
       leave(LeaveReason::Returned, nowMs, true);
@@ -223,7 +223,7 @@ void TargetController::leave(LeaveReason reason, int64_t nowMs, bool sendLeave) 
     if (!io_.send(message)) {
       state_ = TargetState::Stopped;
       stopRequested_ = true;
-      stopReason_ = "conexión perdida al liberar el control";
+      stopReason_ = "lost connection by releasing control";
       io_.requestStop(stopReason_);
       return;
     }
@@ -247,7 +247,7 @@ void TargetController::onSourceLeave(const Message& message, int64_t nowMs) {
   if (reason != LeaveReason::Returned) {
     state_ = TargetState::Stopped;
     stopRequested_ = true;
-    stopReason_ = std::string("el origen terminó el control (") + leaveReasonName(reason) + ")";
+    stopReason_ = std::string("the origin finished the control (") + leaveReasonName(reason) + ")";
     io_.requestStop(stopReason_);
   }
 }
@@ -277,7 +277,7 @@ void TargetController::onLinkLost(int64_t nowMs) {
   }
   state_ = TargetState::Stopped;
   stopRequested_ = true;
-  stopReason_ = "conexión perdida";
+  stopReason_ = "missing connection";
   io_.requestStop(stopReason_);
   (void)nowMs;
 }
@@ -297,7 +297,7 @@ void TargetController::tick(int64_t nowMs) {
     }
     state_ = TargetState::Stopped;
     stopRequested_ = true;
-    if (stopReason_.empty()) stopReason_ = "tiempo máximo de sesión";
+    if (stopReason_.empty()) stopReason_ = "maximum session time";
     io_.requestStop(stopReason_);
     return;
   }
@@ -307,7 +307,7 @@ void TargetController::tick(int64_t nowMs) {
     if (state_ != TargetState::Stopped) {
       state_ = TargetState::Stopped;
       stopRequested_ = true;
-      stopReason_ = "sin datos del origen";
+      stopReason_ = "no source data";
       io_.requestStop(stopReason_);
     }
   }
@@ -327,7 +327,7 @@ void TargetController::stop(int64_t nowMs) {
   }
   state_ = TargetState::Stopped;
   stopRequested_ = true;
-  stopReason_ = "cierre solicitado";
+  stopReason_ = "closure requested";
   io_.requestStop(stopReason_);
 }
 

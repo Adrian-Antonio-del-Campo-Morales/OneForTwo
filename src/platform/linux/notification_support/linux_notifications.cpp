@@ -17,14 +17,13 @@
 #include <vector>
 
 /*
- * Presentación nativa en Ubuntu mediante org.freedesktop.Notifications.
+ * Native presentation in Ubuntu by org.freedesktop.Notifications.
  *
- * La especificación estándar permite publicar y retirar avisos propios, pero no
- * leer los de otras aplicaciones. Sin un proveedor de observación autorizado,
- * notificationCapabilities().observe es false y startObserving informa
- * unavailable; el envío manual y la recepción autorizada siguen disponibles.
- * Las llamadas al bus se ejecutan en un hilo propio y los resultados vuelven
- * por ModuleRuntime.post.
+ * The standard specification allows you to publish and withdraw your own notices, but not read
+ * those of other applications. Without an authorized observation provider,
+ * notificationCapabilities().observe is false and startObserving reports unavailable; manual
+ * shipping and authorized reception are still available. Bus calls run on a thread of their own
+ * and results are returned to ModuleRuntime.post.
  */
 
 namespace oneintwo::linux_notifications {
@@ -55,8 +54,8 @@ public:
         if (worker_.joinable()) {
             worker_.join();
         }
-        // La retirada final no puede depender de una tarea ya descartada por la
-        // parada: se ejecuta aquí, sin concurrencia, antes de liberar el servicio.
+        // The final withdrawal cannot depend on a task already ruled out by the
+        // Stop: it runs here, without attendance, before releasing the service.
         if (service_ != nullptr) {
             for (const std::uint32_t identifier : tracked_) {
                 service_->withdraw(identifier);
@@ -79,15 +78,15 @@ public:
     void discoverApplications(
         std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete)
         override {
-        // La especificación de notificaciones de escritorio no permite leer las
-        // aplicaciones que publican avisos ajenos.
+        // The desktop notifications specification does not allow you to read
+        // applications that publish notices from others.
         deliverApplications(std::move(complete), DesktopResult::unavailable, {});
     }
 
     void startObserving(std::function<void(ObservedNotification)> observed,
                         std::function<void(DesktopResult)> state_changed) override {
         (void)observed;
-        // No hay proveedor autorizado de lectura; se anuncia una sola vez.
+        // There is no authorized reading provider; it is advertised only once.
         deliver(std::move(state_changed), DesktopResult::unavailable);
     }
 
@@ -202,7 +201,7 @@ private:
         });
     }
 
-    // Solo se ejecuta en el hilo de trabajo.
+    // It only runs on the work thread.
     void remember(std::uint32_t identifier) {
         tracked_.push_back(identifier);
         while (tracked_.size() > maximum_tracked_notices) {
@@ -220,7 +219,7 @@ private:
 
         std::string body;
         if (notice.mode == NotificationMode::forwarded && !notice.app_name.empty()) {
-            // Atribución de la aplicación de origen como texto plano.
+            // Attribution of source application as plain text.
             body.append(sanitize_plain_text(notice.app_name));
             body.push_back('\n');
         }
@@ -229,7 +228,7 @@ private:
             if (!body.empty() && body.back() != '\n') {
                 body.push_back('\n');
             }
-            body.append("De ");
+            body.append("From ");
             body.append(sanitize_plain_text(peer_name));
         }
         presentation.body = std::move(body);
@@ -246,7 +245,7 @@ private:
     bool stopping_ = false;
     std::thread worker_;
 
-    // Propiedad exclusiva del hilo de trabajo.
+    // Exclusive ownership of the work thread.
     std::deque<std::uint32_t> tracked_;
 };
 

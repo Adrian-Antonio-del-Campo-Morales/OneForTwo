@@ -50,7 +50,7 @@ public:
         DBusMessage* message =
             dbus_message_new_method_call(service_name, object_path, interface_name, "Notify");
         if (message == nullptr) {
-            result.detail = "sin memoria para la llamada Notify";
+            result.detail = "no memory for the Call Notify";
             return result;
         }
 
@@ -59,7 +59,7 @@ public:
         append_string(iterator, presentation.application_name);
         dbus_uint32_t replaces_id = presentation.replaces_id;
         dbus_message_iter_append_basic(&iterator, DBUS_TYPE_UINT32, &replaces_id);
-        append_string(iterator, ""); // icono: el producto no publica uno propio
+        append_string(iterator, ""); // icon: the product does not publish its own
         append_string(iterator, presentation.title);
         append_string(iterator, presentation.body);
 
@@ -81,7 +81,7 @@ public:
             connection_, message, call_timeout_ms, &error);
         dbus_message_unref(message);
         if (reply == nullptr) {
-            result.detail = error.message != nullptr ? error.message : "error del bus";
+            result.detail = error.message != nullptr ? error.message : "bus error";
             result.unavailable = is_unavailable_error(error.name);
             if (dbus_error_is_set(&error)) {
                 dbus_error_free(&error);
@@ -158,7 +158,7 @@ private:
         dbus_error_init(&error);
         DBusConnection* connection = dbus_bus_get_private(DBUS_BUS_SESSION, &error);
         if (connection == nullptr) {
-            last_error_ = error.message != nullptr ? error.message : "sin bus de sesión";
+            last_error_ = error.message != nullptr ? error.message : "no session bus";
             if (dbus_error_is_set(&error)) {
                 dbus_error_free(&error);
             }

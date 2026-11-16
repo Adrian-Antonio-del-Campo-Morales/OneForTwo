@@ -1,105 +1,107 @@
-# Experimento de portapapeles
+# Clipboard experiment
 
-Para la primera conexión entre Windows y Ubuntu, seguir la [preparación LAN](lan/README.md). Incluye asistente de identidades y comandos, certificado público Windows y muestras sintéticas; no inicia conexiones automáticamente.
+For the first connection between Windows and Ubuntu, follow the [LAN](lan/README.md) preparation.
+Includes identity and command wizard, Windows public certificate and synthetic samples; does not
+start connections automatically.
 
-## Encargo para el agente
+## Ordering for the agent
 
-Implementa este experimento siguiendo [las instrucciones comunes](../AGENTS.md) y [el modelo de entrega](../README.md). Tu directorio exclusivo es `D:/DEVEL/OneInTwo/experiments/clipboard`. Las pruebas con el portapapeles real las ejecutará manualmente el usuario.
+Implement this experiment by following [common instructions](../AGENTS.md) and [delivery
+model](../README.md). Your unique directory is `D:/DEVEL/OneInTwo/experiments/clipboard`. Tests with
+the actual clipboard will be executed manually by the user.
 
-## Pregunta que debe resolver
+## Question to Solve
 
-¿Podemos compartir texto entre Windows y Ubuntu, con la aplicación en segundo plano y sin activar el control de teclado y ratón? ¿Qué permisos y capacidades exige cada entorno?
+Can we share text between Windows and Ubuntu, with the app in the background and without activating
+the keyboard and mouse control? What permissions and capabilities does each environment require?
 
-El objetivo es probar texto Unicode. Imágenes, historial, formato enriquecido y archivos quedan fuera de este experimento.
+The goal is to test Unicode text. Images, history, enriched formatting and files are left out of
+this experiment.
 
-## Diseño superficial
+## Interface design
 
-Un ejecutable de consola con cuatro piezas pequeñas:
+A console executable with four small pieces:
 
-1. Adaptador Windows: observar, leer y publicar texto.
-2. Adaptador Ubuntu/Wayland: solicitar la vía autorizada disponible y comunicar sus limitaciones.
-3. Lógica común: identificar cambios, suprimir eco y resolver el orden de operaciones.
-4. Comunicación directa mínima para conectar dos instancias durante la prueba manual.
+1. Windows Adapter: observe, read and publish text.
+2. Adapter Ubuntu/Wayland: request the available authorised route and communicate its limitations.
+3. Common logic: identify changes, delete echo and resolve order of operations.
+4. Minimum direct communication to connect two instances during manual testing.
 
-Proponer modos explícitos para diagnóstico, observación local, publicación de texto sintético y conexión entre dos equipos. El modo de observación debe mostrar estado y metadatos suficientes para el diagnóstico, sin volcar contenido privado por defecto.
+Propose explicit modes for diagnosis, local observation, publication of synthetic text and
+connection between two teams. The observation mode should show sufficient status and metadata for
+diagnosis, without dumping private content by default.
 
-El lector y escritor de prueba no deben capturar teclado ni ratón para aparentar independencia. Si el acceso al portapapeles exige una sesión asociada a otra capacidad, documentar exactamente la autorización solicitada y la limitación. No conceder control remoto funcional solo por compartir texto.
+The test reader and writer should not capture keyboard or mouse to appear independent. If access to
+the clipboard requires a session associated with another capability, document exactly the requested
+authorization and limitation. Do not grant functional remote control just by sharing text.
 
-## Flujo entre equipos
+## Flow between equipment
 
-Una copia local genera una operación identificada. La otra instancia la aplica y reconoce la notificación resultante como escritura propia. Evitar que esa notificación regrese indefinidamente al origen. Definir orden determinista ante copias concurrentes y no reenviar automáticamente texto antiguo al reconectar.
+A local copy generates an identified transaction. The other instance applies it and recognizes the
+resulting notification as its own script. Prevent that notification from returning indefinitely to
+the source. Define deterministic order to concurrent copies and do not automatically forward old
+text when reconnecting.
 
-La conexión usa direcciones explícitas, sin descubrimiento. La autorización del canal sigue las reglas comunes; no construir una pantalla de vinculación de producto.
+The connection uses explicit addresses, without discovery. Channel authorization follows common
+rules; do not build a product linking screen.
 
-## Qué podrá comprobar el agente automáticamente
+## What the agent will be able to check automatically
 
-- Unicode y validación de tamaños con cadenas sintéticas.
-- Operaciones duplicadas y prevención de bucles mediante adaptadores falsos.
-- Orden de copias concurrentes.
-- Rechazo de operaciones de una sesión anterior.
-- Estados de acceso concedido, denegado y no disponible simulados.
+- Unicode and validation of sizes with synthetic chains.
+- Duplicate operations and loop prevention using fake adapters.
+- Ordering of concurrent copies.
+- Rejection of operations from a previous session.
+- Access States granted, denied and not available simulated.
 
-Los dobles no sustituyen a los adaptadores nativos de la entrega.
+Doubles do not replace native delivery adapters.
 
-## Guion que debe preparar para ejecución manual
+## Screenplay to be prepared for manual execution
 
-1. Obtener versiones y capacidades de la sesión.
-2. Copiar un texto de prueba en un editor y observar el cambio.
-3. Publicar texto sintético y pegarlo en el editor.
-4. Repetir con otro programa enfocado, sin ventana del experimento activa.
-5. Repetir sin captura de entrada activa; registrar permisos y restricciones.
-6. Conectar Windows y Ubuntu y probar ambos sentidos.
-7. Probar acentos, emoji, saltos de línea y copias rápidas.
-8. Desconectar, reconectar y retirar permisos; comprobar errores y ausencia de texto antiguo inesperado.
+1. Get versions and session capabilities.
+2. Copy a test text into an editor and observe the change.
+3. Publish synthetic text and paste it into the editor.
+4. Repeat with another focused program, no active experiment window.
+5. Repeat without active input capture; record permissions and restrictions.
+6. Connect Windows and Ubuntu and try both senses.
+7. Try accents, emoji, line breaks and quick copies.
+8. Disconnect, reconnect and remove permissions; check errors and absence of unexpected old text.
 
-## Entregable y criterio de evaluación
+## Deliverable and evaluation criteria
 
-Código del prototipo, compilación independiente, self-tests, MANUAL.md y RESULTS.md. El informe incluirá una tabla por sistema/sesión: lectura, escritura, observación en segundo plano, funcionamiento sin captura y permisos exigidos.
+Prototyping code, independent compilation, self-tests, MANUAL.md and RESULTS.Md. The report will
+include a table by system and session: reading, writing, background observation, uncaptured operation
+and required permissions.
 
-La conclusión de viabilidad quedará pendiente hasta las pruebas manuales. Si una vía del escritorio no ofrece acceso independiente, informarlo como limitación; no reemplazarla silenciosamente por un modo manual y declarar cumplido el objetivo.
+The feasibility conclusion will be pending until manual testing. If a desktop track does not provide
+independent access, report it as a limitation; do not quietly replace it with a manual mode and
+declare the objective to be met.
 
-La decisión arquitectónica esperada es qué contrato y permisos necesita el adaptador de portapapeles.
+The expected architectural decision is what contract and permissions the clipboard adapter needs.
 
-## Implementación entregada (4 de noviembre de 2026)
+## Implementation delivered (4 November 2026)
 
-El prototipo está implementado en `src/`, con auto-pruebas en `tests/selftest.cpp`
-y compilación independiente en `CMakeLists.txt`. Las instrucciones reproducibles
-están en [MANUAL.md](MANUAL.md) y el estado separado por evidencia en
-[RESULTS.md](RESULTS.md).
+The prototype is implemented in `src/`, with auto-tests in `tests/selftest.cpp` and independent
+compilation in `CMakeLists.txt`. Reproducible instructions are in [MANUAL.md](MANUAL.md) and the
+evidence-separated state in [RESULTS.Md](RESULTS.md).
 
 Piezas:
 
-- `src/model.*`: validación UTF-8, límites, finales de línea y orden lógico
-  Lamport con desempate por origen.
-- `src/engine.*`: envío de copias locales, aplicación remota, supresión de eco
-  por marcador y por huella, duplicados, atrasos y generaciones de sesión.
-- `src/protocol.*`: tramas con longitud y límites, mensajes Hello/Clipboard/
-  Applied/Error/Bye y validación estructural.
-- `src/platform/windows_clipboard.cpp`: `CF_UNICODETEXT`, notificaciones con
-  `AddClipboardFormatListener` en una ventana de sólo mensajes y marcador en un
-  formato privado. No captura ni inyecta entrada.
-- `src/platform/linux_clipboard.cpp`: elige Wayland → portal y X11 → limitación
-  explícita; no sustituye Wayland por X11 ni finge lectura o escritura.
-- `src/platform/portal_clipboard.cpp`: adaptador Wayland real sobre
-  `xdg-desktop-portal` RemoteDesktop + Clipboard, con libdbus. Solicita
-  `SelectDevices(types=0)`, exige `clipboard_enabled=true`, rechaza cualquier
-  mask de entrada distinto de cero y no llama a `Notify*` ni `ConnectToEIS`.
-  Sólo texto UTF-8; no captura pantalla.
-- `src/net/*`: conexión directa con TLS 1.2+, certificado del par fijado por
-  SHA-256 y mensajes del protocolo. Sin descubrimiento ni confianza persistente.
-- `src/cli.cpp`: modos explícitos; sin argumentos sólo muestra ayuda.
+- `src/model.*`: UTF-8 validation, boundaries, end of line and logical order Lamport with tiebreaker
+  by origin.
+- `src/engine.*`: sending local copies, remote application, copying by marker and fingerprint,
+  duplicates, delays and session generations.
+- `src/protocol.*`: wefts with length and limits, messages Hello/Clipboard/ Applied/Error/Bye and
+  structural validation.
+- `src/platform/windows_clipboard.cpp`: `CF_UNICODETEXT`, notifications with
+  `AddClipboardFormatListener` in a message only window and marker in a private format. Do not
+  capture or inject input.
+- `src/platform/linux_clipboard.cpp`: Choose Wayland → portal and X11 → explicit limitation; do not
+  substitute Wayland for X11 nor pretend to read or write.
+- `src/platform/portal_clipboard.cpp`: Wayland real adapter over `xdg-desktop-portal` RemoteDesktop + Clipboard, with libdbus. Requests `SelectDevices(types=0)`, requires `clipboard_enabled=true`, rejects any non-zero input mask and does not call `Notify*` or `ConnectToEIS`. Only text UTF-8; does not capture screen.
+- `src/net/*`: direct connection with TLS 1.2+, certificate of torque set by SHA-256 and protocol messages. No discovery or persistent confidence.
+- `src/cli.cpp`: explicit modes; no arguments only shows help.
 
-Estado verificado: compilación Windows (MSVC/OpenSSL 3.5) y compilación Linux
-en Ubuntu 20.04 WSL, incluida la compilación del adaptador Wayland con libdbus
-(151 comprobaciones aisladas) y la compilación sin portal (149). Las pruebas de
-portapapeles real, diálogo del portal, escritorio y dos equipos están pendientes.
-Wayland tiene adaptador implementado; X11 no está implementado y no se usa como
-sustituto silencioso. La compilación Linux con TLS no se verificó por falta de
-`libssl-dev`. No se declara validación de ningún escritorio ni se cierra P2 sin
-las pruebas manuales de [MANUAL.md](MANUAL.md).
+Verified status: Windows (MSVC/OpenSSL 3.5) compilation and Linux compilation on Ubuntu 20.04 WSL, including Wayland adapter compilation with libdbus (151 isolated checks) and portal-free compilation (149). The actual clipboard tests, portal dialogue, desktop and two computers are pending. Wayland has built-in adapter; X11 is not implemented and is not used as a silent substitute. The Linux compilation with TLS was not verified for lack of `libssl-dev`. No desktop validation is declared or P2 closed without manual testing of [MANUAL.md](MANUAL.md).
 
-Dependencia nativa Linux: `libdbus-1-dev` (y `libssl-dev` para el modo entre
-equipos). Los comandos de compilación separados por núcleo, adaptador Wayland y
-validación manual están en [MANUAL.md](MANUAL.md); la evidencia y las fuentes
-primarias están en [RESULTS.md](RESULTS.md).
+Native Linux Dependency: `libdbus-1-dev` (and `libssl-dev` for inter-team mode). The compilation commands separated by kernel, Wayland adapter and manual validation are at [MANUAL.md](MANUAL.md); evidence and primary sources are at [RESULTS.md](RESULTS.md).
 

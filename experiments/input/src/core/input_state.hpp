@@ -1,6 +1,6 @@
 #pragma once
-// Responsabilidad: seguimiento ordenado de teclas y botones pulsados para poder
-// liberarlos en orden inverso ante cualquier salida.
+// Responsibility: orderly tracking of keys and buttons pressed to be able
+// release them in reverse order before any exit.
 
 #include <cstdint>
 #include <vector>
@@ -14,15 +14,15 @@ struct HeldInput {
 
 class InputState {
  public:
-  // Devuelven true solo si el estado cambia (evita duplicados y liberaciones
-  // de elementos que no estaban pulsados).
+  // Return true only if state changes (avoids duplicates and releases)
+  // of elements that were not pressed).
   bool keyDown(uint16_t usage);
   bool keyUp(uint16_t usage);
   bool buttonDown(uint16_t button);
   bool buttonUp(uint16_t button);
 
-  // Devuelve los elementos en orden de liberación (inverso al de pulsación) y
-  // vacía el estado.
+  // Returns the items in release order (inverse to the pulsation order) and
+  // Empty the state.
   std::vector<HeldInput> releaseAll();
 
   void clear();

@@ -265,18 +265,18 @@ struct AuthenticatedSession::Impl {
         if (!sameFingerprint(transport.authenticated_peer_fingerprint(),
                              options.peer_fingerprint)) {
             fail(SessionLinkError::identity,
-                 "la huella autenticada del par no coincide con la fijada");
+                 "the authenticated print of the pair does not match the fixed one");
             return;
         }
         local_generation = options.allocate_generation ? options.allocate_generation()
                                                        : defaultGeneration();
         if (local_generation == 0) {
-            fail(SessionLinkError::generation, "generación local inválida");
+            fail(SessionLinkError::generation, "invalid local generation");
             return;
         }
         if (options.local_device_id.empty() || options.local_device_id.size() > max_device_id_bytes ||
             options.peer_device_id.empty() || options.peer_device_id.size() > max_device_id_bytes) {
-            fail(SessionLinkError::identity, "identidad local o remota inválida");
+            fail(SessionLinkError::identity, "invalid local or remote identity");
             return;
         }
         phase = SessionLinkPhase::negotiating;
@@ -286,7 +286,7 @@ struct AuthenticatedSession::Impl {
         hello.generation = local_generation;
         if (transport.send(SessionChannelKind::interactive, encodeHandshake(hello)) !=
             TransportSendStatus::sent) {
-            fail(SessionLinkError::transport, "no se pudo enviar el saludo de sesión");
+            fail(SessionLinkError::transport, "could not send session greeting");
         }
     }
 
@@ -347,19 +347,19 @@ struct AuthenticatedSession::Impl {
         if (isHandshakeFrame(bytes)) {
             if (phase != SessionLinkPhase::negotiating &&
                 phase != SessionLinkPhase::established) {
-                fail(SessionLinkError::protocol, "negociación fuera de estado");
+                fail(SessionLinkError::protocol, "out-of-state negotiation");
                 return;
             }
             Handshake handshake;
             if (!decodeHandshake(bytes, handshake)) {
-                fail(SessionLinkError::protocol, "saludo de sesión malformado");
+                fail(SessionLinkError::protocol, "malformed session greeting");
                 return;
             }
             handleHandshake(handshake);
             return;
         }
         if (phase != SessionLinkPhase::established) {
-            fail(SessionLinkError::protocol, "mensaje de funciones antes de establecer sesión");
+            fail(SessionLinkError::protocol, "function message before you set session");
             return;
         }
 
@@ -370,14 +370,14 @@ struct AuthenticatedSession::Impl {
         case ProtocolStatus::ok:
             break;
         default:
-            fail(SessionLinkError::protocol, "trama de funciones inválida");
+            fail(SessionLinkError::protocol, "invalid function frame");
             return;
         }
         const ProtocolChannel expected =
             channel == SessionChannelKind::data ? ProtocolChannel::data
                                                 : ProtocolChannel::interactive;
         if (decoded.channel != expected) {
-            fail(SessionLinkError::protocol, "canal de datos no asociado a la trama");
+            fail(SessionLinkError::protocol, "data channel not associated with the plot");
             return;
         }
         if (!decoded.message.has_value()) {
@@ -399,13 +399,13 @@ struct AuthenticatedSession::Impl {
             }
             if (handshake.device_id != options.peer_device_id ||
                 handshake.generation != peer_generation) {
-                fail(SessionLinkError::identity, "confirmación de identidad incoherente");
+                fail(SessionLinkError::identity, "Incoherent identity confirmation");
             }
             return;
         }
 
         if (handshake.device_id != options.peer_device_id) {
-            fail(SessionLinkError::identity, "identidad remota no autorizada");
+            fail(SessionLinkError::identity, "Unauthorized remote identity");
             return;
         }
         SessionGeneration minimum = last_peer_generation;
@@ -413,12 +413,12 @@ struct AuthenticatedSession::Impl {
             minimum = std::max(minimum, options.last_peer_generation(handshake.device_id));
         }
         if (handshake.generation <= minimum) {
-            fail(SessionLinkError::generation, "generación remota repetida o antigua");
+            fail(SessionLinkError::generation, "Repeated or old remote generation");
             return;
         }
         if (hello_seen && (peer_generation != handshake.generation ||
                            handshake.device_id != options.peer_device_id)) {
-            fail(SessionLinkError::identity, "segundo saludo con identidad distinta");
+            fail(SessionLinkError::identity, "second greeting with a different identity");
             return;
         }
 
@@ -428,7 +428,7 @@ struct AuthenticatedSession::Impl {
         accept.generation = local_generation;
         if (transport.send(SessionChannelKind::interactive, encodeHandshake(accept)) !=
             TransportSendStatus::sent) {
-            fail(SessionLinkError::transport, "no se pudo confirmar la sesión");
+            fail(SessionLinkError::transport, "session could not be confirmed");
             return;
         }
 

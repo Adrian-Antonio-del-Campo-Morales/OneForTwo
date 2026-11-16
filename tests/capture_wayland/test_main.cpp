@@ -176,7 +176,7 @@ void testFrameConversion()
         CHECK(opaque);
     }
 
-    // Stride negativo: la primera fila de la imagen está al final del búfer.
+    // Stride negative: the first row of the image is at the end of the buffer.
     {
         const EncodedBuffer encoded = encode(source, VideoPixelFormat::bgra, 0);
         const std::size_t row_bytes = static_cast<std::size_t>(source.width) * 4ull;
@@ -430,7 +430,7 @@ void testTypeAttestation(MockPortal& portal)
 {
     {
         portal.config = MockPortalConfig{};
-        portal.config.window_source_type = 1; // el portal devuelve un monitor
+        portal.config.window_source_type = 1; // portal returns a monitor
         portal.resetObservations();
         Fixture fixture(portal);
         CHECK(fixture.initialise());
@@ -582,14 +582,14 @@ void testWindowLifecycle(MockPortal& portal)
     fixture.pipewire->pushFrame(toVisualFrame(window));
     CHECK(fixture.runtime.pump([&] { return fixture.harness.frameCount() == 1; }));
 
-    // Mover la ventana no cambia la identidad ni el tipo solicitado.
+    // Moving the window does not change the identity or type requested.
     const TestSource moved = shiftPresentation(window, 37, 21);
     fixture.pipewire->pushFrame(toVisualFrame(moved));
     CHECK(fixture.runtime.pump([&] { return fixture.harness.frameCount() == 2; }));
     CHECK(frameMatches(fixture.harness.frames[1], moved));
     CHECK(!fixture.harness.sawState(VisualSourceState::closed));
 
-    // Redimensionar anuncia disponibilidad y conserva la misma operación.
+    // Resize announces availability and retains the same operation.
     const TestSource resized = resizePresentation(moved, 620, 380);
     fixture.pipewire->pushSize({resized.width, resized.height});
     fixture.pipewire->pushFrame(toVisualFrame(resized));
@@ -597,8 +597,8 @@ void testWindowLifecycle(MockPortal& portal)
     CHECK(stateBeforeFrame(fixture.harness, VisualSourceState::available,
                            {resized.width, resized.height}));
 
-    // Cerrar la fuente termina la operación; una nueva ventana con el mismo
-    // título no reanuda la anterior.
+    // Closing the source ends the operation; a new window with the same
+    // title does not resume the previous one.
     portal.emitSessionClosed();
     CHECK(fixture.runtime.pump([&] {
         return fixture.harness.sawState(VisualSourceState::closed);
@@ -622,11 +622,11 @@ int main()
 {
     MockPortal portal;
     if (!portal.start()) {
-        std::fprintf(stderr, "No se pudo iniciar el bus D-Bus privado\n");
+        std::fprintf(stderr, "Could not start D-Bus private bus\n");
         return 2;
     }
     if (!portal.ownName()) {
-        std::fprintf(stderr, "No se pudo publicar el portal simulado\n");
+        std::fprintf(stderr, "Could not publish simulated portal\n");
         portal.stop();
         return 2;
     }

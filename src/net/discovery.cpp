@@ -1,11 +1,12 @@
 /*
- * OneInTwo — Descubrimiento en la red local.
- * Estado: estructura documental; implementación pendiente.
+ * OneInTwo — Discovery on the local network. Status: documentary structure; implementation
+ * pending.
  *
- * Responsabilidades previstas:
- * - Anunciar y localizar candidatos y ofrecer resolución de dirección introducida manualmente.
- * - Gestionar varias interfaces, expiración de anuncios y cambios de dirección.
- * - Entregar candidatos a la sesión sin conceder confianza ni permisos.
- * - La elección de mDNS y su biblioteca se cerrará al implementar; no crear un protocolo criptográfico aquí.
+ * Responsibilities envisaged:
+ * - Announce and locate candidates and offer manually entered address resolution.
+ * - Manage multiple interfaces, expiration of announcements and address changes.
+ * - Surrender candidates to the session without granting confidence or permits.
+ * - The choice of mDNS and its library will be closed when you implement; do not create a
+ *   cryptographic protocol here.
  */
 

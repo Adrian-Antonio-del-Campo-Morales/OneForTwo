@@ -1,7 +1,7 @@
 #pragma once
 
-// Responsabilidad: representación y validación estructural de los mensajes
-// entre dos instancias. No interpreta permisos ni modifica el portapapeles.
+// Responsibility: representation and structural validation of messages
+// It does not interpret permissions or modify the clipboard.
 
 #include <cstddef>
 #include <cstdint>
@@ -73,7 +73,7 @@ Bytes encode_applied(const AppliedMessage& message);
 Bytes encode_error(const ErrorMessage& message);
 Bytes encode_bye(const ByeMessage& message);
 
-// Espera una trama completa (prefijo de longitud incluido) y la decodifica.
+// Wait for a complete plot (length prefix included) and decode it.
 bool decode_message(const Bytes& frame, DecodedMessage& out, Status& error);
 
 Status validate_hello(const HelloMessage& message);

@@ -1,6 +1,6 @@
-// Responsabilidad: informar que esta compilación no incluye OpenSSL. No
-// simula una conexión ni presenta éxito: el modo entre equipos no está
-// disponible y se indica cómo habilitarlo.
+// Responsibility: report that this compilation does not include OpenSSL. No
+// simulates a connection or succeeds: the mode between computers is not
+// available and how to enable it.
 
 #include "net/peer.hpp"
 

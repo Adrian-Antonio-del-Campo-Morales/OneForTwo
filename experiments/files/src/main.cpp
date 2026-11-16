@@ -1,6 +1,6 @@
-// Responsabilidad: interfaz de línea de comandos del experimento. Separa los
-// modos inocuos (ayuda, self-test, datos sintéticos) de los modos manuales que
-// tocan el portapapeles o abren red.
+// Responsibility: command line interface of the experiment.
+// innocuous modes (aid, self-test, synthetic data) of manual modes which
+// They touch the clipboard or open the net.
 #include "core/cache.hpp"
 #include "core/manifest.hpp"
 #include "core/net.hpp"
@@ -30,34 +30,34 @@ namespace fs = std::filesystem;
 namespace o2f {
 namespace {
 
-const char* kUsage = R"(OneInTwo — experimento de archivos (prototipo)
+const char* kUsage = R"(OneInTwo — file experiment (prototype)
 
   oneintwo-files --help
   oneintwo-files --self-test [--verbose]
 
-Preparación sin escritorio:
-  --make-fixtures DIR            crea un conjunto sintético desechable
-  --inspect RUTA...              muestra la oferta que se construiría
-  --fingerprint CERT.pem         muestra la huella SHA-256 de un certificado
+Setup without desktop access:
+  --make-fixtures DIR            creates disposable synthetic fixtures
+  --inspect PATH...              shows the offer that would be built
+  --fingerprint CERT.pem         shows a certificate's SHA-256 fingerprint
 
-Publicación local (portapapeles real, solo ejecución manual):
-  --publish-cache RUTA...
-  --publish-ondemand --root RUTA
-  --publish-ondemand --from HOST[:PUERTO] --pin HUELLA --cert CERT.pem --key CLAVE.pem
+Local publishing (uses the real clipboard, run manually only):
+  --publish-cache PATH...
+  --publish-ondemand --root PATH
+  --publish-ondemand --from HOST[:PORT] --pin FINGERPRINT --cert CERT.pem --key KEY.pem
 
-Entre dos equipos (TLS mutuo obligatorio):
-  --share --root RUTA --cert CERT.pem --key CLAVE.pem --client-pin HUELLA
+Between two devices (mutual TLS required):
+  --share --root PATH --cert CERT.pem --key KEY.pem --client-pin FINGERPRINT
           [--bind 0.0.0.0] [--port 47654]
-  --receive-offer --from HOST[:PUERTO] --pin HUELLA --cache DIR
-          --cert CERT.pem --key CLAVE.pem [--to DESTINO] [--publish]
+  --receive-offer --from HOST[:PORT] --pin FINGERPRINT --cache DIR
+          --cert CERT.pem --key KEY.pem [--to DESTINATION] [--publish]
 
-Caché:
+Cache:
   --cache-list --cache DIR
   --cache-gc --cache DIR [--max-age-hours N]
 
-Opciones: --port N, --timeout MS, --verbose. Cada equipo usa su propio par
-certificado/clave. --pin fija la huella SHA-256 del servidor y --client-pin la
-del cliente; ambas son 64 caracteres hexadecimales.)";
+Options: --port N, --timeout MS, --verbose. Each device uses its own
+certificate and key pair. --pin pins the server's SHA-256 fingerprint, and
+--client-pin pins the client's. Both are 64 hexadecimal characters.)";
 
 struct Args {
     std::string mode;
@@ -111,22 +111,22 @@ bool allHex(const std::string& text) {
 }
 
 void parseEndpoint(const std::string& text, std::string& host, std::uint16_t& port) {
-    if (text.empty()) throw Error("dirección remota vacía");
+    if (text.empty()) throw Error("empty remote address");
     const std::size_t colon = text.rfind(':');
     if (colon == std::string::npos) {
         host = text;
         return;
     }
     host = text.substr(0, colon);
-    if (host.empty()) throw Error("dirección remota sin equipo");
+    if (host.empty()) throw Error("remote address without equipment");
     try {
         const int parsed = std::stoi(text.substr(colon + 1));
-        if (parsed <= 0 || parsed > 65535) throw Error("puerto remoto fuera de rango");
+        if (parsed <= 0 || parsed > 65535) throw Error("remote port out of range");
         port = static_cast<std::uint16_t>(parsed);
     } catch (const Error&) {
         throw;
     } catch (...) {
-        throw Error("puerto remoto inválido");
+        throw Error("invalid remote port");
     }
 }
 
@@ -134,14 +134,14 @@ Args parseArgs(const std::vector<std::string>& args) {
     Args out;
     auto setMode = [&out](const std::string& mode) {
         if (!out.mode.empty() && out.mode != mode) {
-            throw Error("solo se permite un modo por ejecución");
+            throw Error("only one mode per execution is allowed");
         }
         out.mode = mode;
     };
     for (std::size_t i = 0; i < args.size(); ++i) {
         const std::string& a = args[i];
         auto value = [&args, &i, &a]() -> std::string {
-            if (i + 1 >= args.size()) throw Error("falta el valor de " + a);
+            if (i + 1 >= args.size()) throw Error("the value of " + a);
             return args[++i];
         };
         if (a == "--help" || a == "-h") {
@@ -193,30 +193,30 @@ Args parseArgs(const std::vector<std::string>& args) {
         } else if (a == "--port") {
             try {
                 const int parsed = std::stoi(value());
-                if (parsed <= 0 || parsed > 65535) throw Error("puerto fuera de rango");
+                if (parsed <= 0 || parsed > 65535) throw Error("port out of range");
                 out.port = static_cast<std::uint16_t>(parsed);
             } catch (const Error&) {
                 throw;
             } catch (...) {
-                throw Error("puerto inválido");
+                throw Error("Invalid port");
             }
         } else if (a == "--timeout") {
             try {
                 out.timeoutMs = std::stoi(value());
-                if (out.timeoutMs < 1000) throw Error("tiempo de espera demasiado corto");
+                if (out.timeoutMs < 1000) throw Error("waiting time too short");
             } catch (const Error&) {
                 throw;
             } catch (...) {
-                throw Error("tiempo de espera inválido");
+                throw Error("Invalid waiting time");
             }
         } else if (a == "--max-age-hours") {
             try {
                 out.maxAgeHours = std::stoull(value());
             } catch (...) {
-                throw Error("antigüedad máxima inválida");
+                throw Error("Invalid maximum seniority");
             }
         } else if (!a.empty() && a[0] == '-') {
-            throw Error("opción desconocida: " + a);
+            throw Error("unknown option: " + a);
         } else {
             out.paths.push_back(a);
         }
@@ -237,7 +237,7 @@ void printEntries(const Offer& offer) {
 
 void writePattern(const fs::path& file, std::uint64_t bytes) {
     std::ofstream out(file, std::ios::binary | std::ios::trunc);
-    if (!out) throw Error("no se pudo crear un archivo sintético");
+    if (!out) throw Error("could not create synthetic file");
     std::vector<char> buffer(64 * 1024);
     std::uint64_t state = 0x9e3779b97f4a7c15ull;
     std::uint64_t left = bytes;
@@ -252,38 +252,38 @@ void writePattern(const fs::path& file, std::uint64_t bytes) {
         out.write(buffer.data(), static_cast<std::streamsize>(take));
         left -= take;
     }
-    if (!out) throw Error("fallo al escribir un archivo sintético");
+    if (!out) throw Error("failure to write a synthetic file");
 }
 
 void writeText(const fs::path& file, const std::string& text) {
     std::ofstream out(file, std::ios::binary | std::ios::trunc);
-    if (!out) throw Error("no se pudo crear un archivo sintético");
+    if (!out) throw Error("could not create synthetic file");
     out.write(text.data(), static_cast<std::streamsize>(text.size()));
-    if (!out) throw Error("fallo al escribir un archivo sintético");
+    if (!out) throw Error("failure to write a synthetic file");
 }
 
 int cmdMakeFixtures(const Args& args) {
-    if (args.paths.empty()) throw Error("indique la carpeta de datos: --make-fixtures DIR");
+    if (args.paths.empty()) throw Error("indicate the data folder: --make-fixtures DIR");
     const fs::path root = fs::u8path(args.paths.front());
     std::error_code ec;
     fs::create_directories(root / "folder" / "nested", ec);
     fs::create_directories(root / "folder" / "empty-subdir", ec);
-    if (!fs::is_directory(root)) throw Error("no se pudo crear la carpeta de datos");
+    if (!fs::is_directory(root)) throw Error("could not create data folder");
 
     writeText(root / "file-small.txt", std::string(1023, 'A') + "\n");
     writeText(root / "empty.dat", "");
-    writeText(root / fs::u8path("ñandú-日本語.txt"),
-              "OneInTwo: ñ á é í ó ú ü 日本語 🐧\n");
+    writeText(root / fs::u8path("resume-日本語-🚀.txt"),
+              "OneInTwo: café 日本語 😀\n");
     writePattern(root / "folder" / "nested" / "deep.bin", 300u * 1024u);
     writePattern(root / "large-5mb.bin", 5u * 1024u * 1024u);
 
-    std::cout << "datos sintéticos creados; incluye archivo vacío, carpeta anidada, "
-                 "carpeta vacía, nombre Unicode y un archivo de 5 MiB\n";
+    std::cout << "synthetic data created; includes empty file, nested folder, "
+                 "empty folder, Unicode name and 5 MiB\n file";
     return 0;
 }
 
 int cmdInspect(const Args& args) {
-    if (args.paths.empty()) throw Error("indique al menos una ruta: --inspect RUTA...");
+    if (args.paths.empty()) throw Error("indicate at least one route: --inspect RUTA...");
     const BuiltOffer built = buildOffer(args.paths, Limits{});
     printEntries(built.offer);
     return 0;
@@ -291,7 +291,7 @@ int cmdInspect(const Args& args) {
 
 int cmdFingerprint(const Args& args) {
     if (args.paths.empty()) throw Error("indique el certificado: --fingerprint CERT.pem");
-    if (!tlsAvailable()) throw Error("TLS no disponible: compile con OpenSSL");
+    if (!tlsAvailable()) throw Error("TLS not available: compile with OpenSSL");
     const std::string pin = certificateFingerprint(args.paths.front());
     std::cout << "huella SHA-256: " << pin << '\n';
     return 0;
@@ -321,8 +321,8 @@ public:
     bool read(const Entry& entry, std::uint64_t offset, void* buffer, std::size_t len,
               std::size_t& got, std::string& err) override {
         try {
-            // El explorador puede pedir bloques mayores que la trama del protocolo:
-            // se subdividen aquí, manteniendo acotada cada petición remota.
+            // The browser can order larger blocks than the layout of the protocol:
+            // They subdivide here, keeping every remote request limited.
             std::size_t total = 0;
             auto* out = static_cast<std::uint8_t*>(buffer);
             while (total < len) {
@@ -350,16 +350,16 @@ int cmdShare(const Args& args) {
     requireValue(args.key, "--key");
     requireValue(args.clientPin, "--client-pin");
     if (args.clientPin.size() != 64 || !allHex(args.clientPin)) {
-        throw Error("la huella del cliente debe ser SHA-256 en hexadecimal (64 caracteres)");
+        throw Error("the customer's footprint should be SHA-256 in hexadecimal (64 characters)");
     }
-    if (!tlsAvailable()) throw Error("TLS no disponible: compile con OpenSSL");
+    if (!tlsAvailable()) throw Error("TLS not available: compile with OpenSSL");
     std::error_code ec;
-    if (!fs::is_regular_file(fs::u8path(args.cert), ec)) throw Error("el certificado indicado no existe");
-    if (!fs::is_regular_file(fs::u8path(args.key), ec)) throw Error("la clave indicada no existe");
+    if (!fs::is_regular_file(fs::u8path(args.cert), ec)) throw Error("the certificate indicated does not exist");
+    if (!fs::is_regular_file(fs::u8path(args.key), ec)) throw Error("the indicated key does not exist");
 
     OfferStore store = OfferStore::fromPaths({args.root}, Limits{});
     std::cout << describeOffer(store.offer()) << '\n';
-    std::cout << "huella del certificado (SHA-256): "
+    std::cout << "certificate footprint (SHA-256): "
               << certificateFingerprint(args.cert) << '\n';
 
     ServerOptions options;
@@ -372,11 +372,11 @@ int cmdShare(const Args& args) {
 
     CancelToken cancel;
     installCancel(cancel);
-    std::cout << "sirviendo la oferta; Ctrl+C para detener\n";
+    std::cout << "serving the offer; Ctrl+C to stop\n";
     serveOffer(store, options, cancel, [](const std::string& note) {
         std::cout << "servidor: " << note << '\n';
     });
-    std::cout << "servidor detenido\n";
+    std::cout << "server stopped\n";
     return 0;
 }
 
@@ -387,7 +387,7 @@ int cmdReceive(const Args& args) {
     requireValue(args.cert, "--cert");
     requireValue(args.key, "--key");
     if (args.pin.size() != 64 || !allHex(args.pin)) {
-        throw Error("la huella debe ser SHA-256 en hexadecimal (64 caracteres)");
+        throw Error("the print must be SHA-256 in hexadecimal (64 characters)");
     }
     std::string host;
     std::uint16_t port = args.port;
@@ -411,42 +411,42 @@ int cmdReceive(const Args& args) {
             if (entry.isDir) {
                 std::error_code ec;
                 fs::create_directories(incoming / fs::u8path(entry.relPath), ec);
-                if (ec) throw Error("no se pudo crear una carpeta en la recepción");
+                if (ec) throw Error("could not create folder at reception");
                 continue;
             }
             StagedFile stage(incoming, entry.relPath, entry.size);
             link->fetchFile(entry, stage, cancel, nullptr);
-            // El contenido ya está verificado; conservar su nombre definitivo
-            // dentro de incoming antes de publicar toda la oferta.
+            // The content is already verified; keep your final name
+            // inside incoming before publishing the entire offer.
             std::error_code renameError;
             fs::rename(stage.partPath(), incoming / fs::u8path(entry.relPath), renameError);
-            if (renameError) throw Error("no se pudo finalizar el archivo verificado en la recepción");
+            if (renameError) throw Error("could not finish the verified file at the reception");
             ++fileIndex;
-            std::cout << "archivo " << fileIndex << '/' << fileTotal
+            std::cout << "file " << fileIndex << '/' << fileTotal
                       << " verificado (" << entry.size << " bytes)\n";
             if (args.verbose) std::cout << "  " << entry.relPath << '\n';
         }
         const fs::path published = cache.commitIncoming(incoming, link->offer());
-        std::cout << "oferta verificada y publicada en la caché\n";
+        std::cout << "verified offer and published in cache\n";
 
         if (!args.to.empty()) {
             CopyOutStats stats = copyOutOffer(link->offer(), published, fs::u8path(args.to), cancel);
             std::cout << "copiados " << stats.files << " archivos (" << stats.bytes
-                      << " bytes) al destino\n";
+                      << " bytes) to destination\n";
         }
         if (args.publish) {
             ClipboardRequest request;
-            // Solo los elementos de primer nivel: publicar cada archivo suelto
-            // perdería la estructura de carpetas al pegar.
+            // Only the first-level items: publish each single file
+            // I'd lose the folder structure when I paste.
             for (const Entry& entry : link->offer().entries) {
                 if (entry.relPath.find('/') != std::string::npos) continue;
                 request.localPaths.push_back((published / fs::u8path(entry.relPath)).u8string());
             }
             std::string err;
-            std::cout << "publicando en el portapapeles; Ctrl+C para retirar la oferta\n";
+            std::cout << "posting on clipboard; Ctrl+C to withdraw the offer\n";
             const int rc = runClipboardPublisher(request, true, err);
             if (rc != 0) throw Error(err);
-            std::cout << "publicación finalizada (la caché conserva el contenido verificado)\n";
+            std::cout << "publication completed (the cache retains verified content)\n";
         }
     } catch (...) {
         cache.abandonIncoming(incoming);
@@ -456,22 +456,22 @@ int cmdReceive(const Args& args) {
 }
 
 int cmdPublishCache(const Args& args) {
-    if (args.paths.empty()) throw Error("indique rutas: --publish-cache RUTA...");
+    if (args.paths.empty()) throw Error("specify paths: --publish-cache PATH...");
     ClipboardRequest request;
     for (const std::string& path : args.paths) {
         std::error_code ec;
         fs::path absolute = fs::absolute(fs::u8path(path), ec).lexically_normal();
-        if (ec || !fs::exists(absolute)) throw Error("una ruta publicada no existe");
+        if (ec || !fs::exists(absolute)) throw Error("a published path does not exist");
         request.localPaths.push_back(absolute.u8string());
     }
     std::string why;
     if (!clipboardAvailable(why)) throw Error(why);
     std::string err;
     std::cout << "publicando " << request.localPaths.size()
-              << " elementos locales; Ctrl+C para terminar\n";
+              << " local elements; Ctrl+C to finish\n";
     const int rc = runClipboardPublisher(request, true, err);
     if (rc != 0) throw Error(err);
-    std::cout << "publicación finalizada (los archivos locales no se modifican)\n";
+    std::cout << "publication completed (local files unchanged)\n";
     return 0;
 }
 
@@ -486,7 +486,7 @@ int cmdPublishOnDemand(const Args& args) {
         requireValue(args.cert, "--cert");
         requireValue(args.key, "--key");
         if (args.pin.size() != 64 || !allHex(args.pin)) {
-            throw Error("la huella debe ser SHA-256 en hexadecimal (64 caracteres)");
+            throw Error("the print must be SHA-256 in hexadecimal (64 characters)");
         }
         std::string host;
         std::uint16_t port = args.port;
@@ -505,7 +505,7 @@ int cmdPublishOnDemand(const Args& args) {
     }
     request.source = source;
     std::cout << describeOffer(request.offer) << '\n';
-    std::cout << "publicando entrega bajo demanda; pegue en el explorador y use Ctrl+C para retirar\n";
+    std::cout << "posting delivery on demand; paste into the browser and use Ctrl+C to remove\n";
     std::string err;
     const int rc = runClipboardPublisher(request, false, err);
     if (rc != 0) throw Error(err);
@@ -517,7 +517,7 @@ int cmdCacheList(const Args& args) {
     CacheStore cache(args.cache);
     const std::vector<CachedOffer> offers = cache.list();
     if (offers.empty()) {
-        std::cout << "la caché no contiene ofertas\n";
+        std::cout << "cache does not contain offers\n";
         return 0;
     }
     for (const CachedOffer& cached : offers) {
@@ -534,7 +534,7 @@ int cmdCacheGc(const Args& args) {
     requireValue(args.cache, "--cache");
     CacheStore cache(args.cache);
     const std::uint64_t removed = cache.sweep(args.maxAgeHours * 3600, unixNow());
-    std::cout << "eliminadas " << removed << " ofertas o recepciones abandonadas\n";
+    std::cout << "eliminadas " << removed << " abandoned offers or receptions\n";
     return 0;
 }
 
@@ -565,7 +565,7 @@ int runMain(const std::vector<std::string>& args) {
         if (parsed.mode == "publish-ondemand") return cmdPublishOnDemand(parsed);
         if (parsed.mode == "cache-list") return cmdCacheList(parsed);
         if (parsed.mode == "cache-gc") return cmdCacheGc(parsed);
-        throw Error("modo no reconocido: " + parsed.mode);
+        throw Error("unrecognized mode: " + parsed.mode);
     } catch (const Error& e) {
         std::cerr << "error: " << e.what() << '\n';
         return 1;

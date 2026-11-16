@@ -7,24 +7,24 @@
 
 namespace oneintwo {
 
-// Comprueba que la imagen local tiene exactamente ancho × alto × 4 bytes BGRA.
+// Check that the local image is exactly wide × high × 4 bytes BGRA.
 bool validateVisualFrameGeometry(const VisualFrame& frame, std::string* error = nullptr);
 
-// El soporte de JPEG se comprueba al arrancar; sin él, la función visual debe
-// declararse no disponible.
+// The support of JPEG is checked when booting; without it, the visual function must
+// to declare itself unavailable.
 bool jpegCodecAvailable();
 
-// Escala si hace falta, codifica JPEG con calidad inicial 75 y reduce calidad
-// y después resolución hasta respetar max_visual_encoded_bytes. Devuelve vacío
-// si no puede respetar los límites.
+// Scale if necessary, encodes JPEG with initial quality 75 and reduces quality
+// and then resolution to respect max_visual_encoded_bytes.
+// if you can't respect the limits.
 std::optional<VisualEncodedFrame> encodeVisualFrame(const VisualShareRef& ref,
                                                     VisualSourceRevision revision,
                                                     std::uint64_t sequence,
                                                     const VisualFrame& frame,
                                                     std::string* error = nullptr);
 
-// Valida los límites antes de reservar y comprueba las dimensiones del JPEG
-// antes de decodificarlo. Devuelve vacío si no es una imagen admisible.
+// Validate the limits before booking and check the dimensions of the JPEG
+// before decoding. Returns empty if it is not an acceptable image.
 std::optional<VisualFrame> decodeVisualFrame(const VisualEncodedFrame& frame,
                                              std::string* error = nullptr);
 

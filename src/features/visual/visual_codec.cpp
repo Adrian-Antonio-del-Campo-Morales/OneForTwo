@@ -68,11 +68,11 @@ VisualSize scaledToContract(VisualSize source) {
 bool validateVisualFrameGeometry(const VisualFrame& frame, std::string* error) {
     std::size_t expected = 0;
     if (!checkedBgraBytes(frame.size, expected)) {
-        setError(error, "dimensiones visuales inválidas");
+        setError(error, "Invalid visual dimensions");
         return false;
     }
     if (frame.bgra.size() != expected) {
-        setError(error, "el búfer BGRA no coincide con las dimensiones");
+        setError(error, "the buffer BGRA does not match the dimensions");
         return false;
     }
     return true;
@@ -98,14 +98,14 @@ std::optional<VisualEncodedFrame> encodeVisualFrame(const VisualShareRef& ref,
                                                     const VisualFrame& frame,
                                                     std::string* error) {
     if (!jpegCodecAvailable()) {
-        setError(error, "el codec JPEG no está disponible");
+        setError(error, "codec JPEG is not available");
         return std::nullopt;
     }
     if (!validateVisualFrameGeometry(frame, error)) {
         return std::nullopt;
     }
     if (ref.offer_id == 0 || revision == 0 || sequence == 0) {
-        setError(error, "identidad o revisión de imagen inválida");
+        setError(error, "invalid image identity or revision");
         return std::nullopt;
     }
 
@@ -113,7 +113,7 @@ std::optional<VisualEncodedFrame> encodeVisualFrame(const VisualShareRef& ref,
                         static_cast<int>(frame.size.height),
                         static_cast<int>(frame.size.width) * 4, QImage::Format_ARGB32);
     if (source.isNull()) {
-        setError(error, "no se pudo construir la imagen de origen");
+        setError(error, "could not build source image");
         return std::nullopt;
     }
 
@@ -124,7 +124,7 @@ std::optional<VisualEncodedFrame> encodeVisualFrame(const VisualShareRef& ref,
                                        static_cast<int>(target.height), Qt::IgnoreAspectRatio,
                                        Qt::SmoothTransformation);
     if (image.isNull()) {
-        setError(error, "no se pudo escalar la imagen");
+        setError(error, "could not scale image");
         return std::nullopt;
     }
 
@@ -133,11 +133,11 @@ std::optional<VisualEncodedFrame> encodeVisualFrame(const VisualShareRef& ref,
         QByteArray encoded;
         QBuffer buffer(&encoded);
         if (!buffer.open(QIODevice::WriteOnly)) {
-            setError(error, "no se pudo abrir el codificador JPEG");
+            setError(error, "Could not open encoder JPEG");
             return std::nullopt;
         }
         if (!image.save(&buffer, "JPEG", quality)) {
-            setError(error, "el codificador JPEG rechazó la imagen");
+            setError(error, "the encoder JPEG rejected the image");
             return std::nullopt;
         }
         if (static_cast<std::size_t>(encoded.size()) <= max_visual_encoded_bytes) {
@@ -166,25 +166,25 @@ std::optional<VisualEncodedFrame> encodeVisualFrame(const VisualShareRef& ref,
                              Qt::SmoothTransformation);
         quality = initial_quality;
     }
-    setError(error, "la imagen no cabe en el límite de 1 MiB");
+    setError(error, "image does not fit at the limit of 1 MiB");
     return std::nullopt;
 }
 
 std::optional<VisualFrame> decodeVisualFrame(const VisualEncodedFrame& frame,
                                              std::string* error) {
     if (frame.bytes.empty() || frame.bytes.size() > max_visual_encoded_bytes) {
-        setError(error, "tamaño de imagen codificada fuera de límite");
+        setError(error, "Off-limit encoded image size");
         return std::nullopt;
     }
     if (frame.size.width == 0 || frame.size.height == 0 ||
         frame.size.width > max_visual_dimension || frame.size.height > max_visual_dimension ||
         static_cast<std::uint64_t>(frame.size.width) * frame.size.height > max_visual_pixels) {
-        setError(error, "dimensiones anunciadas fuera de límite");
+        setError(error, "dimensions announced out of bounds");
         return std::nullopt;
     }
     std::size_t announced_bytes = 0;
     if (!checkedBgraBytes(frame.size, announced_bytes)) {
-        setError(error, "dimensiones anunciadas inválidas");
+        setError(error, "Invalid announced dimensions");
         return std::nullopt;
     }
 
@@ -197,27 +197,27 @@ std::optional<VisualFrame> decodeVisualFrame(const VisualEncodedFrame& frame,
     const QSize announced = reader.size();
     if (!announced.isValid() || announced.width() != static_cast<int>(frame.size.width) ||
         announced.height() != static_cast<int>(frame.size.height)) {
-        setError(error, "el JPEG no coincide con las dimensiones anunciadas");
+        setError(error, "the JPEG does not match the announced dimensions");
         return std::nullopt;
     }
     if (announced.width() > static_cast<int>(max_visual_dimension) ||
         announced.height() > static_cast<int>(max_visual_dimension) ||
         static_cast<std::uint64_t>(announced.width()) * announced.height() > max_visual_pixels) {
-        setError(error, "el JPEG supera los límites visuales");
+        setError(error, "the JPEG exceeds the visual limits");
         return std::nullopt;
     }
     QImage image;
     if (!reader.read(&image) || image.isNull()) {
-        setError(error, "no se pudo decodificar el JPEG");
+        setError(error, "Could not decode JPEG");
         return std::nullopt;
     }
     if (image.width() != announced.width() || image.height() != announced.height()) {
-        setError(error, "el decodificador cambió las dimensiones validadas");
+        setError(error, "the decoder changed the validated dimensions");
         return std::nullopt;
     }
     image = image.convertToFormat(QImage::Format_ARGB32);
     if (image.isNull()) {
-        setError(error, "no se pudo convertir la imagen decodificada");
+        setError(error, "could not convert decoded image");
         return std::nullopt;
     }
 

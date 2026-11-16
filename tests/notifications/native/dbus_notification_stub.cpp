@@ -4,11 +4,11 @@
 #include <string>
 
 /*
- * Servicio mínimo de org.freedesktop.Notifications para el recorrido nativo en
- * un entorno sin escritorio. Recibe Notify y CloseNotification por un bus de
- * sesión privado, imprime los campos y responde con un identificador.
+ * Minimum org.freedesktop service.Notifications for native travel in a desktop-free environment.
+ * Receive Notification and CloseNotification by a private session bus, print fields and respond
+ * with an identifier.
  *
- * Se usa con dbus-run-session; no forma parte del producto.
+ * It is used with dbus-run-session; it is not part of the product.
  */
 
 namespace {
@@ -56,7 +56,7 @@ void print_notify(DBusMessage* message) {
     read_string(iterator, icon);
     read_string(iterator, summary);
     read_string(iterator, body);
-    // actions, hints y timeout se omiten en el resumen.
+    // actions, hints and timeout are omitted in the summary.
     if (dbus_message_iter_get_arg_type(&iterator) == DBUS_TYPE_ARRAY) {
         dbus_message_iter_next(&iterator);
         if (dbus_message_iter_get_arg_type(&iterator) == DBUS_TYPE_ARRAY) {
@@ -102,7 +102,7 @@ int main() {
     dbus_error_init(&error);
     DBusConnection* connection = dbus_bus_get(DBUS_BUS_SESSION, &error);
     if (connection == nullptr) {
-        std::fprintf(stderr, "stub: sin bus de sesión: %s\n",
+        std::fprintf(stderr, "stub: no session bus: %s\n",
                      error.message != nullptr ? error.message : "desconocido");
         dbus_error_free(&error);
         return 1;
@@ -112,7 +112,7 @@ int main() {
     if (dbus_bus_request_name(connection, "org.freedesktop.Notifications",
                               DBUS_NAME_FLAG_REPLACE_EXISTING,
                               &error) < 0) {
-        std::fprintf(stderr, "stub: no se pudo tomar el nombre: %s\n",
+        std::fprintf(stderr, "stub: Could not take name: %s\n",
                      error.message != nullptr ? error.message : "desconocido");
         dbus_error_free(&error);
         return 1;

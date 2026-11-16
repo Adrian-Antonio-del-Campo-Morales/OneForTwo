@@ -78,7 +78,7 @@ TEST_CASE(viewer_opens_in_an_independent_window_with_modality_title) {
     QWidget* window = harness.widget();
     CHECK(window != nullptr);
     CHECK(window->isVisible());
-    CHECK(window->windowTitle().contains(QStringLiteral("Pantalla completa")));
+    CHECK(window->windowTitle().contains(QStringLiteral("Full screen")));
 
     harness.viewer->close(monitor.ref);
     harness.drain();
@@ -87,7 +87,7 @@ TEST_CASE(viewer_opens_in_an_independent_window_with_modality_title) {
     const VisualShareOffer single = offerFor(VisualSourceKind::window, 2);
     harness.viewer->open(single);
     harness.drain();
-    CHECK(window->windowTitle().contains(QStringLiteral("Una ventana")));
+    CHECK(window->windowTitle().contains(QStringLiteral("A window")));
     harness.viewer->close(single.ref);
 }
 
@@ -114,11 +114,11 @@ TEST_CASE(present_keeps_aspect_ratio_and_clear_updates_state) {
 
     harness.viewer->clear(offer.ref, VisualSourceState::suspended);
     harness.drain();
-    CHECK_EQ(state_label->text().toStdString(), std::string("Fuente en pausa"));
+    CHECK_EQ(state_label->text().toStdString(), std::string("Pause Source"));
     CHECK(frame_label->pixmap().isNull());
 
     harness.viewer->clear(offer.ref, VisualSourceState::available);
-    CHECK_EQ(state_label->text().toStdString(), std::string("Sin imagen"));
+    CHECK_EQ(state_label->text().toStdString(), std::string("No image"));
     harness.viewer->close(offer.ref);
 }
 

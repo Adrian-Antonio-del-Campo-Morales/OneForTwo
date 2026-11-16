@@ -1,8 +1,8 @@
 #pragma once
-// Responsabilidad: permitir que el ejecutable del experimento invoque los
-// self-tests sin inicializar el escritorio ni la red.
+// Responsibility: to allow the executable of the experiment to invoke the
+// self-tests without initializing the desktop or network.
 
 namespace oit {
-// Devuelve el número de comprobaciones fallidas (0 = todo correcto).
+// Returns the number of failed checks (0 = all correct).
 int runSelfTests();
 }  // namespace oit

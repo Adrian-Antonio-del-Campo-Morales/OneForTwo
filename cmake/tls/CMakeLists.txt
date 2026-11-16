@@ -7,9 +7,9 @@ endif()
 get_filename_component(ONEINTWO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 option(ONEINTWO_BUILD_TESTS "Build OneInTwo package tests" OFF)
 
-# QSslServer se incorporó en Qt 6.4; la interfaz TLS usa el backend SSL de Qt.
+# Qt 6.4 introduced QSslServer. The TLS interface uses Qt's SSL backend.
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Network)
-# libcrypto genera la identidad local sin invocar un binario openssl externo.
+# libcrypto generates the local identity without invoking an external openssl executable.
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 if(NOT TARGET oneintwo_session)

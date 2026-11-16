@@ -14,15 +14,14 @@ if(ONEINTWO_BUILD_TESTS)
     enable_testing()
 endif()
 
-# Paquetes de sesión, TLS y visual. Cada uno conserva su proyecto independiente
-# y añade sus pruebas una sola vez cuando se configura desde la raíz.
+# Session, TLS, and visual packages. Each keeps its standalone project and
+# registers its tests once when configured from the repository root.
 add_subdirectory(cmake/session)
 add_subdirectory(cmake/tls)
 add_subdirectory(cmake/visual)
 
-# Núcleo de composición disponible aunque los paquetes de captura y avisos
-# todavía no estén en esta rama. El arnés de composición lo enlaza aparte para
-# mantener los dobles fuera del producto.
+# The composition core can build without the capture and notification packages.
+# The composition harness links it separately to keep test doubles out of the product.
 add_library(oneintwo_app_core STATIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/coordinator.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/main_window.hpp"
@@ -47,8 +46,8 @@ if(ONEINTWO_BUILD_TESTS)
     add_subdirectory(tests/application)
 endif()
 
-# Captura nativa por plataforma. Los paquetes V pueden no estar presentes en
-# esta rama; en ese caso no se inventa un backend ni se enlaza un doble.
+# Native capture is platform-specific. The build skips the backend if the
+# corresponding capture package is absent.
 set(ONEINTWO_CAPTURE_TARGET "")
 if(WIN32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake/capture_windows/CMakeLists.txt")
     add_subdirectory(cmake/capture_windows)
@@ -62,8 +61,8 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake/notifications/CMakeLists.txt")
     add_subdirectory(cmake/notifications)
 endif()
 
-# El ejecutable solo existe cuando están las implementaciones reales de
-# notificaciones y captura. El arnés sigue verificando la composición con dobles.
+# The executable requires the native notification and capture backends.
+# The harness continues to test composition with test doubles.
 if(TARGET oneintwo_notifications AND NOT ONEINTWO_CAPTURE_TARGET STREQUAL "")
     add_executable(oneintwo
         "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
@@ -83,5 +82,5 @@ if(TARGET oneintwo_notifications AND NOT ONEINTWO_CAPTURE_TARGET STREQUAL "")
     endif()
 else()
     message(STATUS
-        "oneintwo: ejecutable omitido; faltan oneintwo_notifications y/o la captura nativa de la plataforma")
+        "oneintwo: executable skipped because oneintwo_notifications, native capture, or both are missing")
 endif()

@@ -1,7 +1,7 @@
-// Responsabilidad: publicación nativa en Windows.
-// Modo caché: CF_HDROP con archivos ya verificados en disco.
-// Modo bajo demanda: CFSTR_FILEDESCRIPTORW + CFSTR_FILECONTENTS con streams que
-// piden el contenido al origen cuando Explorer los solicita.
+// Responsibility: native publication on Windows.
+// Cache mode: CF_HDROP with files already verified on disk.
+// Mode on demand: CFSTR_FILEDESCRIPTORW + CFSTR_FILECONTENTS with streams that
+// request the content to the source when Explorer requests them.
 #include "platform/clipboard.hpp"
 
 #include <windows.h>
@@ -49,8 +49,8 @@ CLIPFORMAT contentsFormat() {
     return format;
 }
 
-// Stream de solo lectura entregado a Explorer. Cada Read puede bloquearse
-// mientras el contenido remoto llega; el tiempo máximo lo fija el transporte.
+// Read-only Stream delivered to Explorer. Each Read can be blocked
+// as long as the remote content arrives; the maximum time is fixed by the transport.
 class ContentStream : public IStream {
 public:
     ContentStream(std::shared_ptr<ContentSource> source, Entry entry)
@@ -446,11 +446,11 @@ bool validateDescriptorPaths(const Offer& offer, std::string& err) {
         bool ok = false;
         const std::wstring wide = toWide(relative, ok);
         if (!ok) {
-            err = "la oferta contiene un nombre que Windows no puede representar";
+            err = "the offer contains a name that Windows cannot represent";
             return false;
         }
         if (wide.size() > kMaxDescriptorPath) {
-            err = "una ruta relativa supera el límite de 259 caracteres del descriptor de Windows";
+            err = "a relative path exceeds the 259 character limit of the Windows descriptor";
             return false;
         }
     }
@@ -472,25 +472,25 @@ bool onDemandClipboardAvailable(std::string& why) {
 int runClipboardPublisher(const ClipboardRequest& request, bool flushOnExit, std::string& err) {
     err.clear();
     if (request.localPaths.empty() && request.offer.entries.empty()) {
-        err = "no hay una oferta que publicar";
+        err = "there is no offer to publish";
         return 1;
     }
     if (request.localPaths.empty() && !request.source) {
-        err = "falta la fuente de contenido para la entrega bajo demanda";
+        err = "missing source of content for delivery on demand";
         return 1;
     }
     for (const std::string& path : request.localPaths) {
         bool converted = false;
         const std::wstring wide = toWide(path, converted);
         if (!converted || GetFileAttributesW(wide.c_str()) == INVALID_FILE_ATTRIBUTES) {
-            err = "una ruta local de la oferta no existe o no es accesible";
+            err = "a local supply route does not exist or is not accessible";
             return 1;
         }
     }
     if (request.localPaths.empty() && !validateDescriptorPaths(request.offer, err)) return 1;
 
     if (OleInitialize(nullptr) != S_OK) {
-        err = "no se pudo inicializar OLE en este hilo";
+        err = "could not initialise OLE in this thread";
         return 1;
     }
     auto* object = new ClipboardObject(request);
@@ -498,7 +498,7 @@ int runClipboardPublisher(const ClipboardRequest& request, bool flushOnExit, std
     if (FAILED(set)) {
         object->Release();
         OleUninitialize();
-        err = "Windows rechazó la oferta en el portapapeles";
+        err = "Windows rejected offer on clipboard";
         return 1;
     }
 
@@ -514,22 +514,22 @@ int runClipboardPublisher(const ClipboardRequest& request, bool flushOnExit, std
     SetConsoleCtrlHandler(consoleHandler, FALSE);
 
     if (flushOnExit) {
-        // Los datos ya están en disco: se materializan para que sobrevivan al proceso.
+        // The data is already on disk: they materialize to survive the process.
         const HRESULT flushed = OleFlushClipboard();
         if (FAILED(flushed)) {
             object->Release();
             OleUninitialize();
-            err = "no se pudieron materializar las rutas en el portapapeles";
+            err = "the routes could not materialize in the clipboard";
             return 1;
         }
     } else {
-        // Con entrega bajo demanda no se puede materializar una copia: se retira.
+        // With delivery on demand you cannot materialize a copy: it is withdrawn.
         OleSetClipboard(nullptr);
     }
     object->Release();
     OleUninitialize();
     if (result == -1) {
-        err = "fallo en el bucle de mensajes de la oferta";
+        err = "failure of the offer message loop";
         return 1;
     }
     return 0;

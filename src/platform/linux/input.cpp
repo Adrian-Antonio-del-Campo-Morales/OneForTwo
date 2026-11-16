@@ -1,12 +1,13 @@
 /*
- * OneInTwo — Entrada nativa Linux.
- * Estado: estructura documental; implementación pendiente.
+ * OneInTwo — Native Linux input. Status: documentary structure; pending implementation.
  *
- * Responsabilidades previstas:
- * - Integrar captura e inyección del backend Wayland validado a través de sesiones autorizadas y EIS.
- * - Traducir eventos y geometría, gestionar barreras, activación, desactivación y devolución del control.
- * - Respetar decisiones del compositor y comunicar pérdida de permisos/capacidades.
- * - Liberar recursos al cerrar y ejecutar recuperación sin esperar al equipo remoto.
- * - Usar portal_session.cpp para permisos; no aplicar la lógica del protocolo de red ni asumir un atajo de activación universal.
+ * Responsibilities envisaged:
+ * - Integrate capture and injection of validated Wayland backend through authorized sessions and
+ *   EIS.
+ * - Translate events and geometry, manage barriers, activation, deactivation and return control.
+ * - Respect composer's decisions and report loss of permissions/capacitys.
+ * - Release resources by closing and running recovery without waiting for the remote computer.
+ * - Use portal_session.cpp for permissions; do not apply the logic of the network protocol or
+ *   assume a universal activation shortcut.
  */
 

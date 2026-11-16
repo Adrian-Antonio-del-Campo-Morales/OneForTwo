@@ -1,292 +1,200 @@
-# Resultados — Portapapeles
+# Results — Clipboard
 
-## Primera sesión Windows ↔ Ubuntu cerrada — 5 de noviembre de 2026
+## 1st session Windows ↔ Ubuntu closed — 5 November 2026
 
-Servidor Windows con la corrección de `780f8c5`, PID 159244, escuchando en
-192.168.1.147:47831 y fijando el certificado Ubuntu comunicado. El agente
-Ubuntu informa de `devices=0` y de confirmación del usuario de pegado correcto
-en ambos sentidos. La revisión efectiva y el log del cliente deben acompañar
-la comparación: no se deducen del protocolo.
+Windows server with `780f8c5` correction, PID 159244, listening to 192.168.1.147:47831 and fixing
+the reported Ubuntu certificate. Ubuntu agent reports `devices=0` and user confirmation of correct
+pasting in both directions. Effective review and customer log must accompany the comparison: they
+are not deduced from the protocol.
 
-Registro Windows completo, solo metadatos y sin texto del portapapeles:
+Complete Windows record, metadata only and without clipboard text:
 [windows-session-01.log](lan/evidence/windows-session-01.log).
 
-| Momento relativo | Evidencia Windows |
+| Relative time | Windows evidence |
 | --- | --- |
-| Inicio | Certificado Ubuntu SHA-256 correcto, TLS aceptado y `session ready`, generación `808fb17411cd9893` |
-| +129/+130 ms | Actualización Ubuntu de 48 bytes recibida y aplicada; Windows suprime su notificación propia mediante marcador |
-| +145201 ms | Copia local de 147 bytes enviada con lógico 2 |
-| +145302 ms | Actualización Ubuntu de 147 bytes, lógico 2, rechazada como anterior al estado actual |
-| +145304 ms | Ubuntu confirma aplicada la operación de origen Windows con lógico 2 |
-| +145478/+145583 ms | Segunda captura local de 147 bytes con lógico 3; Ubuntu confirma aplicación |
-| +184345/+184346 ms | Windows envía 145 bytes con lógico 4 y recibe 145 bytes de origen Ubuntu con lógico 4; rechaza esta última como anterior |
-| +184460 ms | Ubuntu confirma aplicada la operación de origen Windows con lógico 4 |
-| +203392/+203393 ms | Lectura TLS termina con `unexpected eof`; la sesión acaba y el servidor vuelve a esperar |
+| Inicio | Certificate Ubuntu SHA-256 correct, TLS accepted and `session ready`, generation `808fb17411cd9893` |
+| +129/+130 ms | Ubuntu update of 48 bytes received and applied; Windows deletes its own notification by bookmark |
+| +145201 ms | Local copy of 147 bytes sent with logic 2 |
+| +145302 ms | 147 byte Ubuntu update, logical 2, rejected as prior to current status |
+| +145304 ms | Ubuntu confirms applied the Windows source operation with logic 2 |
+| +145478/+145583 ms | Second local capture of 147 bytes with logic 3; Ubuntu confirms application |
+| +184345/+184346 ms | Windows sends 145 bytes with logic 4 and receives 145 bytes of Ubuntu origin with logic 4; rejects the latter as previous |
+| +184460 ms | Ubuntu confirms applied the Windows source operation with logic 4 |
+| +203392/+203393 ms | Reading TLS ends with `unexpected eof`; session ends and server waits again |
 
-El EOF es coherente con el cierre del cliente comunicado por el usuario; no
-demuestra un cierre TLS ordenado ni constituye por sí solo un fallo de
-autenticación. El log muestra una sola sesión y no prueba reconexión.
+The EOF is consistent with the customer's closure communicated by the user; it does not demonstrate
+an orderly TLS closure or itself constitutes an authentication failure. The log displays a single
+session and does not prove reconnection.
 
-**Resultado:** TLS/saludo y pegado bidireccional confirmados para esta sesión.
-**No se da por correcta la política de ecos.** Hay reemisiones finitas y dos
-capturas locales de 147 bytes separadas por unos 277 ms. Sin correlacionar
-eventos y acciones del usuario en ambos extremos no puede atribuirse su causa.
-La actualización inicial de 48 bytes coincide con la selección previa que
-señala el agente Ubuntu; no se considera validada la política de arranque.
-El campo de capacidades recibido por Windows dice `independent_of_input=no`;
-esto se conserva en el log y debe interpretarse con el informe Ubuntu, que
-confirma `devices=0`, sin concluir que se haya concedido entrada.
+**Result:** TLS/saludo and two-way glue confirmed for this session. **The echo policy is not considered correct.**There are finite re-emissions and two local catches of 147 bytes separated by about 277 ms. Without correlating user events and actions at both ends, its cause cannot be attributed. The initial update of 48 bytes coincides with the previous selection indicated by agent Ubuntu; the start-up policy is not considered validated. The capabilities field received by Windows says `independent_of_input=no`; This is retained in the log and must be interpreted with the Ubuntu report, which confirms `devices=0`, without concluding that entry has been granted.
 
-Tras recibir la confirmación de cierre del cliente se detuvo únicamente el
-proceso Windows identificado. Comprobaciones: `StillRunning=false`, cero
-escuchas en 192.168.1.147:47831. Se retiró la regla temporal
-`OneInTwo-Clipboard-LAN-47831`; el asistente elevado confirmó `RulePresent=false`.
-Se archivaron los logs y el cierre en `.local-state/lan-clipboard/windows/session-01/`.
-No queda servidor activo ni se ha iniciado otro intento.
+Upon receipt of customer closure confirmation, only the identified Windows process was stopped. Checks: `StillRunning=false`, zero listeners in 192.168.1.147:47831. Temporary rule `OneInTwo-Clipboard-LAN-47831` was withdrawn; the high assistant confirmed `RulePresent=false`. Logs and closure were filed in `.local-state/lan-clipboard/windows/session-01/`. There is no active server and no other attempt has been initiated.
 
-Pendientes: comparación de ambos logs, rechazo real de certificado incorrecto
-y reconexión, estos dos últimos en otra sesión coordinada. No se repiten ni
-se dan por superados automáticamente a partir de este resultado.
+Earrings: comparison of both logs, actual rejection of incorrect certificate and reconnection, the
+latter two in another coordinated session. They are not repeated or automatically overtaken from
+this result.
 
-## Arranque del servidor Windows y corrección PEM — 5 de noviembre de 2026
+## Windows Server Boot and PEM Correction — November 5, 2026
 
-Tras incorporar `e2af22b` y verificar la huella pública Ubuntu comunicada por el
-usuario, se intentó arrancar el servidor acordado. El primer proceso terminó
-con salida 1, antes de escuchar, por `OPENSSL_Uplink: no OPENSSL_Applink`.
-Las dos lecturas PEM del transporte pasaban un `FILE*` de la aplicación a
-OpenSSL. Se sustituyeron por lectura C++ acotada y `PEM_read_bio_X509` sobre
-un BIO de memoria, sin cambiar autenticación, protocolo o certificados.
+After incorporating `e2af22b` and verifying the public footprint Ubuntu communicated by the user, an attempt was made to boot the agreed server. The first process ended with output 1, before listening, by `OPENSSL_Uplink: no OPENSSL_Applink`. The two PEM readings of the transport passed `FILE*` of the application to OpenSSL. They were replaced by a C++ readout and `PEM_read_bio_X509` on a BIO of memory, without changing authentication, protocol or certificates.
 
-Se reconstruyó únicamente portapapeles y se comprobó:
+Only clipboard was reconstructed and it was verified:
 
-- `clipboard_tls_certificate_test` con el certificado público Windows y su
-  SHA-256: lectura y huella correctas; rechazo de archivo ausente y no PEM.
-- La misma regresión con el certificado público Ubuntu: superada.
-- `oneintwo-clipboard.exe --self-test`: **149 comprobaciones, 0 fallos**.
-- Segundo arranque real: proceso activo, `listening=192.168.1.147:47831` y
-  `netstat` mostrando `LISTENING` para el PID 159244.
+- `clipboard_tls_certificate_test` with the Windows public certificate and its SHA-256: correct
+  reading and fingerprinting; absent and non-PEM file rejection.
+- The same regression with the public certificate Ubuntu: exceeded.
+- `oneintwo-clipboard.exe --self-test`: **149 checks, 0 failures**.
+- Second real start: active process, `listening=192.168.1.147:47831` and `netstat` showing
+  `LISTENING` for the PID 159244.
 
-El servidor usa la clave privada Windows local y fija el certificado público
-Ubuntu; no se han regenerado identidades. Logs ignorados en
-`.local-state/lan-clipboard/windows/`: `server.log`, `server-error.log` y
-`server-error-before-pem-fix.log`. Compilación en
-`build/windows-ready/build-pem-fix.log`.
+The server uses the local Windows private key and fixes the public certificate Ubuntu; identities have not been regenerated. Logs ignored at `.local-state/lan-clipboard/windows/`: `server.log`, `server-error.log` and `server-error-before-pem-fix.log`. Compilation at `build/windows-ready/build-pem-fix.log`.
 
-El nuevo ejecutable de regresión se construye cuando hay OpenSSL. Desde la
-carpeta del experimento puede ejecutarse sin red ni escritorio:
+The new regression executable is built when there is OpenSSL. From the experiment folder can be run
+without network or desktop:
 
 ```powershell
 .\build\windows-ready\Release\clipboard_tls_certificate_test.exe lan/public/windows.pem lan/public/windows.sha256 lan/samples/windows.txt
 ```
 
-El arranque confirma escucha y carga de certificados, no handshake ni
-sincronización. El servidor queda esperando al cliente Ubuntu; los resultados
-de conexión y copias se registrarán después de observarlos. La corrección
-común de lectura PEM aún no se ha recompilado en Ubuntu.
+The boot confirms listening and loading of certificates, no handshake or synchronization. The server
+is waiting for the Ubuntu client; the connection results and copies will be recorded after observing
+them. The common PEM reading correction has not yet been compiled in Ubuntu.
 
-## Preparación LAN Ubuntu — 5 de noviembre de 2026
+## Preparation LAN Ubuntu — 5 November 2026
 
-Se descargó `origin/validation/windows` y se avanzó sin conflictos desde
-`2ae444d` a `6c2ec07600454faaf68bc2752ff492ec6c01b970`. Los dos commits
-añaden evidencia Windows y preparación LAN; no cambian el C++ validado.
-No se recompiló ni se repitieron self-tests.
+`origin/validation/windows` was downloaded and progress was made without conflict from `2ae444d` to
+`6c2ec07600454faaf68bc2752ff492ec6c01b970`. The two commissions add evidence from Windows and LAN
+preparation; they do not change the validated C++. Self-tests were not recompiled or repeated.
 
-Comando: `env -u LD_LIBRARY_PATH /usr/bin/python3 -B
-experiments/clipboard/lan/prepare.py prepare --name ubuntu`, salida 0.
-Identidad de 14 días generada, clave conservada únicamente en
-`.local-state/lan-clipboard/ubuntu/private.key`, modo 0600 y excluida de Git.
-Se exportan solo `lan/public/ubuntu.pem` y `ubuntu.sha256`. Huella DER SHA-256:
-`1eaf59dcb2489296c37ac5aa755b03a70637f47371d4bdfa0aabd69e36685c1e`.
-La huella del certificado Windows también coincide con su archivo SHA-256;
-esto comprueba coherencia del paquete, no sustituye la confirmación entre
-operadores. IP LAN propia consultada con `ip -brief -4 address show scope
-global` y ruta por defecto; comunicada al usuario sin publicarla en Git.
+Command: `env -u LD_LIBRARY_PATH /usr/bin/python3 -B experiments/clipboard/lan/prepare.py prepare --name ubuntu`, output 0. 14-day identity generated, key retained only in `.local-state/lan-clipboard/ubuntu/private.key`, mode 0600 and excluded from Git. Only `lan/public/ubuntu.pem` and `ubuntu.sha256` are exported. Footprint DER SHA-256: `1eaf59dcb2489296c37ac5aa755b03a70637f47371d4bdfa0aabd69e36685c1e`. The fingerprint of the Windows certificate also matches its file SHA-256; this checks coherence of the package, does not replace the confirmation between operators. IP LAN itself consulted with `ip -brief -4 address show scope global` and route by default; communicated to the user without publishing it in Git.
 
-No se ejecutó el prototipo, no se accedió al portapapeles, no se abrió red
-de prueba ni se cambió cortafuegos. Pendientes: revisión compartida con Windows,
-su IP LAN, confirmación de huellas y arranque coordinado en 47831/TCP.
+The prototype was not executed, the clipboard was not accessed, no test network was opened and no
+firewall was changed. Earrings: shared revision with Windows, its IP LAN, fingerprint confirmation
+and coordinated booting in 47831/TCP.
 
-## Reconstrucción Windows de la entrega Ubuntu — 5 de noviembre de 2026
+## Windows Reconstruction of Ubuntu Delivery — November 5, 2026
 
-Fuentes verificadas: `2ae444df56689dbaebe9b796daca26a55bd02917`, recibido
-desde `origin/validation/ubuntu`. Comprobación realizada en la rama local
-`validation/windows`, sin modificar fuentes ni repetir pruebas Ubuntu.
+Verified sources: `2ae444df56689dbaebe9b796daca26a55bd02917`, received from
+`origin/validation/ubuntu`. Check performed on the local branch `validation/windows`, without
+modifying sources or repeating Ubuntu tests.
 
-CMake de Visual Studio 18 2026, generador `Visual Studio 18 2026`, x64,
-configuración Release y OpenSSL habilitado. Reconstrucción completada, salida 0.
-Binario: `build/windows-ready/Release/oneintwo-clipboard.exe`.
+CMake from Visual Studio 18 2026, `Visual Studio 18 2026` generator, x64, Release and OpenSSL
+configuration enabled. Reconstruction completed, output 0. Binary:
+`build/windows-ready/Release/oneintwo-clipboard.exe`.
 
-Self-test Windows: **149 comprobaciones, 0 fallos**, salida 0.
-Se ejecutó el binario anterior con `--self-test`, sin escritorio ni red.
-El ejecutable principal también terminó correctamente con `--help`.
-No se accedió al portapapeles, se abrieron portales, se capturaron/inyectaron
-dispositivos ni se inició red de prueba.
+Self-test Windows: **149 checks, 0 bugs**, output 0. The previous binary was executed with
+`--self-test`, without desktop or network. The main executable also finished correctly with
+`--help`. The clipboard was not accessed, portals were opened, capturaron/inyectaron devices were
+opened and no test network was initiated.
 
-Evidencia local ignorada: `build/windows-ready/configure-ubuntu-sync.log`,
-`build-ubuntu-sync.log`, `self-test-ubuntu-sync.log` y `help-ubuntu-sync.log`.
-Esta evidencia cierra la reconstrucción Windows de esta revisión; no demuestra
-el funcionamiento real del escritorio o entre equipos. Se conserva a continuación
-la evidencia local Ubuntu y sus límites.
+Unknown local evidence: `build/windows-ready/configure-ubuntu-sync.log`,
+`build-ubuntu-sync.log`,`self-test-ubuntu-sync.log` and `help-ubuntu-sync.log`. This evidence closes
+the Windows reconstruction of this revision; it does not demonstrate the actual functioning of the
+desktop or between computers. The local evidence Ubuntu and its limits are preserved below.
 
-## Cierre del caso local de copia aislada — 5 de noviembre de 2026
+## Closure of the local isolated copy case — 5 November 2026
 
-Con el mismo binario y base Git `450cbb2e340a381bda01274eb86df0e05934e822`
-más las correcciones locales previas, se ejecutó `--watch` sobre el portal
-real. El usuario autorizó y confirmó una única copia. Una ventana auxiliar
-con muestra desechable registró **una sola acción `copy-clipboard`** a las
-**19:20:24.324 CET**; no cambió el observador ni filtró sus resultados.
-La muestra conocida tiene 62 bytes, huella `af28ca2273e2d495`.
+With the same binary and Git `450cbb2e340a381bda01274eb86df0e05934e822` base plus the previous local
+corrections, `--watch` was executed on the real portal. The user authorized and confirmed a single
+copy. An auxiliary window with disposable sample recorded **a single action `copy-clipboard`** at
+**19:20:24.324 CET**; the observer did not change or filter its results. The known sample has 62
+bytes, `af28ca2273e2d495` footprint.
 
-`watch.log` contiene una notificación anterior de otro contenido (183 bytes)
-y **una sola notificación de la muestra** (62 bytes), sin nuevas entradas
-durante los **12 s siguientes**. `devices=0`, `clipboard_enabled=true`.
-El usuario confirmó «una sola copia y observación terminada». Caso local
-superado; no demuestra ausencia de ecos entre equipos.
+`watch.log` contains an earlier notification of other content (183 bytes) and ** a single
+notification of the sample** (62 bytes), with no new entries during the following **12 s**.
+`devices=0`, `clipboard_enabled=true`. The user confirmed "a single copy and finished observation".
+Local case exceeded; it does not demonstrate absence of echoes between teams.
 
-Evidencia ignorada en `manual-output/local-final-20261105/`: `watch_once.py`,
-`command.json`, `watch.log`, `copy-actions.json`, `process.json`. La ayuda
-ejecutó `timeout --signal=TERM --kill-after=1s 90s
-experiments/clipboard/build/ubuntu/oneintwo-clipboard --watch`, con las
-bibliotecas locales solo en el hijo. Se detuvo el grupo propio tras la
-observación a las **19:20:36.329 CET**; el supervisor devolvió 124 al recibir
-la señal externa, no por un error del portal. No se añadieron tests ni se
-repitieron lectura, pegado, denegación o self-tests ya válidos.
+Evidence ignored in `manual-output/local-final-20261105/`: `watch_once.py`, `command.json`, `watch.log`, `copy-actions.json`, `process.json`. The aid executed `timeout --signal=TERM --kill-after=1s 90s experiments/clipboard/build/ubuntu/oneintwo-clipboard --watch`, with the local libraries only on the son. The group stopped its own after observation at **19:20:36.329 CET**; the supervisor returned 124 upon receiving the external signal, not by an error of the portal. No tests were added nor read, pasted, denied or self-tests already valid.
 
-## Validación local de escritorio — 5 de noviembre de 2026
+## Local Desktop Validation — November 5, 2026
 
-El usuario reanudó las pruebas y confirmó su presencia. Se trabajó únicamente
-con textos sintéticos en GNOME Text Editor, sin iniciar captura/inyección de
-entrada ni red de prueba. El agente ejecutó los comandos y leyó los logs;
-las acciones y el pegado del editor fueron **observaciones del usuario**,
-porque esta sesión no ofrece control visual de las ventanas nativas.
+The user resumed testing and confirmed his presence. He worked only with synthetic texts in GNOME
+Text Editor, without initiating capture or injection input or test network. The agent executed the
+commands and read the logs; the actions and pasting of the editor were **user observations**,
+because this session does not offer visual control of the native windows.
 
-Revisión base: `450cbb2e340a381bda01274eb86df0e05934e822`, rama
-`validation/ubuntu`, más los cambios locales descritos aquí y la cabecera TLS
-ya documentada. Sin commit ni publicación. Entorno y dependencias: los de la
-compilación inicial que sigue, ahora en `.local-state/ubuntu-validation/`.
+Base revision: `450cbb2e340a381bda01274eb86df0e05934e822`, `validation/ubuntu` branch, plus the
+local changes described here and the TLS header already documented. No commit or post. Environment
+and dependencies: those of the initial compilation below, now in `.local-state/ubuntu-validation/`.
 
-### Resultados observados
+### Observed results
 
-| Caso | Evidencia | Resultado |
+| Caso | Evidencia | Result |
 | --- | --- | --- |
-| Diálogo solo portapapeles | Usuario: Share inicialmente deshabilitado; se habilita activando Allow Remote Interaction y Allow Remote Clipboard, sin seleccionar pantalla | Observado en GNOME 50 |
-| Primera solicitud de lectura | El diálogo agotó el límite externo de 90 s; salida 137 tras la terminación forzada prevista | No evaluó la lectura; se repitió |
-| Lectura antes de corregir | Tras autorizar, `cannot read portal selection pipe: Resource temporarily unavailable`, salida 2 | Fallo real, corregido y repetido |
-| Lectura corregida | `read-03.log`: 61 bytes, 3 líneas, acentos y emoji; comparación con la muestra del editor correcta, salida 0 | Superado |
-| Primera publicación | `written` y `readback=match`, salida 0; el usuario informa que no pega el texto esperado | Fallo real; readback interno no prueba pegado |
-| Publicación corregida | `publish-02.log`: 57 bytes, 3 líneas; el usuario confirma que pega las tres líneas correctas en documento nuevo; cierre a los 60 s, salida 0 | Superado con observación del usuario |
-| Permisos concedidos | Publicación y observación: `portal_start clipboard_enabled=true devices=0` | Verificado por respuesta real del portal |
-| Observación en segundo plano | Usuario copia con editor enfocado; `watch-03.log` muestra cambios de 191 bytes/8 líneas y 207 bytes/9 líneas, sin mostrar contenido | Detección verificada; el usuario aclara que pulsó Ctrl+C varias veces |
-| Una notificación por copia / ausencia de ecos | Hay notificaciones con huellas repetidas y varias copias deliberadas; no se midió una única pulsación aislada ni una sesión sincronizada | No afirmar correspondencia exacta ni ausencia de eco remoto |
-| Permiso denegado | Usuario pulsa Cancelar; `clipboard unavailable: the portal start request was cancelled or failed (response 1)`, salida 2 | Superado; no se lee ni se usa otro backend |
+| Clipboard dialogue only | User: Share initially disabled; enabled by enabling Allow Remote Interaction and Allow Remote Clipboard, without selecting screen | Observed on GNOME 50 |
+| First read request | The dialogue exhausted the external limit of 90 s; exit 137 after the intended forced termination | He did not evaluate reading; it was repeated |
+| Read before the fix | After authorisation, `cannot read portal selection pipe: Resource temporarily unavailable`, exit 2 | Actual, corrected and repeated failure |
+| Read after the fix | `read-03.log`: 61 bytes, 3 lines, accents and emoji; comparison with the correct editor sample, output 0 | Superado |
+| First publication | `written` and `readback=match`, output 0; user reports that it does not paste the expected text | Actual failure; internal readback does not test pasted |
+| Corrected publication | `publish-02.log`: 57 bytes, 3 lines; user confirms that pastes the three correct lines into new document; closes to 60 s, output 0 | Overtaken with user observation |
+| Permissions granted | Publication and observation: `portal_start clipboard_enabled=true devices=0` | Verified by actual portal response |
+| Background observation | User copy with focused editor; `watch-03.log` displays changes of 191 bytes/8 lines and 207 bytes/9 lines, without displaying content | Verified detection; user clarifies that he pressed Ctrl+C several times |
+| A notification by copy/no echoes | There are repeated fingerprint notifications and several deliberate copies; no single isolated pulse or synchronized session was measured | Exact correspondence and absence of remote echoes remain unverified |
+| Permission denied | User press Cancel; `clipboard unavailable: the portal start request was cancelled or failed (response 1)`, output 2 | Passed. No clipboard read or fallback backend |
 
-La muestra de lectura guardada tiene un LF final adicional al texto seleccionado
-en el editor. La comparación aceptó exactamente las tres líneas esperadas sin
-ese LF (61 bytes), sin alterar acentos, emoji o saltos interiores.
+The saved reading sample has an additional final LF to the text selected in the editor. The
+comparison accepted exactly the three lines expected without that LF (61 bytes), without altering
+accents, emoji or inner jumps.
 
-### Correcciones necesarias y comprobación
+### Required corrections and verification
 
-1. `SelectionRead` devolvió un descriptor no bloqueante. Se extrajo la lectura
-   del pipe a una función que usa `poll`, tolera EINTR/EAGAIN, conserva el
-   límite de 256 KiB y espera datos/EOF con plazo total de 30 s.
-   La nueva regresión aislada usa pipes sintéticos para datos Unicode diferidos,
-   EOF, pipe vacío y timeout, sin bus ni portapapeles. La batería pasa de
-   **151/0 a 153/0**; `self-test-final.log` registra el resultado del estado actual.
-2. El modo de publicación terminaba tras verificar su copia interna y cerraba
-   la sesión antes de que el editor pudiera solicitar los datos. Ahora la CLI
-   atiende eventos del portal durante hasta 60 s tras autorizar, o hasta que
-   otra selección la sustituye. El comportamiento de publicación Windows se
-   conserva. El manual y la ayuda explican el intervalo de pegado.
-3. Los metadatos de `--watch` sin `--show-content` quedaban en el búfer al
-   redirigir la salida. Se vacían inmediatamente tras imprimir cada cambio.
-   Se añadieron diagnósticos de permisos y notificaciones, sin contenido.
-   `watch-02.log` confirma recepción de notificaciones; `watch-03.log` ya
-   permite observar los cambios en tiempo real. No se cambió el filtrado de
-   duplicados para convertir la repetición de Ctrl+C en un éxito artificial.
+1. `SelectionRead` returned a non-blocking descriptor. The pipe reading was extracted to a function that uses `poll`, tolerates EINTR/EAGAIN, retains the limit of 256 KiB and waits for datos/EOF with a total term of 30 s. The new isolated regression uses synthetic pipers for deferred Unicode data, EOF, empty pipe and timeout, without bus or clipboard. Battery changes from **151/0 to 153/0**; `self-test-final.log` records the result of the current state.
+2. The publishing mode ended after checking your internal copy and closed the session before the
+   editor could request the data. The CLI now handles portal events for up to 60 s after
+   authorizing, or until another selection replaces it. Windows publishing behavior is preserved.
+   The manual and help explains the pasting interval.
+3. The `--watch` metadata without `--show-content` remained in the buffer when redirecting the output. They were emptied immediately after printing each change. Diagnostics of permissions and notifications were added, without content. `watch-02.log` confirms receipt of notifications; `watch-03.log` already allows observing changes in real time. Duplicate filtering was not changed to convert the Ctrl+C repeat into an artificial success.
 
-### Comandos, logs y parada
+### Commands, logs, and shutdown
 
-Desde la raíz, cargar `source .local-state/ubuntu-validation/env.sh`; después,
-desde `experiments/clipboard`, se ejecutaron los modos reales:
+From the root, load `source .local-state/ubuntu-validation/env.sh`; then, from
+`experiments/clipboard`, the real modes were executed:
 
 ```bash
 ./build/ubuntu/oneintwo-clipboard --read-text --show-content
 ./build/ubuntu/oneintwo-clipboard --publish-file RUTA_MUESTRA/publicacion.txt --show-content
 ./build/ubuntu/oneintwo-clipboard --watch
-./build/ubuntu/oneintwo-clipboard --read-text   # Cancelar el diálogo
+./build/ubuntu/oneintwo-clipboard --read-text   # Cancel the dialog
 ./build/ubuntu/oneintwo-clipboard --self-test
 ```
 
-Las muestras y logs locales ignorados están en
-`manual-output/ubuntu-local-20261105-de47_iib/`: `lectura.txt`,
-`publicacion.txt`, `read.log`, `read-02.log`, `read-03.log`,
-`publish-01.log`, `publish-02.log`, `watch-01.log`, `watch-02.log`,
-`watch-03.log`, `denied-01.log`, logs de reconstrucción y
-`self-test-final.log`. La reconstrucción se hizo con
-`cmake --build experiments/clipboard/build/ubuntu -j4`, salida 0.
-Las lecturas/publicaciones se envolvieron en `timeout --signal=TERM
---kill-after=3s` con límites externos de 180/240 s; el primer intento usó
-INT con 90 s y KILL tras 5 s. Los observadores tuvieron supervisión de 180 s
-y se detuvieron de forma dirigida al terminar el caso (salidas de supervisión
-130/124; no indican rechazo del portal). No quedó observador activo al pasar
-al siguiente experimento. El editor y las muestras se conservan para el usuario.
+The unknown local samples and logs are `manual-output/ubuntu-local-20261105-de47_iib/`: `lectura.txt`, `publicacion.txt`, `read.log`, `read-02.log`, `read-03.log`, `publish-01.log`, `publish-02.log`, `watch-01.log`, `watch-02.log`, `watch-03.log`, `denied-01.log`, reconstruction logs and `self-test-final.log`. The reconstruction was done with `cmake --build experiments/clipboard/build/ubuntu -j4`, exit 0. The lecturas/publicaciones were wrapped in `timeout --signal=TERM --kill-after=3s` with external limits of 180/240 s; the first attempt used INT with 90 s and KILL after 5 s. The observers were monitored for 180 s and stopped at the end of the case (supervisory exits 130/124; do not indicate rejection of the portal). He was not an active observer as he went on to the next experiment. The editor and samples are kept for the user.
 
-Windows y la sincronización bidireccional siguen pendientes de coordinación.
-No se modifica la evidencia histórica siguiente ni se integra el producto.
+Windows and two-way synchronization are still pending coordination. The following historical
+evidence is not modified and the product is not integrated.
 
-## Compilación inicial Ubuntu nativa — 5 de noviembre de 2026
+## Initial compilation of native Ubuntu — November 5, 2026
 
-**Resultado actual: compilación con portal y TLS completada; 151 comprobaciones,
-0 fallos, salida 0.** El usuario limitó esta sesión a compilación y pruebas
-aisladas. No se abrió ninguna sesión de permisos, portapapeles ni conexión de
-prueba. La evidencia Windows y WSL de las secciones posteriores se conserva
-como histórica; sus bloqueos de compilación Linux quedan actualizados aquí.
+**Current result: compilation with portal and TLS completed; 151 checks, 0 bugs, output 0.** The
+user limited this session to compilation and isolated tests. No permissions, clipboards or test
+connection was opened. The evidence of Windows and WSL from the later sections is preserved as
+historical; their Linux build blocks are updated here.
 
-### Entorno y revisión
+### Environment and review
 
 - Directorio: `/home/pholtergate/DEV/OneForTwo`.
-- Base Git: `450cbb2e340a381bda01274eb86df0e05934e822`.
-  Rama local `validation/ubuntu`; sin commit ni publicación de estos cambios.
-- Código verificado: esa base **más la corrección local** de `<signal.h>` a
-  `<csignal>` en `src/net/tls_channel.cpp`. SHA-256 del archivo corregido:
+- Git Base: `450cbb2e340a381bda01274eb86df0e05934e822`. Local branch `validation/ubuntu`; no commit
+  or release of these changes.
+- Verified code: that base **plus the local correction** from `<signal.h>` to `<csignal>` in
+  `src/net/tls_channel.cpp`. SHA-256 of the corrected file:
   `3be6de1a8ec6f3fff237ad3392820066754360f150f05bc6185e631a3effd842`.
-- Fecha local del inventario: 2026-11-05, zona `Europe/Madrid`.
-- Ubuntu 26.04.1 LTS, Linux 7.0.0-42-generic, x86_64; entorno heredado
-  `XDG_SESSION_TYPE=wayland`, `XDG_CURRENT_DESKTOP=ubuntu:GNOME`,
-  `WAYLAND_DISPLAY=wayland-0`, `DISPLAY=:0`.
-- Paquetes instalados: GNOME Shell `50.1-0ubuntu1.5`, Mutter
-  `50.1-0ubuntu2.4`, Nautilus `1:50.2.2-0ubuntu0.2`;
-  xdg-desktop-portal `1.21.1+ds-1ubuntu3.1`, backend GNOME `50.0-0ubuntu1`,
-  backend GTK `1.15.3-2ubuntu1`. Son versiones de paquetes; no se consultó
-  el bus ni se verificaron las interfaces o permisos del compositor.
-- GCC/G++ `15.2.0-16ubuntu1`, GNU Make 4.4.1, pkg-config 2.5.1;
-  CMake local 4.2.3. libdbus 1.16.2 (`1.16.2-2ubuntu4`) y
-  OpenSSL 3.5.5 (`3.5.5-1ubuntu3.7`).
+- Local inventory date: 2026-11-05, `Europe/Madrid` area.
+- Ubuntu 26.04.1 LTS, Linux 7.0.0-42-generic, x86_64; inherited environment `XDG_SESSION_TYPE=wayland`,
+  `XDG_CURRENT_DESKTOP=ubuntu:GNOME`, `WAYLAND_DISPLAY=wayland-0`, `DISPLAY=:0`.
+- Installed packages: GNOME Shell `50.1-0ubuntu1.5`, Mutter `50.1-0ubuntu2.4`, Nautilus `1:50.2.2-0ubuntu0.2`, xdg-desktop-portal `1.21.1+ds-1ubuntu3.1`, GNOME backend `50.0-0ubuntu1`, and GTK backend `1.15.3-2ubuntu1`. These are package versions. The bus was not queried, and compositor interfaces and permissions remain unverified.
+- GCC/G++ `15.2.0-16ubuntu1`, GNU Make 4.4.1, pkg-config 2.5.1; CMake local 4.2.3. libdbus 1.16.2
+  (`1.16.2-2ubuntu4`) y OpenSSL 3.5.5 (`3.5.5-1ubuntu3.7`).
 
-Inventario obtenido con `git status --short --branch`, `git rev-parse HEAD`,
-`cat /etc/os-release`, `uname -srmo`, `printenv`, `c++ --version`,
-`pkg-config --version`, `openssl version`, `dpkg-query -W` y
-`pkg-config --modversion dbus-1 openssl`. No se infiere soporte de portales
-a partir de la versión de Ubuntu.
+Inventory obtained with `git status --short --branch`, `git rev-parse HEAD`, `cat /etc/os-release`, `uname -srmo`, `printenv`, `c++ --version`, `pkg-config --version`, `openssl version`, `dpkg-query -W` and `pkg-config --modversion dbus-1 openssl`. Portal support is not inferred from the Ubuntu version.
 
-### Dependencias locales de esta validación
+### Local dependencies for this validation
 
-Faltaban CMake y los paquetes de desarrollo dbus, OpenSSL, GTK3, GLib/GIO y
-libei. Se descargaron los paquetes y sus dependencias, **sin instalar**, en
-`/tmp/onefortwo-ubuntu-validation-20261105/debs` y se extrajeron mediante
-`dpkg-deb -x` en el subdirectorio `root`. El proceso mantuvo UID 1000, sin
-`sudo`, cambios globales ni cambios de cortafuegos. Se reutilizan las
-bibliotecas de ejecución ya instaladas mediante enlaces dentro de esa raíz
-local; las bibliotecas auxiliares ausentes también están extraídas allí.
+CMake and the dbus development packages, OpenSSL, GTK30, GLib/GIO and libei were missing. Packages and their dependencies were downloaded, **without installation**, in `/tmp/onefortwo-ubuntu-validation-20261105/debs` and extracted by `dpkg-deb -x` in the subdirectory `root`. The process maintained UID 1000, without `sudo`, global changes or firewall changes. Executing libraries already installed through links within that local root are reused; absent auxiliary libraries are also extracted there.
 
-Después, a petición del usuario, **se trasladó toda esa preparación a
-`/home/pholtergate/DEV/OneForTwo/.local-state/ubuntu-validation/`**, incluidos
-los 101 paquetes `.deb`, bibliotecas, herramientas, configuración y logs de
-descarga (aproximadamente 301 MiB). La carpeta está excluida por la regla
-`/.local-state/` existente en `.gitignore`. Los enlaces a bibliotecas del
-sistema siguen siendo válidos; ninguno apunta a `/tmp`.
+Then, at the user's request, **all this preparation was moved to `/home/pholtergate/DEV/OneForTwo/.local-state/ubuntu-validation/`**, including the 101 `.deb` packages, libraries, tools, configuration and download logs (approximately 301 MiB). The folder is excluded by rule `/.local-state/` existing in `.gitignore`. Links to system libraries remain valid; none points to `/tmp`.
 
-Comando de descarga inicial completado (histórico, salida 0, 101 paquetes, 56,1 MB):
+Completed initial download command (historic, output 0, 101 packages, 56,1 MB):
 
 ```bash
 mkdir -p /tmp/onefortwo-ubuntu-validation-20261105/{debs,root}
@@ -299,14 +207,13 @@ for deb in /tmp/onefortwo-ubuntu-validation-20261105/debs/*.deb; do
 done
 ```
 
-El primer intento en el sandbox falló con `Temporary failure resolving`
-(salida 100); la repetición con acceso de red permitido funcionó. Crear la
-rama también requirió acceso de escritura a `.git` fuera del sandbox; no se
-elevaron privilegios del usuario.
+The first attempt in the sandbox failed with `Temporary failure resolving` (exit 100); the repeat
+with enabled network access worked. Creating the branch also required write access to `.git` outside
+the sandbox; user privileges were not elevated.
 
-El archivo local actual `.local-state/ubuntu-validation/env.sh` configura lo
-siguiente; debe cargarse con `source` desde Bash antes de compilar o repetir
-las pruebas. Calcula la raíz desde su propia ubicación:
+The current local `.local-state/ubuntu-validation/env.sh` file configures the following; it must be
+loaded with `source` from Bash before compiling or repeating the tests. Calculates the root from its
+own location:
 
 ```bash
 export OIT_VALIDATION_DEPS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/root" && pwd)"
@@ -319,15 +226,14 @@ export CMAKE_PREFIX_PATH="$OIT_VALIDATION_DEPS/usr"
 export CPATH="$OIT_VALIDATION_DEPS/usr/include/x86_64-linux-gnu${CPATH:+:$CPATH}"
 ```
 
-La preparación ya no depende de que se conserve `/tmp`. Sigue siendo propia
-de esta instalación Ubuntu: usa bibliotecas de ejecución instaladas en el
-sistema. No se han añadido dependencias, binarios o scripts de entorno al
-control de versiones. Los `.deb` se conservan para poder repetir la extracción.
-Los otros experimentos usan esta misma preparación, sin enlazarse entre sí.
+The preparation no longer depends on `/tmp` being preserved. It remains unique to this Ubuntu
+installation: it uses run libraries installed in the system. Dependencies, binaries or environment
+scripts have not been added to version control. `.deb` are conserved to be able to repeat the
+extraction. The other experiments use this same preparation, without linking to each other.
 
-### Compilación y self-test observados
+### Compilation and self-test observed
 
-Desde la raíz del repositorio:
+From the root of the repository:
 
 ```bash
 source .local-state/ubuntu-validation/env.sh
@@ -340,93 +246,73 @@ cd experiments/clipboard
 ./build/ubuntu/oneintwo-clipboard --inventory
 ```
 
-Configuración, compilación, self-test e inventario finales: salida 0.
-Tras el traslado se regeneró la caché con `--fresh`, se reconstruyó el
-ejecutable con las rutas persistentes y se repitió el self-test: **151/0**.
-Se compiló `portal_clipboard.cpp` y el transporte `tls_channel.cpp`/`peer.cpp`;
-las definiciones finales incluyen `OIT_HAVE_PORTAL=1` y `OIT_HAVE_OPENSSL=1`.
-El ELF enlaza `libdbus-1.so.3`, `libssl.so.3` y `libcrypto.so.3`;
-`ldd` no informa bibliotecas ausentes. Inventario inocuo:
-`portal_client=compiled`, `tls=openssl`,
-`backend=xdg-desktop-portal-clipboard`. Declara capacidades; no negocia permisos.
+Final configuration, build, self-test, and inventory exited with code 0. After relocating the dependencies, the cache was regenerated with `--fresh`, the executable was rebuilt with the persistent paths, and the self-test passed again at **151/0**. The build included `portal_clipboard.cpp` and transport sources `tls_channel.cpp` and `peer.cpp`. Final definitions include `OIT_HAVE_PORTAL=1` and `OIT_HAVE_OPENSSL=1`. The ELF binary links `libdbus-1.so.3`, `libssl.so.3`, and `libcrypto.so.3`, and `ldd` reports no missing libraries. The read-only inventory reports `portal_client=compiled`, `tls=openssl`, and `backend=xdg-desktop-portal-clipboard`. It reports capabilities without requesting permissions.
 
 ```text
 checks=151 failures=0
 SELF-TEST RESULT: PASS
 ```
 
-Incidencias resueltas antes del resultado final:
+Incidences resolved before the end result:
 
-1. `openssl/opensslconf.h: No such file or directory`: faltaba exponer las
-   cabeceras multiarch extraídas; se corrigió `CPATH`, sin editar el código.
-2. `error: 'signal' is not a member of 'std'`: el transporte Linux incluía
-   `<signal.h>` y llamaba a `std::signal`. Se cambió únicamente esa cabecera
-   a `<csignal>`; la reconstrucción y las 151 comprobaciones pasaron.
+1. `openssl/opensslconf.h: No such file or directory`: the extracted multiarch headers had to be
+   displayed; `CPATH` was corrected, without editing the code.
+2. `error: 'signal' is not a member of 'std'`: the Linux transport included `<signal.h>` and called `std::signal`. Only that header was changed to `<csignal>`; the reconstruction and the 151 checks passed.
 
-Logs locales ignorados en `build/ubuntu/`: `configure.log`, `build.log`,
-`build-initial.log`, `build-tls-failure.log`, `self-test.log`, `inventory.log`,
-`libraries.log`, `dependencies-download.log`, `dependencies-dns-failure.log`,
-`dependencies-packages.tsv` y copia `dependencies-env.sh`.
-La copia `dependencies-env.sh` conserva la configuración temporal inicial
-como evidencia; para trabajar se carga el archivo actual de `.local-state`.
-La ejecución posterior al traslado queda en `configure-persistent.log`,
-`build-persistent.log`, `self-test-persistent.log`, `inventory-persistent.log`
-y `libraries-persistent.log`, dentro de la misma carpeta de compilación.
+Ignored local logs in `build/ubuntu/` include `configure.log`, `build.log`, `build-initial.log`, `build-tls-failure.log`, `self-test.log`, `inventory.log`, `libraries.log`, `dependencies-download.log`, `dependencies-dns-failure.log`, `dependencies-packages.tsv`, and a copy of `dependencies-env.sh`. That copy preserves the original temporary configuration for evidence. For development, load the current file from `.local-state`. The same build directory records the post-move run in `configure-persistent.log`, `build-persistent.log`, `self-test-persistent.log`, `inventory-persistent.log`, and `libraries-persistent.log`.
 
-### Escritorio, dos equipos y siguiente paso
+### Desktop, two computers and next step
 
-Lectura, publicación/pegado, observación en segundo plano, permiso denegado y
-concesión real de `devices=0`: **pendientes por decisión del usuario**.
-No se ha medido la experiencia de GNOME 50 ni se ha validado un handshake.
+Reading, publishing and pasting, background observation, denied permission and actual concession of
+`devices=0`: ** pending by user decision**. The experience of GNOME 50 has not been measured or a
+handshake validated.
 
-Antes de reanudar: usuario presente, editor con texto sintético, salida preparada
-y un solo experimento activo, siguiendo MANUAL §5. Antes de conectar Windows,
-acordar una revisión que incluya la corrección local, reconstrucción de ambos
-extremos, direcciones y puerto 47831/TCP, roles, certificados públicos/huellas,
-duración y observación. No se ha contactado ni conectado con Windows; no se han
-generado claves. La publicación por Git queda por acordar. Integración del
-producto aplazada.
+Before resuming: present user, editor with synthetic text, prepared output and a single active
+experiment, following MANUAL §5. Before connecting Windows, agree on a revision that includes local
+correction, reconstruction of both ends, addresses and port 47831/TCP, roles, public certificates and fingerprints
+certificates, duration and observation. No contact or connection with Windows; no key has been
+generated. The publication by Git remains to be agreed.
 
-## Evidencia histórica conservada — entrega y revisión anteriores
+## Historical evidence preserved — previous delivery and review
 
-Fecha: 4 de noviembre de 2026.
+Date: November 4, 2026.
 
-Revisión documental: 5 de noviembre de 2026. Se conserva la evidencia de la entrega del agente; esta revisión no repite compilaciones ni pruebas de portapapeles o red. El estado consolidado figura en [experiments/README.md](../README.md).
+Documentary review: November 5, 2026. Evidence of the agent's delivery is preserved; this review
+does not repeat compilations or evidence of clipboard or network. The consolidated status is shown
+in [experiments/README.md](../README.md).
 
-Estado: adaptador Windows y adaptador Linux/Wayland implementados y compilados.
-El adaptador Wayland usa `xdg-desktop-portal` RemoteDesktop + Clipboard, pide
-cero dispositivos de entrada y no captura teclado, ratón ni pantalla. Las
-auto-pruebas aisladas pasan con **151 comprobaciones, 0 fallos** en la
-compilación Linux con portal y **149, 0 fallos** en Windows y en la compilación
-sin portal. **No se ejecutaron pruebas con el portapapeles real, el diálogo del
-portal ni dos equipos.** P2 sigue pendiente de validación manual, pero ya no por
-falta de adaptador Wayland.
+Status: Windows adapter and Linux/Wayland adapter implemented and compiled. Wayland adapter uses
+`xdg-desktop-portal` RemoteDesktop + Clipboard, asks for zero input devices and does not capture
+keyboard, mouse or screen. Insulated auto-tests pass with **151 checks, 0 bugs** in the Linux
+compilation with portal and **149, 0 bugs ** in Windows and in the compilation without portal. **No
+tests were run with the actual clipboard, the portal dialog or two computers.** P2 is still pending
+manual validation, but no longer due to lack of Wayland adapter.
 
-## 1. Implementación y compilación
+## 1. Implementation and compilation
 
-| Elemento | Estado | Evidencia o bloqueo |
+| Elemento | Estado | Evidence or blocker |
 | --- | --- | --- |
-| Modelo de texto, orden lógico y protocolo | Implementado | `src/model.*`, `src/engine.*`, `src/protocol.*` |
-| Adaptador Windows nativo | Implementado y compilado | `src/platform/windows_clipboard.cpp`; MSVC/VS 2026; no ejecutado contra el portapapeles real |
-| Adaptador Linux/Wayland | Implementado y compilado con libdbus | `src/platform/portal_clipboard.cpp`; RemoteDesktop + Clipboard; `devices=0`; no validado en sesión gráfica |
-| Selección de backend Linux | Implementado | `src/platform/linux_clipboard.cpp`; Wayland → portal; X11 → limitación explícita, sin fallback |
-| Transporte TLS entre equipos | Implementado y compilado en Windows | OpenSSL 3.5; `src/net/tls_channel.cpp`, `src/net/peer.cpp`; sin prueba de ejecución |
-| Transporte TLS en Linux | **No compilado** | WSL no tiene `libssl-dev`; no se elevó el proceso ni se instalaron paquetes globalmente |
-| CLI y modos explícitos | Implementado | `--help`, `--inventory`, `--self-test`, `--read-text`, `--publish-*`, `--watch`, `--emit-samples`, `--serve`, `--connect` |
-| Auto-pruebas aisladas | Ejecutadas y superadas | 151 checks Linux con portal; 149 checks Windows y Linux sin portal |
-| `MANUAL.md` | Entregado | Compilación separada, permisos, comandos y matriz manual |
-| Compilación Windows | Verificada | CMake 4.3.1-msvc1, generador VS 18 2026 x64, MSVC 19.51.36257; salida 0 |
-| Compilación Linux con portal | Verificada | Ubuntu 20.04.6 WSL, g++ 9.4.0, CMake 3.25.2, libdbus 1.12.16; salida 0 |
-| Compilación Linux sin portal | Verificada | `-DOIT_ENABLE_PORTAL=OFF`; 149 checks, salida 0 |
-| Pruebas manuales de escritorio / dos equipos | Pendientes | Este agente no debía leer/escribir el portapapeles real ni abrir red |
+| Text model, logical order and protocol | Implementado | `src/model.*`, `src/engine.*`, `src/protocol.*` |
+| Native Windows adapter | Implemented and built | `src/platform/windows_clipboard.cpp`; MSVC/VS 2026; real clipboard check pending |
+| Adaptador Linux/Wayland | Implemented and compiled with libdbus | `src/platform/portal_clipboard.cpp`; RemoteDesktop + Clipboard; `devices=0`; not validated in graphical session |
+| Linux Backend Selection | Implementado | `src/platform/linux_clipboard.cpp`; Wayland → portal; X11 → explicit limitation, no failback |
+| Transport TLS between equipment | Implemented and compiled in Windows | OpenSSL 3.5; `src/net/tls_channel.cpp`, `src/net/peer.cpp`; without proof of execution |
+| TLS transport on Linux | **Not built** | WSL does not have `libssl-dev`; the process was not upgraded and packages were not installed globally |
+| CLI and explicit modes | Implementado | `--help`, `--inventory`, `--self-test`, `--read-text`, `--publish-*`, `--watch`, `--emit-samples`, `--serve`, `--connect` |
+| Isolated self-tests | Run and passed | 151 checks Linux with portal; 149 checks Windows and Linux without portal |
+| `MANUAL.md` | Entregado | Separate compilation, permissions, commands and manual matrix |
+| Windows Compilation | Verificada | CMake 4.3.1-msvc1, VS generator 18 2026 x64, MSVC 19.51.36257; output 0 |
+| Linux compilation with portal | Verificada | Ubuntu 20.04.6 WSL, g++ 9.4.0, CMake 3.25.2, libdbus 1.12.16; output 0 |
+| Linux compilation without portal | Verificada | `-DOIT_ENABLE_PORTAL=OFF`; 149 checks, output 0 |
+| Manual desktop testing/two computers | Earrings | This agent did not have to leer/escribir the actual clipboard or open network |
 
-## 2. Entorno y evidencia de compilación
+## 2. Environment and evidence of compilation
 
 ### Windows
 
-- SO observado por `--inventory`: Windows 10.0.19045, sesión 1.
-- Compilador: MSVC 19.51.36257.0 (Visual Studio 2026 Build Tools).
-- CMake: 4.3.1-msvc1 incluido en Visual Studio.
+- OS observed by `--inventory`: Windows 10.0.19045, session 1.
+- Compiler: MSVC 19.51.36257.0 (Visual Studio 2026 Build Tools).
+- CMake: 4.3.1-msvc1 included with Visual Studio.
 - OpenSSL: 3.5 (Win64) en `C:\Program Files\OpenSSL-Win64`.
 - Comando:
 
@@ -436,22 +322,15 @@ $cmake = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\I
 & $cmake --build build/win --config Release
 ```
 
-Resultado: compilación completada, código de salida 0; binario
-`build\win\Release\oneintwo-clipboard.exe`. Avisos C4996 de `fopen` en
-`tls_channel.cpp`; no son errores. La ejecución necesitó
-`C:\Program Files\OpenSSL-Win64\bin` en `PATH` para cargar las DLL.
+Result: compilation completed, output code 0; binary `build\win\Release\oneintwo-clipboard.exe`. Notices C4996 of `fopen` in `tls_channel.cpp`; It's not mistakes. The execution required `C:\Program Files\OpenSSL-Win64\bin` at `PATH` to load DLL.
 
-### Linux con portal
+### Linux with portal support
 
-- Ubuntu 20.04.6 LTS en WSL2, g++ 9.4.0, CMake 3.25.2, 16 procesadores.
-- `libdbus-1-dev` 1.12.16-2ubuntu2.3 descargado como `.deb` y extraído en
-  `/tmp/oit-deps/dbus`; no se instaló globalmente. La librería en ejecución fue
-  `/lib/x86_64-linux-gnu/libdbus-1.so.3`.
-- `pkg-config` no tenía el `.pc` de la extracción local; se pasaron
-  explícitamente los dos directorios de cabeceras (incluido el multiarch
-  `dbus-arch-deps.h`) y la librería. En una Ubuntu normal, `libdbus-1-dev` y
-  `pkg-config` permiten configurar sin rutas manuales.
-- Comando real de la compilación verificada:
+- Ubuntu 20.04.6 LTS in WSL2, g++ 9.4.0, CMake 3.25.2, 16 processors.
+- `libdbus-1-dev` 1.12.16-2ubuntu2.3 downloaded as `.deb` and extracted in `/tmp/oit-deps/dbus`; it
+  was not installed globally. The running library was `/lib/x86_64-linux-gnu/libdbus-1.so.3`.
+- `pkg-config` did not have the `.pc` of local extraction; the two header directories (including the multiarch `dbus-arch-deps.h`) and the library were explicitly passed. In a normal Ubuntu, `libdbus-1-dev` and `pkg-config` allow to configure without manual routes.
+- Real command of the verified compilation:
 
 ```bash
 cmake -S . -B build/linux-portal2 -DCMAKE_BUILD_TYPE=Release \
@@ -461,17 +340,15 @@ cmake -S . -B build/linux-portal2 -DCMAKE_BUILD_TYPE=Release \
 cmake --build build/linux-portal2 -j8
 ```
 
-La configuración mostró:
+The configuration showed:
 
 ```text
 -- xdg-desktop-portal backend enabled (libdbus: /lib/x86_64-linux-gnu/libdbus-1.so.3)
 ```
 
-y la compilación terminó con código 0. `--inventory` en WSL muestra
-`portal_client=compiled`, pero no hay sesión gráfica y el backend queda
-`linux-no-graphical-session`; esto sólo verifica la compilación.
+and the compilation ended with code 0.`--inventory` in WSL shows `portal_client=compiled`, but there is no graphical session and the backend remains `linux-no-graphical-session`; this only verifies the compilation.
 
-### Linux sin portal
+### Linux without portal support
 
 ```bash
 cmake -S . -B build/linux-noportal -DCMAKE_BUILD_TYPE=Release -DOIT_ENABLE_PORTAL=OFF
@@ -479,24 +356,17 @@ cmake --build build/linux-noportal -j8
 ./build/linux-noportal/oneintwo-clipboard --self-test
 ```
 
-Resultado: código 0 y `checks=149 failures=0`. Confirma que el núcleo, Windows
-no aplica, y el adaptador Linux de limitación siguen compilando cuando libdbus
-no está disponible. El backend se informa como no compilado, sin simular lectura
-ni escritura.
+Result: code 0 and `checks=149 failures=0`. Confirms that the kernel, Windows does not apply, and
+the Linux limitation adapter continues to compile when libdbus is not available. The backend is
+reported as not compiled, without simulating reading or writing.
 
-### Limitación TLS Linux
+### Linux TLS limitation
 
-WSL no tiene `libssl-dev`; `apt-get download libssl-dev` falló con 404 para la
-versión candidata. No se instaló nada. En consecuencia, la compilación Linux
-verificada usa `peer_unavailable.cpp`, `tls=unavailable`, y no se puede afirmar
-que el handshake TLS Linux funcione. Para cerrar esta parte hace falta
-`sudo apt install libssl-dev` en Ubuntu y repetir la compilación; es una
-limitación del entorno de verificación, no una decisión de diseño.
+WSL does not have `libssl-dev`; `apt-get download libssl-dev` failed with 404 for the candidate version. Nothing was installed. Consequently, the verified Linux compilation uses `peer_unavailable.cpp`, `tls=unavailable`, and it cannot be claimed that the handshake TLS Linux works. To close this part requires `sudo apt install libssl-dev` in Ubuntu and repeat the compilation; it is a limitation of the verification environment, not a design decision.
 
-## 3. Auto-pruebas aisladas
+## 3. Isolated self-tests
 
-Comando: `oneintwo-clipboard --self-test` (Windows y Linux). Salida Linux con
-portal:
+Command: `oneintwo-clipboard --self-test` (Windows and Linux). Linux output with portal:
 
 ```text
 PASS text_validation
@@ -521,72 +391,66 @@ checks=149 failures=0
 SELF-TEST RESULT: PASS
 ```
 
-Cobertura real de estas pruebas:
+Actual coverage of these tests:
 
-- UTF-8 estricto: acentos, emoji, truncamientos, secuencias overlong,
-  sustitutos, NUL y texto vacío.
-- Límite de 256 KiB, normalización CRLF→LF y conversión de vuelta a Windows.
-- Orden lógico Lamport con desempate estable por identificador de origen;
-  convergencia ante copias concurrentes.
-- Eco propio por marcador y por huella de contenido; una copia humana posterior
-  fuera de la ventana se envía.
-- Duplicados, operaciones atrasadas y actualizaciones de otra generación.
-- Rechazo de texto inválido o demasiado grande sin escribir el portapapeles.
-- Trama: longitudes cero/excesivas, truncamiento, bytes sobrantes, tipo
-  desconocido y versión de protocolo incorrecta.
-- Ausencia de reenvío automático al crear una sesión nueva y rechazo de una
-  operación de la generación anterior.
-- Motor sin adaptador: no declara éxito; informa `unavailable`.
-- Portal, sólo en memoria: construcción/parseo de `a{sv}`, prioridad de MIME,
-  `Response`, `SelectionOwnerChanged` y `SelectionTransfer`; no abre el bus.
+- UTF-8 strict: accents, emoji, truncations, overlong sequences, substitutes, NUL and empty text.
+- 256 KiB limit, CRLF→LF standardization and conversion back to Windows.
+- Logical order Lamport with stable tiebreaker by source identifier; convergence with concurrent
+  copies.
+- Own echo per marker and per content footprint; a later human copy outside the window is sent.
+- Duplicate, backward operations and updates from another generation.
+- Invalid text rejection or too large without writing the clipboard.
+- Step: cero/excesivas lengths, truncation, leftover bytes, unknown type and incorrect protocol
+  version.
+- Absence of automatic forwarding by creating a new session and rejecting an operation from the
+  previous generation.
+- Engine without adapter: does not declare success; reports `unavailable`.
+- Portal, only in memory: building and parsing of `a{sv}`, priority MIME, `Response`, `SelectionOwnerChanged` and `SelectionTransfer`; does not open the bus.
 
-No se inicializa el portapapeles ni se abre ningún socket durante `--self-test`.
-El adaptador usado para el motor es `FakePort`, definido en
-`tests/selftest.cpp`.
+The clipboard is not initialized or any socket is opened during `--self-test`. The adapter used for
+the engine is `FakePort`, defined in `tests/selftest.cpp`.
 
-Comprobaciones adicionales ejecutadas (sin escritorio):
+Additional checks performed (no desktop):
 
-- `--inventory` en Windows: `backend=win32-clipboard`,
-  `read=yes write=yes watch=yes independent_of_input=yes`, `tls=openssl`.
-- `--inventory` en Linux con portal, WSL sin sesión gráfica:
-  `portal_client=compiled`, `backend=linux-no-graphical-session`,
-  `read=no write=no watch=no`, `tls=unavailable`.
-- `--inventory` en Linux sin portal: `portal_client=unavailable`, backend de
-  limitación.
-- Sin argumentos: sólo ayuda; no se inicializa el portapapeles.
-- `--emit-samples` escribió cuatro archivos UTF-8 válidos de 47, 55, 49 y
-  64893 bytes; se validaron con Python y se borraron.
-- `--version` y los errores de argumentos devuelven lo esperado.
+- `--inventory` en Windows: `backend=win32-clipboard`, `read=yes write=yes watch=yes
+  independent_of_input=yes`, `tls=openssl`.
+- `--inventory` on Linux with portal, WSL without graphic session: `portal_client=compiled`,
+  `backend=linux-no-graphical-session`,`read=no write=no watch=no`, `tls=unavailable`.
+- `--inventory` on Linux without portal: `portal_client=unavailable`, limitation backend.
+- No arguments: it only helps; the clipboard is not initialized.
+- `--emit-samples` wrote four valid UTF-8 files of 47, 55, 49 and 64893 bytes; they were validated
+  with Python and deleted.
+- `--version` and arguments errors return what is expected.
 
-## 4. Verificado frente a pendiente
+## 4. Verified and pending checks
 
-| Afirmación | Estado |
+| Affirmation | Estado |
 | --- | --- |
-| El prototipo Windows compila con MSVC y OpenSSL | Verificado |
-| El núcleo y el adaptador Linux compilan en Ubuntu 20.04 WSL | Verificado |
-| El adaptador Wayland compila con libdbus y el flujo D-Bus está implementado | Verificado por compilación y revisión de código |
-| 151 comprobaciones aisladas pasan en Linux con portal | Verificado |
-| 149 comprobaciones aisladas pasan en Windows y Linux sin portal | Verificado |
-| La política de eco, duplicados, orden y generaciones funciona con dobles | Verificado |
-| El protocolo rechaza tramas malformadas dentro de los límites probados | Verificado |
-| Windows lee/escribe/observa el portapapeles real | **Pendiente manual** |
-| Wayland lee/escribe/observa el portapapeles real | **Pendiente manual**; no hay sesión gráfica aquí |
-| El diálogo del portal concede `clipboard_enabled=true` y `devices=0` | **Pendiente manual**; el adaptador rechaza cualquier mask distinto de cero |
-| La observación sigue con la ventana del experimento inactiva | **Pendiente manual** |
-| El handshake TLS y la fijación de certificado funcionan en ejecución | **Pendiente manual** |
-| Windows ↔ Windows transfiere texto en ambos sentidos | **Pendiente manual** |
-| Windows ↔ Ubuntu transfiere texto | **Pendiente manual**; además falta compilar TLS Linux en este entorno |
-| Ubuntu lee/escribe el portapapeles vía portal | **Implementado; pendiente manual** |
-| X11 lee/escribe el portapapeles | **No implementado** en este prototipo |
-| Wayland permite una sesión de sólo portapapeles sin entrada | **Restricción de UI conocida**: GNOME 46 exige habilitar “Allow Remote Interaction” o una pantalla; con `types=0` no concede entrada. Falta confirmar en escritorio real |
-| La compilación Linux con OpenSSL funciona | **No verificada** (falta `libssl-dev` en el entorno) |
+| Windows prototype compiles with MSVC and OpenSSL | Verificado |
+| The kernel and Linux adapter compile in Ubuntu 20.04 WSL | Verificado |
+| Wayland adapter compiles with libdbus and D-Bus flow is implemented | Verified by code compilation and revision |
+| 151 isolated checks pass on Linux with portal | Verificado |
+| 149 isolated checks pass on Windows and Linux without portal | Verificado |
+| The policy of echo, duplicate, order and generations works with doubles | Verificado |
+| Protocol rejects malformed plots within proven limits | Verificado |
+| Windows reads, writes, and watches the real clipboard | **Manual check pending** |
+| Wayland reads, writes, and watches the real clipboard | **Manual check pending**; no graphic session here |
+| The portal dialog grants `clipboard_enabled=true` and `devices=0` | **Manual check pending**; adapter rejects any mask other than zero |
+| The observation continues with the inactive experiment window | **Manual check pending** |
+| The TLS handshake and certificate fixing work in progress | **Manual check pending** |
+| Windows ↔ Windows transfers text in both directions | **Manual check pending** |
+| Windows ↔ Ubuntu transfers text | **Manual check pending**; in addition to compiling TLS Linux in this environment |
+| Ubuntu lee/escribe clipboard via portal | ** Implemented; manual pending** |
+| X11 reads and writes the clipboard | **Not implemented** in this prototype |
+| Wayland allows a clipboard-only session without input | **Restriction of known IU**: GNOME 46 requires enabling “Allow Remote Interaction” or a screen; with `types=0` does not grant entry. Confirm missing on real desktop |
+| The Linux compilation with OpenSSL works | **Unverified** (missing `libssl-dev` in the environment) |
 
-## 5. Permisos, capacidades y restricciones
+## 5. Permissions, capabilities, and constraints
 
-### Flujo implementado
+### Implemented flow
 
-`org.freedesktop.portal.RemoteDesktop` crea la sesión y presenta el diálogo;
-`org.freedesktop.portal.Clipboard` amplía esa sesión. El orden es:
+`org.freedesktop.portal.RemoteDesktop` creates the session and presents the dialog;
+`org.freedesktop.portal.Clipboard` expands that session. The order is:
 
 ```text
 CreateSession
@@ -596,135 +460,121 @@ Start
 SetSelection / SelectionRead / SelectionWrite / SelectionWriteDone
 ```
 
-`SelectDevices` documenta `types` como bitmask con valor por defecto “todos”;
-se envía `0` para no pedir teclado, ratón ni táctil. `Start` devuelve
-`clipboard_enabled` y `devices`. El adaptador:
+`SelectDevices` documents `types` as bitmask with default value “all”; `0` is sent to avoid ordering keyboard, mouse or touch. `Start` returns `clipboard_enabled` and `devices`. The adapter:
 
 - exige `clipboard_enabled=true`;
-- rechaza cualquier `devices` distinto de cero y cierra la sesión;
-- nunca llama a `Notify*` ni `ConnectToEIS`;
-- no selecciona fuentes de pantalla;
-- no usa X11 como fallback.
+- rejects any `devices` other than zero and closes the session;
+- never calls `Notify*` or `ConnectToEIS`;
+- does not select screen fonts;
+- does not fall back to X11.
 
 ### GNOME 46
 
-En `xdg-desktop-portal-gnome` 46.0, el diálogo sólo habilita Share si está
-activa “Allow Remote Interaction” o hay una fuente de pantalla seleccionada.
-`get_selected_device_types()` devuelve el mask de `SelectDevices` cuando el
-interruptor está activo; con `types=0` sigue devolviendo cero. Por tanto:
+In `xdg-desktop-portal-gnome` 46.0, the Share dialog only enables if “Allow Remote Interaction” is active or there is a selected screen source. `get_selected_device_types()` returns the `SelectDevices` mask when the switch is active; with `types=0` it continues to return zero. Therefore:
 
-- es una **restricción de interfaz**: hay que activar el interruptor para que
-  Share se habilite;
-- no es una autorización de entrada en este caso, porque el mask es 0;
-- si un portal/versión ignorara el mask y concediera dispositivos, el adaptador
-  se negaría a continuar.
+- is a **interface restriction**: the switch must be activated to enable Share;
+- is not an entry permit in this case, because the mask is 0;
+- If a portal version ignored the mask and granted devices, the adapter would refuse to continue.
 
-No se ha probado el diálogo real. Otras versiones y escritorios pueden variar;
-no se generaliza a “Wayland bloquea el portapapeles”.
+The actual dialog has not been tested. Other versions and desktops may vary; it does not generalize
+to “Wayland blocks the clipboard”.
 
 ### X11
 
-No hay backend X11 implementado. En una sesión X11 el adaptador devuelve
-`linux-x11-unimplemented` y no intenta el portal Wayland. Es una ausencia de
-implementación, no una conclusión sobre las capacidades de X11.
+There is no X11 backend implemented. In a X11 session the adapter returns `linux-x11-unimplemented`
+and does not attempt the Wayland portal. It is an absence of implementation, not a conclusion about
+the capabilities of X11.
 
-### Limitaciones del entorno
+### Environmental constraints
 
-No hay sesión gráfica en WSL; abrir el portal o leer el portapapeles real
-requiere una sesión Ubuntu real. La falta de ese entorno no demuestra
-inviabilidad; impide ejecutar la validación manual.
+There is no graphical session in WSL; opening the portal or reading the actual clipboard requires a
+real Ubuntu session. The lack of that environment does not prove unfeasibility; it prevents running
+manual validation.
 
-## 6. Matriz manual
+## 6. Manual test matrix
 
-Todas las filas están sin ejecutar. Completar desde `MANUAL.md`; no convertir
-una compilación en una prueba de escritorio.
+All rows are not running. Complete from `MANUAL.md`; do not convert a build into a desktop test.
 
-| Caso | Entorno exacto | Esperado | Observado | Resultado |
+| Caso | Exact environment | Esperado | Observado | Result |
 | --- | --- | --- | --- | --- |
-| Leer texto copiado | Windows 10/11 | Metadatos correctos; contenido sólo con `--show-content` | No ejecutado | Pendiente |
-| Publicar archivo y pegar | Windows 10/11 + Notepad | `readback=match`; texto pegado correcto | No ejecutado | Pendiente |
-| Observar en segundo plano | Windows 10/11, ventana inactiva | Un cambio por copia, sin eco | No ejecutado | Pendiente |
-| Copiar imagen / formato no textual | Windows 10/11 | Sin cambio de texto; no se borra el portapapeles | No ejecutado | Pendiente |
-| Leer vía portal | Ubuntu + GNOME Wayland | Diálogo; `clipboard_enabled=true`, `devices=0`; texto correcto | No ejecutado | Pendiente |
-| Publicar y pegar vía portal | Ubuntu + GNOME Wayland | Texto pegado; sin captura de entrada | No ejecutado | Pendiente |
-| Observar en segundo plano | Ubuntu + GNOME Wayland | Cambio al copiar en otra app; sin eco | No ejecutado | Pendiente |
-| Cancelar permiso | Ubuntu + GNOME Wayland | `Denied`/`unavailable`, sin fallback | No ejecutado | Pendiente |
-| X11 | Ubuntu + X11 | `linux-x11-unimplemented`, sin fallback | No ejecutado | No implementado |
-| TLS con certificado correcto | Windows ↔ Windows | Handshake y huellas coinciden | No ejecutado | Pendiente |
-| TLS con certificado incorrecto | Windows ↔ Windows | Handshake rechazado por pin | No ejecutado | Pendiente |
-| Transferencia Unicode bidireccional | Windows ↔ Windows | Acentos, emoji y líneas correctos | No ejecutado | Pendiente |
-| Copias rápidas | Windows ↔ Windows | Gana la última; sin bucles | No ejecutado | Pendiente |
-| Desconexión y reconexión | Windows ↔ Windows | No se reenvía texto antiguo; nueva copia sí | No ejecutado | Pendiente |
-| Windows ↔ Ubuntu | Windows ↔ Ubuntu | Portal + TLS; permiso manual | No ejecutado | Pendiente |
-| Ubuntu → Windows | Ubuntu → Windows | Portal + TLS; permiso manual | No ejecutado | Pendiente |
+| Read copied text | Windows 10/11 | Correct metadata; content only with `--show-content` | Not run | Pending |
+| Post file and paste | Windows 10/11 + Notepad | `readback=match`; correct text pasted | Not run | Pending |
+| Watch in the background | Windows 10/11, inactive window | One change for copy, no echo. | Not run | Pending |
+| Copy an image or other non-text format | Windows 10/11 | No text change; no clipboard deleted | Not run | Pending |
+| Read via portal | Ubuntu + GNOME Wayland | Dialogue; `clipboard_enabled=true`, `devices=0`; correct text | Not run | Pending |
+| Post and paste via portal | Ubuntu + GNOME Wayland | Text pasted; no input capture | Not run | Pending |
+| Watch in the background | Ubuntu + GNOME Wayland | Change when copying to another app; no echo | Not run | Pending |
+| Cancel permission request | Ubuntu + GNOME Wayland | `Denied`/`unavailable`, without fallback | Not run | Pending |
+| X11 | Ubuntu + X11 | `linux-x11-unimplemented`, without fallback | Not run | Not implemented |
+| TLS with the correct certificate | Windows ↔ Windows | Handshake succeeds and fingerprints match | Not run | Pending |
+| TLS with the wrong certificate | Windows ↔ Windows | Handshake rejected because the pin does not match | Not run | Pending |
+| Bidirectional Unicode transfer | Windows ↔ Windows | Accents, emoji and correct lines | Not run | Pending |
+| Quick copies | Windows ↔ Windows | Wins the last one; no loops | Not run | Pending |
+| Disconnection and reconnection | Windows ↔ Windows | No old text is forwarded; new copy yes | Not run | Pending |
+| Windows ↔ Ubuntu | Windows ↔ Ubuntu | Portal + TLS; manual permission | Not run | Pending |
+| Ubuntu → Windows | Ubuntu → Windows | Portal + TLS; manual permission | Not run | Pending |
 
-## 7. Decisiones y dependencias
+## 7. Decisions and dependencies
 
-- C++17, CMake independiente dentro del experimento; sin dependencia del CMake
-  raíz ni del producto.
-- Win32 (`CF_UNICODETEXT`, `AddClipboardFormatListener`, ventana oculta de sólo
-  mensajes, formato privado de marcador). No se captura ni se inyecta entrada.
-- Wayland: `xdg-desktop-portal` RemoteDesktop + Clipboard vía libdbus. Se
-  eligió libdbus para no añadir GLib/GIO al prototipo. No se usó X11 como
-  fallback.
-- `SelectDevices(types=0)` y comprobación de `devices == 0`: el portapapeles no
-  depende de control de entrada.
-- OpenSSL 3.5 (licencia Apache 2.0) para TLS 1.2 o superior; el certificado del
-  par se fija por SHA-256. No se usa CA, nombre de host, cuenta ni descubrimiento.
-  No se ha implementado criptografía propia.
-- Límite de texto: 256 KiB; UTF-8 estricto; NUL y texto vacío rechazados;
-  metadatos con bytes, puntos de código, líneas y FNV-1a de 64 bits.
-- Concurrencia: contador lógico Lamport; empate por identificador de origen
-  mayor; generación nueva por conexión; sin reenvío del portapapeles anterior.
-- Eco: marcador `oit1:<endpoint>:<generation>:<origin>:<logical>` en un formato
-  privado de Windows. El portal Wayland no transporta ese formato; se usa
-  `session_is_owner` y la ventana de huella de contenido de 1,5 s como respaldo.
-- Contrato del adaptador: capacidades y limitación explícitas, lectura/escritura,
-  observación asíncrona con espera y parada, y un marcador de escritura propia.
-  En Wayland el marcador queda vacío y la limitación se informa en la salida.
+- C++17, CMake independent within the experiment; not dependent on root or product CMake.
+- Win32 (`CF_UNICODETEXT`, `AddClipboardFormatListener`, message-only hidden window, private
+  bookmark format) is not captured or injected.
+- Wayland: `xdg-desktop-portal` RemoteDesktop + Clipboard via libdbus. Libdbus was chosen not to add
+  GLib/GIO to the prototype. X11 was not used as fallback.
+- `SelectDevices(types=0)` and `devices == 0` check: The clipboard does not depend on input control.
+- OpenSSL 3.5 (Apchap license 2.0) for TLS 1.2 or higher; the pair certificate is set to SHA-256. CA, host name, account or discovery is not used. No cryptography of its own has been implemented.
+- Text limit: 256 KiB; UTF-8 strict; NUL and empty text rejected; metadata with bytes, code points,
+  lines and 64-bit FNV-1a.
+- Concurrence: Lamport logic counter; tie by major source identifier; new generation per connection;
+  no forwarding of the previous clipboard.
+- Eco: `oit1:<endpoint>:<generation>:<origin>:<logical>` marker in a private Windows format. Wayland
+  portal does not transport that format; `session_is_owner` is used and 1,5 content footprint window
+  is used as backup.
+- Adapter contract: explicit capabilities and limitation, lectura/escritura, asynchronous
+  observation with waiting and stopping, and a write marker of its own. In Wayland the marker is
+  empty and the limitation is reported on the output.
 
-## 8. Bloqueos y trabajo pendiente
+## 8. Blockages and pending work
 
-1. **Validación en escritorio Wayland**: no ejecutada. Requiere sesión gráfica
-   real y aprobar el diálogo. No es un bloqueo de implementación; es una prueba
-   pendiente. Hay que registrar versiones, permiso, `clipboard_enabled` y
-   `devices`.
-2. **TLS en Linux**: no compilado por falta de `libssl-dev`; no se instaló nada
-   globalmente. Sin esta compilación no se puede probar Windows ↔ Ubuntu.
-3. **X11**: no implementado. Sería otro backend, con libX11 y propiedad de
-   selección; no se incluyó para no sustituir silenciosamente Wayland.
-4. **Pruebas de dos equipos**: no ejecutadas por las reglas de esta fase.
-5. **Permisos y persistencia**: el portal puede volver a preguntar; no hay
-   confianza persistente que revocar. La experiencia exacta depende del
-   escritorio/versión.
+1. **Wayland Desktop Validation**: not executed. Requires actual graphical session and approve
+   dialog. It is not an implementation lock; it is a pending test. You have to register versions,
+   permission, `clipboard_enabled` and `devices`.
+2. **TLS on Linux**: not compiled due to lack of `libssl-dev`; nothing installed globally. Without
+   this build you cannot try Windows ↔ Ubuntu.
+3. **X11**: not implemented. It would be another backend, with libX11 and selection property; it was
+   not included to not quietly replace Wayland.
+4. **Two-team tests**: not executed by the rules of this phase.
+5. **Permissions and persistence**: the portal may ask again; there is no persistent confidence to
+   revoke. The exact experience depends on the desktop and version.
 
-## 9. Fuentes primarias
+## 9. Primary sources
 
-- Clipboard (v1): <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Clipboard.html>
-- RemoteDesktop (v2): <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.RemoteDesktop.html>
-- XML oficial de Clipboard: <https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/main/data/org.freedesktop.portal.Clipboard.xml>
-- XML oficial de RemoteDesktop: <https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/main/data/org.freedesktop.portal.RemoteDesktop.xml>
-- Diálogo GNOME 46: <https://gitlab.gnome.org/GNOME/xdg-desktop-portal-gnome/-/raw/46.0/src/remotedesktopdialog.c>
-- Implementación GNOME del portal Clipboard: <https://gitlab.gnome.org/GNOME/xdg-desktop-portal-gnome/-/raw/46.0/src/clipboard.c>
-- Documentación de libdbus sobre descriptores: <https://dbus.freedesktop.org/doc/api/html/group__DBusMessage.html>
+- Clipboard (v1):
+  <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Clipboard.html>
+- RemoteDesktop (v2):
+  <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.RemoteDesktop.html>
+- Official Clipboard XML:
+  <https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/main/data/org.freedesktop.portal.Clipboard.xml>
+- Official RemoteDesktop XML:
+  <https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/main/data/org.freedesktop.portal.RemoteDesktop.xml>
+- GNOME 46 dialogue:
+  <https://gitlab.gnome.org/GNOME/xdg-desktop-portal-gnome/-/raw/46.0/src/remotedesktopdialog.c>
+- Implementation of the Clipboard portal GNOME:
+  <https://gitlab.gnome.org/GNOME/xdg-desktop-portal-gnome/-/raw/46.0/src/clipboard.c>
+- Libdbus documentation on descriptors:
+  <https://dbus.freedesktop.org/doc/api/html/group__DBusMessage.html>
 
-## 10. Conclusión
+## 10. Conclusion
 
-Lo que puede afirmarse: el prototipo Windows está implementado y compila; el
-núcleo y el adaptador Wayland están implementados y compilan; las 151
-comprobaciones aisladas pasan en Linux con portal y las 149 pasan en Windows y
-Linux sin portal. El adaptador Wayland solicita una sesión de RemoteDesktop con
-`types=0`, exige `clipboard_enabled=true`, rechaza dispositivos de entrada y no
-usa X11 como sustituto.
+What can be said: the Windows prototype is implemented and compiled; the Wayland kernel and adapter
+are deployed and compiled; all 151 isolated checks pass on Linux with portal and all 149 pass on
+Windows and Linux without portal. The Wayland adapter requests a RemoteDesktop session with
+`types=0`, requires `clipboard_enabled=true`, rejects input devices and does not use X11 as a
+substitute.
 
-Lo que no puede afirmarse todavía: que el portapapeles real funcione en Windows
-o en un escritorio Wayland, que el diálogo del portal conceda la sesión en una
-versión concreta, que Windows y Ubuntu intercambien texto, ni que la compilación
-Linux con TLS funcione. P2 sigue pendiente de validación manual; la
-implementación Wayland ya existe y la restricción de GNOME 46 está documentada
-con su fuente.
+What cannot be said yet: that the actual clipboard works on Windows or on a Wayland desktop, that
+the portal dialog grants the session in a specific version, that Windows and Ubuntu exchange text,
+or that the Linux compilation with TLS works. P2 is still pending manual validation; the Wayland
+implementation already exists and the GNOME 46 restriction is documented with its source.
 
-Siguiente paso recomendado: instalar `libdbus-1-dev` y `libssl-dev` en una
-Ubuntu real, compilar, ejecutar `--inventory` y después las pruebas de
-`MANUAL.md` en orden: lectura, escritura/pegado, observación, permiso denegado y
-finalmente Windows ↔ Ubuntu.
+Next recommended step: install `libdbus-1-dev` and `libssl-dev` on a real Ubuntu, compile, run `--inventory` and then test `MANUAL.md` in order: read, escritura/pegado, observation, permission denied and finally Windows ↔ Ubuntu.

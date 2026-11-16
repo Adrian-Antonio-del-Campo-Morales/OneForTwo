@@ -70,8 +70,8 @@ inline bool checkWindowsApp(Runtime& runtime, bool& missing_dll)
         return true;
     }
     if (loaded.not_found) {
-        // WindowsApp.lib es una umbrella library; no hay un windowsapp.dll
-        // independiente en todas las instalaciones.
+        // WindowsApp.lib is a library umbrella; there is no windowsapp.dll
+        // independent in all facilities.
         std::printf("probe: windowsapp.dll not present (umbrella library; checked via "
                     "GraphicsCapture.dll)\n");
         return true;
@@ -85,8 +85,8 @@ inline bool checkGraphicsCapture(Runtime& runtime, bool& missing_entry)
 {
     const LoadResult loaded = runtime.loadModule(L"GraphicsCapture.dll");
     if (!loaded.handle) {
-        // Si falta el componente de captura, el sistema puede ser anterior a WGC
-        // o no exponerlo; deja que la comprobación de soporte dé el veredicto.
+        // If the capture component is missing, the system may be older than WGC
+        // or not to expose it; let the support check give the verdict.
         std::printf("probe: GraphicsCapture.dll not present; WGC will report unsupported\n");
         return true;
     }

@@ -1,177 +1,153 @@
-# Notificaciones entre equipos
+# Inter-equipment notifications
 
-Módulo común de avisos manuales y reenvío de notificaciones. Implementa la
-lógica independiente de plataforma descrita en
-[`docs/NOTIFICACIONES.md`](../../../docs/NOTIFICACIONES.md) y
-[`docs/IMPLEMENTACION_PARALELA.md`](../../../docs/IMPLEMENTACION_PARALELA.md),
-y se apoya en el contrato [`DesktopNotifications`](../../platform/desktop.hpp)
-para presentar, observar y retirar avisos.
+Common module of manual notices and forwarding of notifications. Implements the independent platform logic described in [`docs/NOTIFICATIONS.md`](../../../docs/NOTIFICATIONS.md) and [`docs/PARALLEL_IMPLEMENTATION.md`](../../../docs/PARALLEL_IMPLEMENTATION.md), and relies on the contract [`DesktopNotifications`](../../platform/desktop.hpp) to present, observe and withdraw notices.
 
-Este directorio contiene la política y los ayudantes de la feature. La fachada
-pública está en [`../notifications.hpp`](../notifications.hpp) y la
-implementación en [`../notifications.cpp`](../notifications.cpp).
+This directory contains the policy and the helpers of the feature. The public façade is in [`../notifications.hpp`](../notifications.hpp) and implementation in [`../notifications.cpp`](../notifications.cpp).
 
 ## Capacidades
 
-| Capacidad | Entrada principal | Estado |
+| Capacidad | Main entrance | Estado |
 | --- | --- | --- |
-| Enviar un aviso manual | `SharedNotifications::sendManual` | Windows y Linux |
-| Recibir avisos manuales o reenviados | `SharedNotifications::receiveNotice` | Windows y Linux |
-| Reenviar avisos nuevos de otras aplicaciones | `forwardObserved` y observación nativa | Solo Windows con identidad MSIX y consentimiento |
-| Descubrir aplicaciones con avisos actuales | `discoverApplications` | Windows; Linux devuelve `unavailable` |
-| Elegir aplicaciones autorizadas | `setAllowedApplications` | Windows; en Linux no hay observación |
-| Presentar y retirar avisos propios | `DesktopNotifications::presentNotice` / `withdrawNotices` | Windows y Linux |
-| Aplicar permisos por modalidad y sentido | `setAuthorization` | Común |
+| Send a manual warning | `SharedNotifications::sendManual` | Windows and Linux |
+| Receive manual or forward notices | `SharedNotifications::receiveNotice` | Windows and Linux |
+| Forward new notices from other applications | `forwardObserved` and native observation | Windows only with MSIX identity and consent |
+| Discover apps with current ads | `discoverApplications` | Windows; Linux devuelve `unavailable` |
+| Choosing Authorized Applications | `setAllowedApplications` | Windows; in Linux there is no observation |
+| Submit and withdraw your own notices | `DesktopNotifications::presentNotice` / `withdrawNotices` | Windows and Linux |
+| Apply permissions by modality and meaning | `setAuthorization` | Common |
 
-Los avisos son texto plano. No se reenvían botones, enlaces, adjuntos,
-respuestas ni acciones de la aplicación original. La recepción tampoco confirma
-que una persona haya visto el aviso: `DesktopResult::ready` solo indica que el
-escritorio aceptó la solicitud de presentación.
+Notices are plain text. No buttons, links, attachments, responses or actions from the original
+application are forwarded. Reception also does not confirm that a person has seen the notice:
+`DesktopResult::ready` only indicates that the desktop accepted the submission request.
 
-El perfil y la autorización efectiva los calcula el coordinador. El módulo
-recibe un `FeatureSet` ya resuelto para envío y otro para recepción; no lee
-preferencias ni conoce los nombres de los perfiles.
+The profile and the effective authorization are calculated by the coordinator. The module receives a
+`FeatureSet` already resolved for shipping and another for receiving; it does not read preferences
+or know the names of the profiles.
 
-## Límites y política
+## Limits and policy
 
-La única fuente de la frecuencia es
-[`notification_rate_per_second`](../../integration/feature_contracts.hpp).
-No introducir otra cifra en la UI, la sesión o los tests.
+The only source of the frequency is
+[9`notification_rate_per_second`](../../integration/feature_contracts.hpp). Do not enter another
+number in the IU, session or tests.
 
-| Límite | Valor |
+| Limit | Valor |
 | --- | --- |
-| Frecuencia | 3 avisos por ventana de 1 segundo monotónico, por sentido |
-| Cola local | 16 avisos pendientes por sentido |
-| Caducidad en cola | 10 segundos desde la entrada |
-| Deduplicación de observados | 64 huellas, 10 segundos |
-| Título | 256 bytes UTF-8; obligatorio |
-| Cuerpo | 2048 bytes UTF-8; opcional |
-| Nombre visible de aplicación | 128 bytes UTF-8 |
-| Tick del coordinador | 100 ms |
+| Frecuencia | 3 window warnings of 1 second monotonic, by meaning |
+| Cola local | 16 outstanding sense notices |
+| Expiration in queue | 10 seconds from the entrance |
+| Deduplication of observed | 64 prints, 10 seconds. |
+| Title | 256 bytes UTF-8; obligatorio |
+| Cuerpo | 2048 bytes UTF-8; optional |
+| Visible application name | 128 bytes UTF-8 |
+| Coordinator's tick | 100 ms |
 
-La frecuencia de envío es compartida por avisos manuales y reenviados. Un aviso
-que supera el límite se descarta y se informa localmente; no se acumula para
-intentarlo después. Las colas son acotadas y pierden el aviso nuevo cuando
-están llenas. La caducidad se comprueba al reintentar el envío y justo antes de
-presentar.
+The shipping frequency is shared by manual and forwarding notices. A notice that exceeds the limit
+is discarded and reported locally; it does not accumulate to try later. Queues are narrowed and lose
+the new notice when they are full. Expiry is checked when retrying the shipment and just before
+submitting.
 
-El receptor consume un identificador estructuralmente válido aunque después lo
-descarte por frecuencia. Esto evita que una repetición del mismo
-`notice_id` provoque otra presentación. No cambiar ese orden sin revisar las
-pruebas de deduplicación.
+The receiver consumes a structurally valid identifier even if it is later discarded by frequency.
+This prevents a repetition of the same `notice_id` from causing another presentation. Do not change
+that order without reviewing the deduplication tests.
 
-## Implementación
+## Implementation
 
-### Fachada y estado
+### Facade and status
 
-`SharedNotifications` es una fachada con un `Impl` privado. El estado relevante
-vive por generación de sesión:
+`SharedNotifications` is a facade with a `Impl` The relevant state lives by session generation:
 
-- contador de emisión y último identificador recibido;
-- colas de salida y entrada con su instante de entrada;
-- marcas monotónicas de frecuencia por sentido;
-- huellas de avisos observados para deduplicar;
-- lista de aplicaciones autorizadas;
-- suscripción de observación y su identificador local.
+- emission counter and last identifier received;
+- output and input queues with their input moment;
+- Monotonic frequency markings per sense;
+- warning tracks observed for duplicating;
+- list of authorised applications;
+- Observation subscription and local identifier.
 
-Al cambiar `SessionGeneration` se retiran los avisos activos, se vacían colas,
-se reinician contadores y deduplicación, y se detiene la observación anterior.
-La generación se comprueba en todas las entradas y callbacks: un evento de una
-generación o suscripción antigua se descarta.
+When changing `SessionGeneration` active notices are removed, queues are emptied, counters and
+deduplication are restarted, and the previous observation is stopped. Generation is checked in all
+entries and callbacks: an event of one generation or old subscription is discarded.
 
 ### Recorridos
 
-**Envío manual**
+**Delivery manual**
 
-1. `sendManual` comprueba generación, permiso `manual_notifications` y contenido.
-2. Se aplica la frecuencia, se asigna un `notice_id` y se construye un
-   `RemoteNotification`.
-3. `SendFeatureMessage` decide: `queued` transfiere la propiedad, `busy` deja el
-   aviso en la cola local acotada, y `denied`/`disconnected` vacían el trabajo
-   pendiente.
+1. `sendManual` checks generation, permission `manual_notifications` and contents.
+2. The frequency is applied, a `notice_id` is assigned and a `RemoteNotification` is built.
+3. `SendFeatureMessage` decides: `queued` transfers the property, `busy` leaves the notice in the
+   local tail bounded, and `denied`/`disconnected` empty the pending work.
 
-**Reenvío observado**
+**Return observed**
 
-1. El adaptador entrega `ObservedNotification` con identidad local, nombre
-   visible y contenido.
-2. El módulo exige `forwarded_notifications`, una identidad no vacía, una
-   aplicación de la lista, ausencia de eco y contenido válido.
-3. Deduplica por `app_id`, título y cuerpo durante la ventana configurada.
-4. Emite el aviso con el nombre visible; el `app_id` no sale del equipo.
+1. The adapter delivers `ObservedNotification` with local identity, visible name and content.
+2. The module requires `forwarded_notifications`, a non-empty identity, an application of the list,
+   absence of echo and valid content.
+3. It doubles by `app_id`, title and body during the configured window.
+4. Issue the notice with the visible name; the `app_id` does not leave the team.
 
-**Recepción**
+**Reception**
 
-1. `receiveNotice` valida modalidad, generación, permiso, identificador y
-   contenido.
-2. Rechaza identificadores ya consumidos o no crecientes.
-3. Avanza el último identificador, aplica frecuencia y encola.
-4. `tick` comprueba caducidad y permisos antes de llamar a `presentNotice` con
-   el nombre verificado del par.
+1. `receiveNotice` validates modality, generation, permission, identifier and content.
+2. Rejects identifiers already consumed or not growing.
+3. Advances the latest identifier, applies frequency and glues.
+4. `tick` checks expiration and permissions before calling `presentNotice` with the verified name of
+   the pair.
 
-### Observación
+### Observation
 
-La observación solo se inicia si hay permiso de reenvío, una lista de
-aplicaciones no vacía y `notificationCapabilities().observe == true`. La lista
-puede cambiar durante la observación: se reevalúa al consumir cada evento y al
-cambiar la autorización.
+Observation is only initiated if there is forwarding permission, a list of non-empty applications,
+and `notificationCapabilities().observe == true`. The list may change during observation: it is
+re-evaluated by consuming each event and changing the authorization.
 
-El adaptador Windows toma una línea base de los avisos existentes al empezar,
-de modo que no se reenvía el historial. Una reconexión o una nueva generación
-renueva esa línea base. El módulo no detecta por sí mismo una vuelta de
-suspensión: el coordinador debe reiniciar la observación para no reenviar el
-historial acumulado. El consentimiento se consulta periódicamente; si el usuario
-lo retira, el módulo detiene la observación y reporta el cambio.
+The Windows adapter takes a baseline of the existing warnings at the start, so that the history is
+not forwarded. A reconnection or a new generation renews that baseline. The module does not detect a
+suspension spin by itself: the coordinator must restart the observation in order not to forward the
+accumulated history. Consent is consulted periodically; if the user withdraws it, the module stops
+the observation and reports the change.
 
-`discoverApplications` es una consulta independiente:
+`discoverApplications` is an independent consultation:
 
-- no inicia ni modifica la observación;
-- puede solicitar consentimiento y puede completar de forma síncrona o
-  asíncrona;
-- entrega el callback una sola vez;
-- filtra identidades vacías, el propio producto, duplicados y nombres no
-  utilizables, y ordena por nombre y luego por identidad.
+- does not initiate or modify the observation;
+- may seek consent and may complete in a synchronous or asynchronous manner;
+- delivers the callback once;
+- filters empty identities, the product itself, duplicates and unusable names, and orders by name
+  and then by identity.
 
-Una lista vacía solo significa que no se encontraron avisos actuales; no
-demuestra que no haya aplicaciones instaladas.
+An empty list only means that no current notices were found; it does not show that there are no
+installed applications.
 
-## Adaptadores de plataforma
+## Platform adapters
 
 ### Windows
 
 - Presenta con `ToastNotificationManager`.
-- Con identidad MSIX usa la identidad del paquete; sin empaquetar usa el
-  AppUserModelID del producto y requiere el acceso directo del menú Inicio.
-- La observación usa `UserNotificationListener` y exige identidad de paquete y
-  la capacidad `userNotificationListener` en el manifiesto.
-- `RequestAccessAsync` se invoca desde el hilo de interfaz; la escucha y la
-  presentación usan un hilo propio con apartamento MTA.
-- Si no hay identidad de paquete, `observe` es falso y el descubrimiento
-  devuelve `unavailable` antes de pedir consentimiento.
-- El XML del toast se construye escapando el texto; no se interpreta marcado
-  del usuario.
+- Identity MSIX uses the package identity; unpacked uses the Product AppUserModelID and requires
+  direct access from the Start menu.
+- Observation uses `UserNotificationListener` and requires package identity and
+  `userNotificationListener` capacity in the manifest.
+- `RequestAccessAsync` is invoked from the interface thread; listening and presentation use a thread
+  of their own with apartment MTA.
+- If there is no package identity, `observe` is false and the discovery returns `unavailable` before
+  requesting consent.
+- The XML toast is built by escaping the text; it is not interpreted by the user.
 
-El empaquetado, el certificado y la lista de comprobación nativa están en
-[`src/platform/windows/notification_support/README.md`](../../platform/windows/notification_support/README.md).
+Packaging, certificate and native checklist are in [`src/platform/windows/notification_support/README.md`](../../platform/windows/notification_support/README.md).
 
 ### Linux
 
-- Presenta y retira mediante `org.freedesktop.Notifications`.
-- El envío manual y la recepción autorizada funcionan con el servicio de
-  notificaciones disponible.
-- No existe un proveedor general autorizado para leer avisos de otras
-  aplicaciones: `observe` es falso, `discoverApplications` devuelve
-  `unavailable` y el reenvío automático no está disponible.
-- La presentación usa texto plano y el nombre del par como atribución.
+- Present and withdraw by `org.freedesktop.Notifications`.
+- Manual shipping and authorized reception work with the notification service available.
+- There is no general authorized provider for reading notices from other applications: `observe` is
+  fake, `discoverApplications` returns `unavailable` and automatic forwarding is not available.
+- The presentation uses plain text and the name of the pair as attribution.
 
-## Integración
+## Integration
 
-Construir primero el runtime, el adaptador de escritorio y la sesión; después el
-módulo. Las referencias de `NotificationDependencies` deben seguir vivas durante
-toda la vida de `SharedNotifications`.
+First build the runtime, desktop adapter and session; then the module. `NotificationDependencies`
+references must remain alive for the entire life of `SharedNotifications`.
 
 ```cpp
 NotificationDependencies dependencies{
-    runtime,                        // now + post al hilo principal
+    runtime,                        // now + post to the main thread
     desktop,                        // makeWindowsNotifications / makeLinuxNotifications
     session.sendFeatureMessage,     // solo mensajes RemoteNotification
     [this] { return session.peerDisplayName(); },
@@ -179,76 +155,67 @@ NotificationDependencies dependencies{
 auto notifications = std::make_unique<SharedNotifications>(dependencies);
 ```
 
-Puntos que el coordinador debe respetar:
+Points to be respected by the coordinator:
 
-- Llamar a `tick()` cada 100 ms; sin tick no se reintentan colas ni se comprueba
-  su caducidad.
-- Llamar a `setAuthorization` antes de despachar trabajo y al cambiar de
-  generación. Una reconexión debe usar una generación nueva.
-- Al bloquear, desconectar o pausar, retirar la autorización efectiva; el módulo
-  vacía los pendientes y detiene la observación si deja de estar permitida.
-- Poblar la selección con `discoverApplications` y llamar después a
-  `setAllowedApplications` con los `app_id` elegidos. No usar `app_name` como
-  identidad ni `app_id` como texto para la persona usuaria.
-- Tratar los callbacks como de un solo uso. `presentNotice` puede completar de
-  forma asíncrona; un callback de una generación anterior se ignora.
-- No llamar a `presentNotice` directamente para saltarse permisos, filtros,
-  límites o deduplicación.
-- No incluir título, cuerpo ni identidad nativa en `report_error`; el módulo ya
-  evita hacerlo y la UI debe mantener esa garantía al registrar el mensaje.
-- Mantener las cabeceras públicas bajo coordinación del integrador. Este
-  paquete solo añade las ampliaciones documentadas de descubrimiento y usa la
-  constante compartida de frecuencia.
+- Call `tick()` every 100 ms; without tick, no queues are reintended and no expiration is checked.
+- Call `setAuthorization` before dispatching work and changing generation. A reconnection must use a
+  new generation.
+- By blocking, disconnecting or pausing, withdraw the effective authorization; the module empties
+  the earrings and stops the observation if it is no longer allowed.
+- Populate the selection with `discoverApplications` and then call `setAllowedApplications` with the
+  `app_id` chosen. Do not use `app_name` as identity or `app_id` as text for the user.
+- Treat callbacks as single-use. `presentNotice` can complete asynchronously; a callback of an
+  earlier generation is ignored.
+- Do not call `presentNotice` directly to skip permissions, filters, limits or deduplication.
+- Do not include title, body or native identity in `report_error`; the module already avoids doing
+  so and the UI must maintain that guarantee when registering the message.
+- Keeping public headers under integrator coordination. This package only adds documented discovery
+  extensions and uses the frequency-sharing constant.
 
-## Problemas y factores importantes
+## Major challenges and factors
 
-- **Windows necesita empaquetado para observar.** Un ejecutable sin MSIX puede
-  presentar avisos si el acceso directo del menú Inicio está registrado, pero no
-  puede usar `UserNotificationListener`. El manifiesto debe declarar
-  `userNotificationListener` y `runFullTrust`.
-- **El consentimiento no es lo mismo que la capacidad.** `observe=true` indica
-  soporte técnico; el permiso del sistema y el del par son estados distintos.
-  La UI debe refrescar capacidades y autorización tras una revocación.
-- **La observación no reproduce historial.** La línea base se toma al iniciar y
-  se renueva al reiniciar la observación (reconexión o generación nueva). El
-  módulo no recibe eventos de suspensión: tras reanudar, el coordinador debe
-  reiniciar la observación para no reenviar el historial acumulado.
-- **La lista de descubrimiento es una instantánea.** Solo incluye aplicaciones
-  con avisos presentes en ese momento. Refrescar al abrir la selección; no
-  interpretar una lista vacía como ausencia de aplicaciones.
-- **La identidad nativa puede faltar.** Los avisos sin `app_id` fiable, sin
-  nombre visible o del propio producto se descartan. El filtro de eco reconoce
-  identificadores que empiezan por `oneintwo` seguido de `.`, `_` o `-`; si
-  cambia la identidad del producto, actualizar también el manifiesto MSIX.
-- **Las colas son deliberadamente con pérdida.** `queued` significa que la sesión
-  aceptó el mensaje, no que el otro equipo lo haya presentado. No hay
-  confirmación de entrega ni de lectura humana. Al desconectar, bloquear o
-  cambiar de generación se descarta lo pendiente; no se persiste en disco.
-- **La frecuencia es defensa en profundidad.** La sesión también aplica sus
-  límites. Mantener ambas capas alineadas con
-  `notification_rate_per_second`; no añadir literales independientes.
-- **El orden de deduplicación importa.** El receptor avanza el identificador
-  antes de aplicar frecuencia y conserva esa decisión. Cambiar el orden puede
-  provocar repeticiones o descartes distintos a los probados.
-- **El texto se valida antes de usarse.** `sanitize_plain_text` sustituye
-  controles C0 y DEL, pero presupone UTF-8 válido; no usarlo como sustituto de
-  `is_valid_utf8`. Un título compuesto solo por espacios ASCII, tabuladores o
-  saltos de línea se rechaza.
-- **La UI no debe mostrar errores crudos como contenido del aviso.** Los
-  mensajes de `report_error` son estados locales recuperables y no incluyen
-  título ni cuerpo; si se registran, conservar esa garantía.
-- **El adaptador Linux no observa.** No prometer reenvío automático en Linux sin
-  un proveedor autorizado. La prueba nativa puede omitirse con código 77 si no
-  hay bus de sesión o servicio de notificaciones.
-- **La verificación visual sigue siendo manual.** La CI comprueba compilación,
-  pruebas y, en Windows, instalación/retirada del MSIX. No certifica que el
-  toast se vea, que el usuario conceda consentimiento ni que el listener
-  entregue avisos reales.
+- **Windows needs packaging to observe.** An executable without MSIX can submit notices if the Home
+  menu shortcut is registered, but cannot use `UserNotificationListener`. The manifest must declare
+  `userNotificationListener` and `runFullTrust`.
+- **The consent is not the same as the capacity.** `observe=true` indicates technical support; the
+  permission of the system and that of the pair are different states. The UI must refresh
+  capabilities and authorization after a revocation.
+- **The observation does not reproduce history.**The base line is taken at the start and is renewed
+  at the restart of the observation (reconnection or new generation).The module does not receive
+  suspension events: after resumption, the coordinator must restart the observation so as not to
+  forward the accumulated history.
+- **The discovery list is a snapshot.** Only includes applications with notices present at that
+  time. Refresh when opening the selection; do not interpret an empty list as an absence of
+  applications.
+- **The native identity may be missing.** The notices without `app_id` reliable, without visible
+  name or the product itself are discarded. The eco filter recognizes identifiers that start with
+  `oneintwo` followed by `.`, `_` or `-`; if the product identity changes, also update the manifest
+  MSIX.
+- **The queues are deliberately lost.** `queued` means that the session accepted the message, not
+  that the other team presented it. There is no confirmation of delivery or human reading. When
+  disconnecting, blocking or changing generation, the pending is discarded; it does not persist on
+  disk.
+- **Frequency is defense in depth.** The session also applies its limits. Keep both layers aligned
+  with `notification_rate_per_second`; do not add independent literals.
+- **The order of deduplication matters.** The receiver advances the identifier before applying
+  frequency and retains that decision. Changing the order may cause repetitions or discards other
+  than those tested.
+- **The text is validated before use.** `sanitize_plain_text` replaces controls C0 and DEL, but
+  presupposes UTF-8 valid; do not use it as a substitute for `is_valid_utf8`. A title composed only
+  of ASCII spaces, tabs or line breaks is rejected.
+- **IU should not display raw errors as notice content.** `report_error` messages are recoverable
+  local states and do not include title or body; if registered, keep that warranty.
+- **The Linux adapter does not observe.** Do not promise automatic forwarding on Linux without an
+  authorized provider. The native test can be omitted with code 77 if there is no session bus or
+  notification service.
+- **Visual verification remains manual.** The IC checks compilation, testing and, in Windows,
+  installation and removal of MSIX. It does not certify that the toast is seen, that the user gives
+  consent or that the listener delivers real notices.
 
-## Compilación y pruebas
+## Compilation and testing
 
-El paquete y sus dependencias se describen en
-[`cmake/notifications/README.md`](../../../cmake/notifications/README.md).
+The package and its dependencies are described in
+[9`cmake/notifications/README.md`](../../../cmake/notifications/README.md).
 
 ```bash
 cmake -S cmake/notifications -B build/notifications \
@@ -257,10 +224,9 @@ cmake --build build/notifications
 ctest --test-dir build/notifications --output-on-failure
 ```
 
-La suite cubre validación UTF-8 y límites, frecuencia, colas y caducidad,
-deduplicación, filtros de identidad y eco, permisos por modalidad, cambios de
-perfil, bloqueo, revocación antes de presentar, reconexión, descubrimiento
-filtrado y asíncrono, y los ayudantes de presentación de ambos backends. Las
-pruebas nativas que requieren escritorio, consentimiento o identidad de paquete
-se ejecutan o se omiten según la plataforma; no sustituyen la comprobación
-manual descrita en la documentación de Windows.
+The suite covers UTF-8 validation and limits, frequency, queues and expiration, deduplication,
+identity and echo filters, permissions by modality, profile changes, blocking, revocation before
+presenting, reconnection, filtered and asynchronous discovery, and presentation assistants for both
+backends. Native tests requiring desktop, consent or package identity are executed or omitted
+according to the platform; they do not replace the manual check described in the Windows
+documentation.

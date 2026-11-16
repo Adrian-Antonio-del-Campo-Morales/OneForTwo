@@ -6,11 +6,11 @@
 #include <cstdint>
 
 /*
- * Conversión del búfer nativo de PipeWire al contrato visual común.
+ * Conversion of PipeWire's native buffer to the common visual contract.
  *
- * El adaptador de captura entrega siempre BGRA de ocho bits, filas contiguas
- * de arriba hacia abajo, alpha opaco y exactamente ancho × alto × 4 bytes.
- * Aquí se validan dimensiones y stride antes de reservar la imagen.
+ * The capture adapter always delivers eight-bit BGRA, contiguous rows from top to bottom, opaque
+ * alpha and exactly wide × high × 4 bytes. Here they validate dimensions and stride before booking
+ * the image.
  */
 
 namespace oneintwo::wayland {
@@ -26,14 +26,14 @@ enum class VideoPixelFormat {
     unknown,
 };
 
-// Vista de un búfer SPA_VIDEO_FORMAT_RAW de 32 bits por píxel.
+// View of a 32-bit SPA_VIDEO_FORMAT_RAW buffer per pixel.
 struct VideoBufferView {
     VideoPixelFormat format = VideoPixelFormat::unknown;
     std::uint32_t width = 0;
     std::uint32_t height = 0;
-    std::int32_t stride = 0; // bytes por fila; negativo si la imagen va de abajo arriba
+    std::int32_t stride = 0; // bytes per row; negative if image goes down
     const std::uint8_t* data = nullptr;
-    std::size_t bytes = 0; // bytes accesibles desde data
+    std::size_t bytes = 0; // bytes accessible from data
 };
 
 enum class FrameConvertResult {
@@ -42,10 +42,10 @@ enum class FrameConvertResult {
     invalid,
 };
 
-// Comprueba el contrato exacto de una imagen ya convertida.
+// Check the exact contract of an image already converted.
 bool frameContractHolds(const VisualFrame& frame);
 
-// Atraviesa una imagen BGRA poniendo alpha a 255.
+// It goes through an image BGRA putting alpha at 255.
 void makeOpaque(VisualFrame& frame);
 
 FrameConvertResult convertToBgra(const VideoBufferView& view, VisualFrame& out);

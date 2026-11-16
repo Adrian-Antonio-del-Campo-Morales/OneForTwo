@@ -8,8 +8,8 @@
 
 namespace oneintwo::linux_notifications {
 
-// El producto usa el servicio del bus de sesión. La inyección permite comprobar
-// el adaptador con un servicio controlado sin depender de un escritorio.
+// The product uses the service of the session bus. The injection allows to check
+// the adapter with a controlled service without relying on a desk.
 std::unique_ptr<DesktopNotifications> makeAdapter(PlatformContext context,
                                                   std::unique_ptr<Service> service);
 

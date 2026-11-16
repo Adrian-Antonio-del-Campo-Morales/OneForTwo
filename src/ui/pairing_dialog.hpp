@@ -30,8 +30,8 @@ struct PairingResult {
     bool local_was_listener = false;
 };
 
-// Diálogo autocontenido: crea un canal TLS temporal, muestra una SAS y solo
-// entrega el canal cuando las dos personas han confirmado el mismo código.
+// Self-content dialogue: creates a temporary TLS channel, shows a SAS and only
+// He delivers the channel when the two people have confirmed the same code.
 class PairingDialog final : public QDialog {
 public:
     PairingDialog(DeviceIdentity identity, PairingStore& store,

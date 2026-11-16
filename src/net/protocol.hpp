@@ -9,8 +9,8 @@
 
 namespace oneintwo {
 
-// Formato de red de las funciones, versión 1. Ver
-// docs/IMPLEMENTACION_PARALELA.md, "Protocolo de funciones, versión 1".
+// Network format of functions, version 1. View
+// docs/PARALLEL_IMPLEMENTATION.md, Function Protocol, version 1.
 inline constexpr std::uint16_t feature_protocol_version = 1;
 inline constexpr std::size_t max_interactive_payload_bytes = 4096;
 inline constexpr std::size_t max_fragment_data_bytes = 65536;
@@ -48,8 +48,8 @@ enum class ProtocolStatus {
     channel_mismatch,
 };
 
-// Traducción explícita entre generaciones. `local` es la generación de este
-// extremo y `peer` la anunciada por el par durante el establecimiento.
+// Explicit translation between generations. `local` is the generation of this
+// and `peer` the one announced by the pair during the establishment.
 struct GenerationPair {
     SessionGeneration local = 0;
     SessionGeneration peer = 0;
@@ -66,8 +66,8 @@ struct DecodeResult {
     ProtocolChannel channel = ProtocolChannel::interactive;
 };
 
-// Una imagen de vídeo produce varios WireFrame; el resto produce uno.
-// Devuelve vacío y fija `error` si el objeto no es representable.
+// A video image produces several WireFrames; the rest produces one.
+// Returns empty and fixes `error` if the object is not representative.
 std::vector<WireFrame> encodeFeatureMessage(const FeatureMessage& message,
                                             GenerationPair generations,
                                             ProtocolStatus* error = nullptr);
@@ -76,8 +76,8 @@ ProtocolStatus encodeFeatureMessage(const FeatureMessage& message,
                                     GenerationPair generations,
                                     std::vector<WireFrame>& out);
 
-// Decodificador incremental con un único reensamblado de vídeo. Un error
-// estructural es terminal: el llamador debe cerrar el canal y reiniciar.
+// Incremental decoder with a single video reassembly. An error
+// structural is terminal: the caller must close the channel and restart.
 class FeatureFrameDecoder {
 public:
     explicit FeatureFrameDecoder(GenerationPair generations = {});

@@ -4,10 +4,10 @@
 
 namespace oneintwo {
 
-// Generación vigente asignada por la sesión. El formato de red se definirá en protocolo.
+// Current generation assigned by the session. The network format will be defined in protocol.
 using SessionGeneration = std::uint64_t;
 
-// La sesión evalúa este conjunto por sentido. Los perfiles aportan un límite local.
+// The session evaluates this set by meaning. The profiles provide a local limit.
 struct FeatureSet {
     bool text_clipboard = false;
     bool file_clipboard = false;
@@ -20,17 +20,17 @@ struct FeatureSet {
     bool forwarded_notifications = false;
 };
 
-// Contrato inicial para aplicar el perfil y consultar la autorización resultante.
+// Initial contract to apply the profile and consult the resulting authorisation.
 class Session {
 public:
-    // Permisos efectivos = permisos concedidos por el par ∩ límites del perfil.
-    // Ambos conjuntos empiezan vacíos: ninguna capacidad se concede sin
-    // habilitación explícita del usuario y de la negociación.
+    // Effective permissions = permissions granted by the profile limits pair.
+    // Both sets start empty: no capacity is granted without
+    // explicit user and negotiation empowerment.
     void applyProfileLimits(FeatureSet limits);
     FeatureSet effectiveSendFeatures() const;
     FeatureSet effectiveReceiveFeatures() const;
 
-    // Ampliaciones privadas de esta entrega para conectar sesión y coordinador.
+    // Private extensions of this delivery to connect session and coordinator.
     void setGrantedFeatures(FeatureSet send, FeatureSet receive);
     FeatureSet grantedSendFeatures() const;
     FeatureSet grantedReceiveFeatures() const;

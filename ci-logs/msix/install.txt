@@ -1,22 +1,22 @@
 ﻿OneInTwo Native Notifications Check
 ==================================
 
-Paquete MSIX de comprobación, no de distribución. El certificado es autofirmado
-y solo sirve para probar esta compilación.
+This MSIX package is for validation only. Use the self-signed certificate
+only to test this build.
 
-1. En una consola elevada, confiar en el certificado de prueba en la tienda
-   de máquina que usa App Installer (no en la del usuario):
+1. From an elevated shell, trust the test certificate in the Local Machine
+   store used by App Installer:
    Import-Certificate -FilePath OneInTwo-NativeCheck.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
 
-2. Instalar el paquete:
+2. Install the package:
    Add-AppxPackage -Path OneInTwo-NativeCheck.msix
 
-3. Abrir la comprobación nativa:
+3. Open the native check:
    $pkg = Get-AppxPackage OneInTwo.Notifications.NativeCheck
    Start-Process "shell:AppsFolder\$($pkg.PackageFamilyName)!NativeCheck"
 
-4. Aceptar el consentimiento de acceso a notificaciones y seguir la lista de
-   comprobación de notification_support/README.md.
+4. Grant access to notifications and follow the checklist in
+   notification_support/README.md.
 
-Para retirar la compilación:
+To remove the build:
    Get-AppxPackage OneInTwo.Notifications.NativeCheck | Remove-AppxPackage

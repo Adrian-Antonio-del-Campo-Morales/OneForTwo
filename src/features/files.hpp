@@ -21,8 +21,8 @@ struct DirectFileOffer {
     std::uint64_t total_bytes;
 };
 
-// Entradas de diseño del módulo común. La sesión autoriza los mensajes y el
-// coordinador publica el estado que el módulo genere al ejecutar cada acción.
+// Common module design entries. The session authorizes messages and the
+// coordinator publishes the state that the module generates when executing each action.
 class FileTransfers {
 public:
     void offerDirectFiles(

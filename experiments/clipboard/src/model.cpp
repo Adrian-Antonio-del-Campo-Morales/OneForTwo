@@ -1,5 +1,5 @@
-// Responsabilidad: implementar validación UTF-8, límites, normalización de
-// finales de línea, huellas y orden lógico sin tocar el escritorio.
+// Responsibility: implement validation UTF-8, limits, standardization of
+// Line ends, prints and logical order without touching the desk.
 
 #include "model.hpp"
 

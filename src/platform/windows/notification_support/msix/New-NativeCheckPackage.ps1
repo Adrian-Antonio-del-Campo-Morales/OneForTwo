@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string]$Executable,
@@ -47,25 +47,25 @@ function Assert-MsixSignature {
         [byte[]]$SignatureBytes,
         $Certificate
     )
-    Assert-Condition ($SignatureBytes.Length -gt 4) "AppxSignature.p7x está vacío."
+    Assert-Condition ($SignatureBytes.Length -gt 4) "AppxSignature.p7x is empty."
     Assert-Condition ([Text.Encoding]::ASCII.GetString($SignatureBytes, 0, 4) -eq "PKCX") `
-        "AppxSignature.p7x no tiene el encabezado PKCX."
+        "AppxSignature.p7x lacks the PKCX header."
 
     $der = New-Object byte[] ($SignatureBytes.Length - 4)
     [Array]::Copy($SignatureBytes, 4, $der, 0, $der.Length)
     $cms = New-Object System.Security.Cryptography.Pkcs.SignedCms
     $cms.Decode($der)
     Assert-Condition ($null -ne $cms.SignerInfos -and $cms.SignerInfos.Count -eq 1) `
-        "AppxSignature.p7x debe tener un único firmante."
+        "AppxSignature.p7x must have exactly one signer."
 
     $signer = $cms.SignerInfos[0]
     Assert-Condition ($null -ne $signer.Certificate) `
-        "La firma no incluye el certificado del firmante."
+        "The signature does not contain the signer's certificate."
     Assert-Condition ($signer.Certificate.Thumbprint -eq $Certificate.Thumbprint) `
-        "El firmante de AppxSignature.p7x no es el certificado efímero generado."
+        "The AppxSignature.p7x signer does not match the generated ephemeral certificate."
 
-    # true omite la cadena de confianza: el certificado es efímero y autofirmado.
-    # La firma PKCS#7 sobre el contenido sí se comprueba criptográficamente.
+    # true skips trust-chain validation for the self-signed ephemeral certificate.
+    # The PKCS#7 signature is still checked cryptographically against the content.
     $cms.CheckSignature($true)
 
     $contentType = "desconocido"
@@ -110,11 +110,11 @@ $pfxPath = $null
 $certificate = $null
 
 try {
-    Assert-Condition (Test-Path -LiteralPath $manifestSource) "Falta AppxManifest.xml junto al script."
+    Assert-Condition (Test-Path -LiteralPath $manifestSource) "AppxManifest.xml is missing next to the script."
     $executablePath = (Resolve-Path -LiteralPath $Executable).Path
     $exeName = Split-Path -Leaf $executablePath
     Assert-Condition ($exeName -eq "oneintwo_notifications_native_windows.exe") `
-        "El ejecutable no es el recorrido nativo esperado: $exeName"
+        "Expected the native check executable, found $exeName"
 
     if (Test-Path -LiteralPath $output) {
         Remove-Item -LiteralPath $output -Recurse -Force
@@ -131,7 +131,7 @@ try {
 
     [xml]$manifest = Get-Content -LiteralPath $manifestPath -Raw
     $package = $manifest.DocumentElement
-    Assert-Condition ($package.LocalName -eq "Package") "El manifiesto no tiene un elemento Package."
+    Assert-Condition ($package.LocalName -eq "Package") "The manifest lacks a Package element."
 
     $identity = $package.SelectSingleNode("*[local-name()='Identity']")
     Assert-Condition ($null -ne $identity) "El manifiesto no declara Identity."
@@ -140,51 +140,51 @@ try {
     $version = $identity.GetAttribute("Version")
     $architecture = $identity.GetAttribute("ProcessorArchitecture")
     Assert-Condition ($packageName -eq "OneInTwo.Notifications.NativeCheck") `
-        "Identidad de paquete inesperada: $packageName"
+        "Unexpected package identity: $packageName"
     Assert-Condition ($publisher -eq "CN=OneInTwo Development") `
         "Publisher inesperado: $publisher"
-    Assert-Condition ($version -match '^\d+\.\d+\.\d+\.\d+$') "Versión MSIX inválida: $version"
-    Assert-Condition ($architecture -eq "x64") "Arquitectura MSIX inesperada: $architecture"
+    Assert-Condition ($version -match '^\d+\.\d+\.\d+\.\d+$') "Invalid MSIX version: $version"
+    Assert-Condition ($architecture -eq "x64") "Arquitectura MSIX unexpected: $architecture"
 
     $capabilities = @($package.SelectNodes("*[local-name()='Capabilities']/*"))
     $listener = @($capabilities | Where-Object { $_.GetAttribute("Name") -eq "userNotificationListener" })
-    Assert-Condition ($listener.Count -eq 1) "Falta la capacidad userNotificationListener."
+    Assert-Condition ($listener.Count -eq 1) "The userNotificationListener capability is missing."
     Assert-Condition ($listener[0].NamespaceURI -eq "http://schemas.microsoft.com/appx/manifest/uap/windows10/3") `
-        "userNotificationListener debe declararse en el namespace uap3."
+        "Declare userNotificationListener in the uap3 namespace."
     $fullTrust = @($capabilities | Where-Object { $_.GetAttribute("Name") -eq "runFullTrust" })
-    Assert-Condition ($fullTrust.Count -eq 1) "Falta la capacidad runFullTrust."
+    Assert-Condition ($fullTrust.Count -eq 1) "The runFullTrust capability is missing."
     Assert-Condition ($fullTrust[0].NamespaceURI -eq "http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities") `
-        "runFullTrust debe declararse en el namespace rescap."
+        "Declare runFullTrust in the rescap namespace."
 
     $applications = @($package.SelectNodes("*[local-name()='Applications']/*[local-name()='Application']"))
-    Assert-Condition ($applications.Count -eq 1) "El manifiesto debe declarar una sola aplicación."
+    Assert-Condition ($applications.Count -eq 1) "The manifest must declare exactly one application."
     $application = $applications[0]
     Assert-Condition ($application.GetAttribute("Executable") -eq $exeName) `
-        "El ejecutable del manifiesto no coincide con $exeName."
+        "The manifest executable does not match $exeName."
     Assert-Condition ($application.GetAttribute("EntryPoint") -eq "Windows.FullTrustApplication") `
-        "La aplicación debe usar Windows.FullTrustApplication."
+        "The application must use Windows.FullTrustApplication."
     $visual = $application.SelectSingleNode("*[local-name()='VisualElements']")
-    Assert-Condition ($null -ne $visual) "Faltan los elementos visuales de la aplicación."
+    Assert-Condition ($null -ne $visual) "The application's visual elements are missing."
     foreach ($attribute in @("Square150x150Logo", "Square44x44Logo")) {
         $relative = $visual.GetAttribute($attribute)
-        Assert-Condition (-not [string]::IsNullOrWhiteSpace($relative)) "Falta $attribute."
+        Assert-Condition (-not [string]::IsNullOrWhiteSpace($relative)) "$attribute is missing."
         Assert-Condition (Test-Path -LiteralPath (Join-Path $layout $relative)) `
-            "No existe el recurso $relative."
+            "Missing resource $relative."
     }
     $storeLogo = $package.SelectSingleNode("*[local-name()='Properties']/*[local-name()='Logo']")
     Assert-Condition ($null -ne $storeLogo -and -not [string]::IsNullOrWhiteSpace($storeLogo.InnerText)) `
-        "Falta el logotipo de la ficha de la tienda."
+        "The Store logo is missing."
     Assert-Condition (Test-Path -LiteralPath (Join-Path $layout $storeLogo.InnerText)) `
-        "No existe el recurso $($storeLogo.InnerText)."
+        "Missing resource $($storeLogo.InnerText)."
 
     $family = $package.SelectSingleNode("*[local-name()='Dependencies']/*[local-name()='TargetDeviceFamily']")
-    Assert-Condition ($null -ne $family) "Falta TargetDeviceFamily."
+    Assert-Condition ($null -ne $family) "TargetDeviceFamily is missing."
     Assert-Condition ($family.GetAttribute("Name") -eq "Windows.Desktop") `
         "TargetDeviceFamily debe ser Windows.Desktop."
-    Write-Output "msix: manifiesto validado"
+    Write-Output "msix: manifest validated"
 
     $sdkRoot = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
-    Assert-Condition (Test-Path -LiteralPath $sdkRoot) "No se encontró el SDK de Windows."
+    Assert-Condition (Test-Path -LiteralPath $sdkRoot) "The Windows SDK was not found."
     $sdk = Get-ChildItem -LiteralPath $sdkRoot -Directory |
         Where-Object {
             $_.Name -match '^\d+(\.\d+){1,3}$' -and
@@ -192,16 +192,16 @@ try {
         } |
         Sort-Object { [version]$_.Name } -Descending |
         Select-Object -First 1
-    Assert-Condition ($null -ne $sdk) "No se encontró MakeAppx.exe del SDK."
+    Assert-Condition ($null -ne $sdk) "MakeAppx.exe was not found in the SDK."
     $makeappx = Join-Path $sdk.FullName "x64\makeappx.exe"
     $signtool = Join-Path $sdk.FullName "x64\signtool.exe"
-    Assert-Condition (Test-Path -LiteralPath $signtool) "No se encontró signtool.exe del SDK."
+    Assert-Condition (Test-Path -LiteralPath $signtool) "signtool.exe was not found in the SDK."
 
     Write-Host "Empaquetando $packageName $version ($architecture)"
     & $makeappx pack /d $layout /p $msixPath /o 2>&1 |
         Tee-Object -FilePath (Join-Path $output "makeappx-pack.log")
-    Assert-Condition ($LASTEXITCODE -eq 0) "MakeAppx pack falló con código $LASTEXITCODE."
-    Write-Output "msix: paquete creado"
+    Assert-Condition ($LASTEXITCODE -eq 0) "MakeAppx pack failed with exit code $LASTEXITCODE."
+    Write-Output "msix: package created"
 
     $password = [Guid]::NewGuid().ToString("N")
     $securePassword = ConvertTo-SecureString -String $password -Force -AsPlainText
@@ -219,17 +219,16 @@ try {
     $pfxPath = Join-Path $output "OneInTwo-NativeCheck.pfx"
     Export-PfxCertificate -Cert $certificate -FilePath $pfxPath -Password $securePassword | Out-Null
     Export-Certificate -Cert $certificate -FilePath $cerPath | Out-Null
-    Write-Output "msix: certificado creado"
+    Write-Output "msix: certificate created"
 
     & $signtool sign /fd SHA256 /f $pfxPath /p $password $msixPath 2>&1 |
         Tee-Object -FilePath (Join-Path $output "signtool-sign.log")
-    Assert-Condition ($LASTEXITCODE -eq 0) "signtool sign falló con código $LASTEXITCODE."
-    Write-Output "msix: firma aplicada"
+    Assert-Condition ($LASTEXITCODE -eq 0) "signtool sign failed with exit code $LASTEXITCODE."
+    Write-Output "msix: signature applied"
 
-    # La verificación WinTrust/Appx queda fuera del runner porque se bloquea en
-    # este entorno. La autenticidad de la firma se comprueba offline sobre el
-    # PKCS#7 de AppxSignature.p7x, sin invocar signtool verify. También se
-    # comprueba el contenedor real: manifiesto, ejecutable y recursos.
+    # WinTrust and Appx verification hang on the runner. Verify the PKCS#7
+    # signature in AppxSignature.p7x offline without calling signtool verify.
+    # Also check the actual container's manifest, executable, and resources.
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $signatureDetails = $null
     $archive = [System.IO.Compression.ZipFile]::OpenRead($msixPath)
@@ -247,7 +246,7 @@ try {
         }
         $signatureEntry = $archive.GetEntry("AppxSignature.p7x")
         Assert-Condition ($null -ne $signatureEntry -and $signatureEntry.Length -gt 0) `
-            "El MSIX no contiene una firma."
+            "The MSIX does not contain a signature."
         $signatureBytes = Get-ZipEntryBytes -Archive $archive -Name "AppxSignature.p7x"
         $signatureDetails = Assert-MsixSignature -SignatureBytes $signatureBytes -Certificate $certificate
         $manifestEntry = $archive.GetEntry("AppxManifest.xml")
@@ -267,9 +266,9 @@ try {
     } finally {
         $archive.Dispose()
     }
-    Assert-Condition ($null -ne $signatureDetails) "No se verificó la firma PKCS#7."
-    Write-Output "msix: firma PKCS#7 verificada sin signtool verify"
-    Write-Output "msix: manifiesto, recursos y contenedor comprobados"
+    Assert-Condition ($null -ne $signatureDetails) "The PKCS#7 signature was not verified."
+    Write-Output "msix: PKCS#7 signature verified without signtool verify"
+    Write-Output "msix: manifest, resources, and container checked"
 
     $signatureLog = @(
         "format=PKCS7-SignedData"
@@ -306,24 +305,24 @@ try {
 OneInTwo Native Notifications Check
 ==================================
 
-Paquete MSIX de comprobación, no de distribución. El certificado es autofirmado
-y solo sirve para probar esta compilación.
+This MSIX package is for validation only. Use the self-signed certificate
+only to test this build.
 
-1. En una consola elevada, confiar en el certificado de prueba en la tienda
-   de máquina que usa App Installer (no en la del usuario):
+1. From an elevated shell, trust the test certificate in the Local Machine
+   store used by App Installer:
    Import-Certificate -FilePath OneInTwo-NativeCheck.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
 
-2. Instalar el paquete:
+2. Install the package:
    Add-AppxPackage -Path OneInTwo-NativeCheck.msix
 
-3. Abrir la comprobación nativa:
+3. Open the native check:
    $pkg = Get-AppxPackage OneInTwo.Notifications.NativeCheck
    Start-Process "shell:AppsFolder\$($pkg.PackageFamilyName)!NativeCheck"
 
-4. Aceptar el consentimiento de acceso a notificaciones y seguir la lista de
-   comprobación de notification_support/README.md.
+4. Grant access to notifications and follow the checklist in
+   notification_support/README.md.
 
-Para retirar la compilación:
+To remove the build:
    Get-AppxPackage OneInTwo.Notifications.NativeCheck | Remove-AppxPackage
 '@
     Set-Content -LiteralPath (Join-Path $output "install.txt") -Value $install -Encoding UTF8

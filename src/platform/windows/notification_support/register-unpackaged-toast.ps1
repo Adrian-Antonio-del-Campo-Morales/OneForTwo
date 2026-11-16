@@ -1,18 +1,17 @@
-# Registra la identidad de notificaciones de una compilación sin empaquetar.
+# Registers the notification identity for an unpackaged build.
 #
-# ToastNotificationManager exige que el AppUserModelID usado al crear el
-# notificador esté respaldado por un acceso directo del menú Inicio. Este script
-# crea ese acceso y declara el nombre visible en el registro del usuario.
+# ToastNotificationManager requires a Start menu shortcut for the
+# AppUserModelID used by the notifier. This script creates the shortcut
+# and sets its display name in the user's registry.
 #
-# Uso (PowerShell de usuario, sin elevación):
+# Run from a regular PowerShell session:
 #   powershell -ExecutionPolicy Bypass -File register-unpackaged-toast.ps1 `
-#       -TargetPath "C:\ruta\OneInTwo.exe"
+#       -TargetPath "C:\path\to\OneInTwo.exe"
 #
-# Verificación:
-#   - El acceso aparece en %APPDATA%\Microsoft\Windows\Start Menu\Programs.
-#   - La notificación de presentación del recorrido nativo se muestra.
-#   - Si Windows no la muestra, revisar que el AUMID del acceso coincida
-#     exactamente con "OneInTwo.Desktop".
+# Verify that the shortcut appears under
+# %APPDATA%\Microsoft\Windows\Start Menu\Programs and that the native check
+# displays a notification. If it does not, verify that the shortcut's
+# AppUserModelID is exactly "OneInTwo.Desktop".
 
 param(
     [Parameter(Mandatory = $true)]
@@ -25,7 +24,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path -LiteralPath $TargetPath -PathType Leaf)) {
-    throw "No existe el ejecutable indicado: $TargetPath"
+    throw "The specified executable does not exist: $TargetPath"
 }
 $TargetPath = (Resolve-Path -LiteralPath $TargetPath).Path
 

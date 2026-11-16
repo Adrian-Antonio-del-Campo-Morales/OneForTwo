@@ -15,16 +15,16 @@ enum class TlsTransportMode {
     connect,
 };
 
-// Certificados y claves en PEM. La huella debe ser el SHA-256 del certificado
-// del par; se acepta con o sin separadores. El transporte no confía en la CA:
-// la única identidad aceptada es la huella fijada.
+// Certificates and keys in PEM. The print must be SHA-256 of the certificate
+// The transport does not rely on the AC:
+// The only accepted identity is the fixed footprint.
 struct TlsTransportConfig {
     TlsTransportMode mode = TlsTransportMode::connect;
     std::string certificate_pem;
     std::string private_key_pem;
     std::string peer_fingerprint;
-    // Solo para el canal temporal de emparejamiento: permite el handshake y
-    // expone la huella observada, pero no autentica hasta confirmar la SAS.
+    // Only for temporary matching channel: allows handshake and
+    // exposes the track observed, but does not authenticate until confirming SAS.
     bool allow_unverified = false;
     std::string bind_address = "127.0.0.1";
     std::uint16_t listen_port = 0;
@@ -32,9 +32,9 @@ struct TlsTransportConfig {
     std::uint16_t peer_port = 0;
 };
 
-// Transporte TLS asíncrono de un solo par. start() inicia el listener o la
-// conexión; ready se invoca únicamente después de verificar la huella del
-// certificado remoto. Un fallo de identidad nunca expone la huella.
+// Transport TLS asynchronous single pair. start() starts the listener or the
+// connection; ready is invoked only after checking the fingerprint of the
+// Remote certificate. An identity failure never exposes the print.
 class QtTlsTransport final : public SessionTransport {
 public:
     explicit QtTlsTransport(TlsTransportConfig config);

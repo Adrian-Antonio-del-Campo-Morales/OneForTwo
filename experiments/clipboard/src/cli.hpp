@@ -1,7 +1,7 @@
 #pragma once
 
-// Responsabilidad: declarar la interfaz de consola y el ejecutor de
-// auto-pruebas aisladas. No accede al portapapeles ni a la red por sí mismo.
+// Responsibility: declare the console interface and the executioner of
+// Insulated auto-tests. It does not access the clipboard or the network itself.
 
 #include <string>
 #include <vector>

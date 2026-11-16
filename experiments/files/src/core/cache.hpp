@@ -1,6 +1,6 @@
-// Responsabilidad: caché privada de recepción. Separa datos incompletos,
-// publica ofertas verificadas, conserva concesiones de uso y elimina temporales
-// solo cuando la política lo permite.
+// Responsibility: Private reception cache. Separates incomplete data,
+// publishes verified offers, retains usage concessions and deletes temporary
+// Only when politics allows it.
 #pragma once
 
 #include "core/model.hpp"
@@ -38,7 +38,7 @@ public:
     std::filesystem::path newIncomingDir(const std::string& offerId);
     void abandonIncoming(const std::filesystem::path& dir);
 
-    // Mueve una recepción completa a offers/ y escribe su manifiesto.
+    // Move a full reception to offers/ and write your manifest.
     std::filesystem::path commitIncoming(const std::filesystem::path& incomingDir,
                                          const Offer& offer);
 
@@ -46,7 +46,7 @@ public:
     std::unique_ptr<Lease> acquire(const std::string& offerId);
     std::vector<CachedOffer> list() const;
 
-    // Elimina ofertas antiguas sin concesión vigente y recepciones abandonadas.
+    // Removes old offers without current concession and abandoned receptions.
     std::size_t sweep(std::uint64_t maxAgeSeconds, std::uint64_t now);
 
 private:

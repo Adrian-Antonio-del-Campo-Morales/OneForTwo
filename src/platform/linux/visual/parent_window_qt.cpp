@@ -14,8 +14,8 @@ std::string portalParentWindow(const PlatformContext& context)
         return {};
     }
     if (QGuiApplication::platformName() != QLatin1String("xcb")) {
-        // En Wayland nativo el padre requeriría exportar una superficie con
-        // xdg-foreign; el portal admite la cadena vacía.
+        // In native Wayland the father would need to export a surface with
+        // xdg-foreign; portal supports empty string.
         return {};
     }
     const WId id = context.parent->winId();

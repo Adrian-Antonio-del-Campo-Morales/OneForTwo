@@ -1,18 +1,18 @@
 # Responsabilidad: excluir productos locales y datos privados de desarrollo.
-# Ajustar con el sistema de compilación definitivo.
+# Update once the build system is finalized.
 /build/
 /out/
 /.cache/
 
-# Metadatos locales de herramientas; no forman parte del proyecto compartido.
+# Local tool metadata, excluded from the shared project.
 /.cloud-attachments/
 /.freebuff/
 
-# Ubicaciones de desarrollo propuestas; no son rutas de instalación.
+# Proposed development locations, separate from installation paths.
 /.local-state/
 /transfer-cache/
 
-# Archivos temporales de editores.
+# Temporary editor files.
 *.swp
 *.swo
 

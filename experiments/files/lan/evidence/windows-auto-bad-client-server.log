@@ -1,6 +1,6 @@
-oferta a1ddb7d5…: 9 elementos (5 archivos), 5551150 bytes
-huella del certificado (SHA-256): fc8fe7d1f4a48636d5fe87792883a1288f76e7db2d24cfaddad7f116d28b2fe5
-sirviendo la oferta; Ctrl+C para detener
+offer a1ddb7d5...: 9 items (5 files), 5551150 bytes
+certificate fingerprint (SHA-256): fc8fe7d1f4a48636d5fe87792883a1288f76e7db2d24cfaddad7f116d28b2fe5
+serving the offer; press Ctrl+C to stop
 servidor: escuchando en 192.168.1.146:47654
-servidor: sesión rechazada: certificado de cliente no autorizado
+server: session rejected: unauthorised client certificate
 servidor detenido

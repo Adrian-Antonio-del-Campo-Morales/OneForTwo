@@ -9,9 +9,9 @@
 #include <vector>
 
 /*
- * Presentación local de prueba para el modelo Windows: dos monitores y dos
- * ventanas con el mismo título, con un patrón distinguible. El arnés es un
- * consumidor temporal de la interfaz y vive solo en las pruebas.
+ * Local test presentation for the Windows model: two monitors and two windows with the same title,
+ * with a distinguishable pattern. The harness is a temporary user of the interface and lives only
+ * in the tests.
  */
 
 namespace oneintwo::test {

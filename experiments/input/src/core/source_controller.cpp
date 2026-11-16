@@ -1,5 +1,5 @@
-// Responsabilidad: coordinar la captura del origen con el canal: cruce de
-// borde, espera de aceptación, envío de eventos, retorno y recuperación.
+// Responsibility: coordinate the capture of the origin with the channel: crossing of
+// border, waiting for acceptance, sending events, return and recovery.
 #include "source_controller.hpp"
 
 #include <algorithm>
@@ -20,7 +20,7 @@ bool SourceController::start() {
   if (!io_.startObserving()) {
     state_ = SourceState::Stopped;
     stopRequested_ = true;
-    stopReason_ = "no se pudo observar la entrada local";
+    stopReason_ = "the local entrance could not be observed";
     io_.requestStop(stopReason_);
     return false;
   }
@@ -41,8 +41,8 @@ void SourceController::onRaw(const RawEvent& event, int64_t nowMs) {
   }
 
   if (event.kind == RawKind::CaptureLost) {
-    // El compositor retiró la captura (Deactivated/Disabled/Cerrado). Se vuelve
-    // a local sin cerrar el proceso: el adaptador rearma si la sesión sigue viva.
+    // The composer withdrew the capture (Deactivated/Disabled/Cerrado).
+    // a local without closing the process: the rearming adapter if the session is still alive.
     if (state_ == SourceState::Remote || state_ == SourceState::Preparing) {
       beginLocal(nowMs, true);
     }
@@ -50,8 +50,8 @@ void SourceController::onRaw(const RawEvent& event, int64_t nowMs) {
   }
 
   if (event.kind == RawKind::PortalEdge) {
-    // En Wayland el compositor ya aplicó la barrera; no se reevalúa con EdgeGate.
-    // El enfriamiento evita reaccionar a una activación tardía posterior a Release.
+    // In Wayland the composer already applied the barrier; it is not re-evaluated with EdgeGate.
+    // Cooling prevents reacting to late activation after Release.
     if (state_ != SourceState::Idle) return;
     if (nowMs - lastReturnMs_ < std::max(0, cfg_.cooldownMs)) return;
     pendingRatio_ = ratioFromY(geo_, event.y);
@@ -148,14 +148,14 @@ void SourceController::onMessage(const Message& message, int64_t nowMs) {
       io_.stopObserving();
       state_ = SourceState::Stopped;
       stopRequested_ = true;
-      stopReason_ = "no se pudo activar la captura en el origen";
+      stopReason_ = "could not activate capture at source";
       io_.requestStop(stopReason_);
       return;
     }
     state_ = SourceState::Remote;
     activeGen_ = pendingGen_;
     lastPeerMs_ = nowMs;
-    // Mantiene margen para calcular deltas mientras el puntero físico se mueve.
+    // It maintains room to calculate deltas while the physical pointer moves.
     io_.warpCursor(centerX(), centerY());
     return;
   }
@@ -178,18 +178,18 @@ void SourceController::onMessage(const Message& message, int64_t nowMs) {
       io_.stopObserving();
       state_ = SourceState::Stopped;
       stopRequested_ = true;
-      stopReason_ = std::string("el destino terminó el control (") + leaveReasonName(reason) + ")";
+      stopReason_ = std::string("the destination has finished the control (") + leaveReasonName(reason) + ")";
       io_.requestStop(stopReason_);
     }
     return;
   }
 
-  // ReleaseAll del destino no requiere acción: el origen nunca inyecta.
+  // ReleaseAll of the destination requires no action: the origin never injects.
 }
 
 void SourceController::beginLocal(int64_t nowMs, bool warp) {
-  // Libera también una captura pre-armada en Preparing: el portal puede haber
-  // activado antes de que el destino confirme el EnterRequest.
+  // It also releases a pre-armed capture in Preparing: the portal may have
+  // enabled before the destination confirms the EnterRequest.
   io_.setCaptureActive(false);
   if (warp) io_.warpCursor(parkX(), parkY());
   gate_.noteReturn(nowMs);
@@ -238,7 +238,7 @@ void SourceController::onLinkLost(int64_t nowMs) {
   io_.stopObserving();
   state_ = SourceState::Stopped;
   stopRequested_ = true;
-  stopReason_ = "conexión perdida";
+  stopReason_ = "missing connection";
   io_.requestStop(stopReason_);
 }
 
@@ -261,7 +261,7 @@ void SourceController::tick(int64_t nowMs) {
 
   if (cfg_.maxSessionMs > 0 && nowMs - startMs_ >= cfg_.maxSessionMs) {
     const bool hadControl = state_ == SourceState::Remote || state_ == SourceState::Preparing;
-    beginStop("tiempo máximo de sesión", hadControl, LeaveReason::Timeout, nowMs);
+    beginStop("maximum session time", hadControl, LeaveReason::Timeout, nowMs);
     return;
   }
 
@@ -295,7 +295,7 @@ void SourceController::tick(int64_t nowMs) {
     io_.stopObserving();
     state_ = SourceState::Stopped;
     stopRequested_ = true;
-    stopReason_ = "el destino no responde";
+    stopReason_ = "the destination does not respond";
     io_.requestStop(stopReason_);
     return;
   }
@@ -305,7 +305,7 @@ void SourceController::tick(int64_t nowMs) {
     io_.stopObserving();
     state_ = SourceState::Stopped;
     stopRequested_ = true;
-    stopReason_ = "la conexión no responde";
+    stopReason_ = "the connection does not respond";
     io_.requestStop(stopReason_);
   }
 }
@@ -313,7 +313,7 @@ void SourceController::tick(int64_t nowMs) {
 void SourceController::stop(int64_t nowMs) {
   if (state_ == SourceState::Stopped) return;
   const bool hadControl = state_ == SourceState::Remote || state_ == SourceState::Preparing;
-  beginStop("cierre solicitado", hadControl, LeaveReason::Shutdown, nowMs);
+  beginStop("closure requested", hadControl, LeaveReason::Shutdown, nowMs);
 }
 
 int SourceController::parkX() const {

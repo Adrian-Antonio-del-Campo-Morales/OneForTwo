@@ -11,7 +11,7 @@ struct Presentation {
     std::string title;
     std::string body;
     std::uint32_t replaces_id = 0;
-    std::int32_t timeout_ms = -1; // El servidor decide el tiempo de vida.
+    std::int32_t timeout_ms = -1; // The server decides the time of life.
 };
 
 struct PresentationResult {
@@ -21,9 +21,9 @@ struct PresentationResult {
     std::string detail;
 };
 
-// Puerto de presentación y retirada. La especificación de notificaciones de
-// escritorio no ofrece una operación general para leer avisos ajenos, por eso
-// este adaptador solo publica y retira avisos propios.
+// Port of presentation and withdrawal. The specification of notifications of
+// desktop does not offer a general operation to read other people's notices, so
+// This adapter only publishes and withdraws its own notices.
 class Service {
 public:
     virtual ~Service() = default;
@@ -32,10 +32,10 @@ public:
     virtual void withdraw(std::uint32_t notification_id) = 0;
 };
 
-// Todas las operaciones se invocan desde un único hilo de trabajo del adaptador.
+// All operations are invoked from a single working thread of the adapter.
 std::unique_ptr<Service> makeSessionService();
 
-// Comprobación sin bloqueo de que la sesión gráfica anuncia un bus.
+// Check without blocking that the graphic session announces a bus.
 bool session_bus_configured();
 
 } // namespace oneintwo::linux_notifications

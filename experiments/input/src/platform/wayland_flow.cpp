@@ -1,5 +1,5 @@
-// Responsabilidad: ejecutar en orden las llamadas del portal Wayland y mantener
-// el estado de activación. Se prueba con dobles; no abre D-Bus ni usa libei.
+// Responsibility: execute Wayland calls in order and maintain
+// The activation state. It is tested with doubles; it does not open D-Bus or use libei.
 #include "platform/wayland_flow.hpp"
 
 #include <limits>
@@ -27,18 +27,18 @@ std::string hexMask(uint32_t value) {
 
 bool zoneGeometry(const std::vector<Zone>& zones, Geo& geo, std::string& error) {
   if (zones.size() != 1) {
-    error = "el portal devolvió " + std::to_string(zones.size()) +
-            " zonas; el experimento solo admite un monitor";
+    error = "the portal returned " + std::to_string(zones.size()) +
+            " zones; the experiment only supports one monitor";
     return false;
   }
   const Zone& zone = zones.front();
   if (zone.width == 0 || zone.height == 0) {
-    error = "el portal devolvió una zona de escritorio vacía";
+    error = "portal returned an empty desktop area";
     return false;
   }
   constexpr uint32_t kMax = static_cast<uint32_t>(std::numeric_limits<int32_t>::max());
   if (zone.width > kMax || zone.height > kMax) {
-    error = "la zona del portal excede el rango de coordenadas del protocolo";
+    error = "the portal area exceeds the protocol coordinate range";
     return false;
   }
   geo.x = zone.x;
@@ -58,7 +58,7 @@ bool sourceBarrier(const std::vector<Zone>& zones, Edge edge, Barrier& barrier,
   barrier.y1 = zone.y;
   barrier.y2 = zone.y + geo.h - 1;
   if (barrier.y2 < barrier.y1) {
-    error = "la zona no permite una barrera vertical";
+    error = "the area does not allow a vertical barrier";
     return false;
   }
   return true;
@@ -77,7 +77,7 @@ bool regionGeometry(uint32_t x, uint32_t y, uint32_t width, uint32_t height, Geo
 
 bool InputCaptureFlow::open(std::string& error) {
   if (stage_ != CaptureStage::Idle) {
-    error = "la sesión InputCapture ya está abierta";
+    error = "InputCapture session is now open";
     return false;
   }
   if (!ops_.createInputSession(session_, error)) {
@@ -112,8 +112,8 @@ bool InputCaptureFlow::applyZones(const std::vector<Zone>& zones, uint32_t zoneS
     return false;
   }
   if (!failed.empty()) {
-    error = "el portal rechazó la barrera " + std::to_string(failed.front()) +
-            "; no se puede activar por borde";
+    error = "the portal has rejected the barrier " + std::to_string(failed.front()) +
+            "; cannot be activated by border";
     return false;
   }
   zones_ = zones;
@@ -124,7 +124,7 @@ bool InputCaptureFlow::applyZones(const std::vector<Zone>& zones, uint32_t zoneS
 
 bool InputCaptureFlow::rearm(std::string& error) {
   if (stage_ == CaptureStage::Closed || stage_ == CaptureStage::Failed || session_.empty()) {
-    error = closeReason_.empty() ? "la sesión InputCapture no está disponible" : closeReason_;
+    error = closeReason_.empty() ? "InputCapture session is not available" : closeReason_;
     return false;
   }
 
@@ -136,8 +136,8 @@ bool InputCaptureFlow::rearm(std::string& error) {
     zonesStale_ = false;
   }
 
-  // Enable es necesario tras Disabled y tras SetPointerBarriers, que suspende la
-  // sesión. El EIS no se reconecta: el mismo descriptor sirve toda la sesión.
+  // Enable is necessary after Disabled and after SetPointerBarriers, which suspends the
+  // session. EIS does not reconnect: the same descriptor serves the entire session.
   if (!ops_.enableInput(session_, error)) return abort(error);
   if (stage_ == CaptureStage::Active) {
     activeId_ = 0;
@@ -212,8 +212,8 @@ void InputCaptureFlow::onZonesChanged() {
   if (stage_ == CaptureStage::Closed || stage_ == CaptureStage::Failed) return;
   zonesStale_ = true;
   if (stage_ == CaptureStage::Active) {
-    // SetPointerBarriers suspende la sesión; la activación anterior deja de ser
-    // liberable y hay que volver a local antes de rearmar.
+    // SetPointerBarriers suspends session; previous activation ceases to be
+    // freeable and you have to go back to the premises before rearming.
     activeId_ = 0;
     stage_ = CaptureStage::Armed;
     captureLost_ = true;
@@ -223,7 +223,7 @@ void InputCaptureFlow::onZonesChanged() {
 void InputCaptureFlow::onClosed() {
   if (stage_ == CaptureStage::Closed) return;
   stage_ = CaptureStage::Closed;
-  closeReason_ = "el escritorio cerró la sesión InputCapture";
+  closeReason_ = "desktop closed session InputCapture";
   captureLost_ = true;
   activeId_ = 0;
 }
@@ -243,7 +243,7 @@ bool InputCaptureFlow::takeCaptureLost() {
 
 bool InputCaptureFlow::fatal(std::string& reason) const {
   if (stage_ != CaptureStage::Closed && stage_ != CaptureStage::Failed) return false;
-  reason = closeReason_.empty() ? "la sesión InputCapture terminó" : closeReason_;
+  reason = closeReason_.empty() ? "InputCapture session is over" : closeReason_;
   return true;
 }
 
@@ -269,14 +269,14 @@ bool InputCaptureFlow::abort(const std::string& message) {
 
 bool RemoteDesktopFlow::prepareExit(std::string& error) {
   if (stage_ != TargetStage::Idle) {
-    error = "la sesión de salida ya está abierta";
+    error = "the exit session is now open";
     return false;
   }
   if (!ops_.createShortcutSession(shortcuts_, error)) return fail(error);
   bool bound = false;
   if (!ops_.bindEmergencyShortcut(shortcuts_, bound, error)) return fail(error);
   if (!bound) {
-    error = "el escritorio no concedió Ctrl+Shift+F12; no se abre RemoteDesktop ni EIS";
+    error = "the desktop did not grant Ctrl+Shift+F12; does not open RemoteDesktop nor EIS";
     return fail(error);
   }
   shortcutBound_ = true;
@@ -288,7 +288,7 @@ bool RemoteDesktopFlow::open(int& eisFd, std::string& error) {
   eisFd = -1;
   if (stage_ == TargetStage::Idle && !prepareExit(error)) return false;
   if (stage_ != TargetStage::ExitReady) {
-    error = "la sesión RemoteDesktop ya está abierta o la salida no está preparada";
+    error = "RemoteDesktop session is already open or output is not ready";
     return false;
   }
   if (!ops_.verifyEmergencyShortcut(shortcuts_, error)) return fail(error);
@@ -301,8 +301,8 @@ bool RemoteDesktopFlow::open(int& eisFd, std::string& error) {
   granted_ = granted;
   const uint32_t required = kDeviceKeyboard | kDevicePointer;
   if ((granted & required) != required) {
-    error = "el escritorio concedió los dispositivos " + hexMask(granted) +
-            "; se requieren teclado y puntero";
+    error = "the desktop granted the devices " + hexMask(granted) +
+            "; keyboard and pointer required";
     return fail(error);
   }
   int fd = -1;
@@ -330,12 +330,12 @@ void RemoteDesktopFlow::close() {
 void RemoteDesktopFlow::onClosed() {
   if (stage_ == TargetStage::Closed) return;
   stage_ = TargetStage::Closed;
-  closeReason_ = "el escritorio cerró la sesión RemoteDesktop";
+  closeReason_ = "Desktop closed RemoteDesktop session";
 }
 
 bool RemoteDesktopFlow::fatal(std::string& reason) const {
   if (stage_ != TargetStage::Closed && stage_ != TargetStage::Failed) return false;
-  reason = closeReason_.empty() ? "la sesión RemoteDesktop terminó" : closeReason_;
+  reason = closeReason_.empty() ? "the RemoteDesktop session ended" : closeReason_;
   return true;
 }
 

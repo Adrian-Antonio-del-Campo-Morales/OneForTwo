@@ -1,5 +1,5 @@
 if(NOT TARGET oneintwo_tls)
-    message(FATAL_ERROR "oneintwo_tls debe existir antes de las pruebas TLS")
+    message(FATAL_ERROR "TLS tests require the oneintwo_tls target")
 endif()
 
 enable_testing()

@@ -61,7 +61,7 @@ inline int run() {
                         failure.message.c_str());
         } catch (const std::exception& exception) {
             ++failed;
-            std::printf("[ FAIL ] %s\n         excepción: %s\n", test.name.c_str(),
+            std::printf("[ FAIL ] %s\n         exception: %s\n", test.name.c_str(),
                         exception.what());
         }
         std::fflush(stdout);

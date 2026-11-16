@@ -1,5 +1,5 @@
-// Responsabilidad: comprobaciones aisladas del núcleo. Usan datos sintéticos en
-// un temporal bajo el directorio actual y no inicializan escritorio, portapapeles
+// Responsibility: isolated kernel checks. They use synthetic data in
+// a temporary under the current directory and do not initialize desktop, clipboard
 // ni red.
 #include "tests/self_test.hpp"
 
@@ -46,7 +46,7 @@ void checkImpl(bool ok, const char* expression, int line) {
     ++g_checks;
     if (!ok) {
         ++g_failures;
-        std::cerr << "FALLO [" << g_current << "] " << expression << " (línea " << line << ")\n";
+        std::cerr << "FAIL [" << g_current << "] " << expression << " (line " << line << ")\n";
     }
 }
 
@@ -72,9 +72,9 @@ void writeFile(const fs::path& file, const std::string& data) {
     std::error_code ec;
     fs::create_directories(file.parent_path(), ec);
     std::ofstream out(file, std::ios::binary | std::ios::trunc);
-    if (!out) throw Error("no se pudo escribir un dato sintético");
+    if (!out) throw Error("could not write synthetic data");
     out.write(data.data(), static_cast<std::streamsize>(data.size()));
-    if (!out) throw Error("fallo al escribir un dato sintético");
+    if (!out) throw Error("failure to write a synthetic data");
 }
 
 std::string readAll(const fs::path& file) {
@@ -94,7 +94,7 @@ fs::path makeTree() {
     const fs::path root = g_tmp / "tree";
     writeFile(root / "a.txt", "hello");
     writeFile(root / "empty.bin", "");
-    writeFile(root / fs::u8path("ñandú-日本語.txt"), "internacional");
+    writeFile(root / fs::u8path("resume-日本語-🚀.txt"), "international");
     writeFile(root / "sub" / "b.bin", pattern(300000));
     fs::create_directories(root / "sub" / "empty");
     return root;
@@ -116,9 +116,9 @@ void testSha256() {
 }
 
 void testPathValidation() {
-    begin("validación de rutas");
+    begin("route validation");
     PathRules posix;
-    CHECK(validateRelativePath("ñandú-日本語.txt", posix) == "ñandú-日本語.txt");
+    CHECK(validateRelativePath("resume-日本語-🚀.txt", posix) == "resume-日本語-🚀.txt");
     CHECK(validateRelativePath("sub/file.txt", posix) == "sub/file.txt");
     CHECK_THROWS(validateRelativePath("", posix));
     CHECK_THROWS(validateRelativePath("../escape", posix));
@@ -139,7 +139,7 @@ void testPathValidation() {
     CHECK_THROWS(validateRelativePath("a:b.txt", windows));
     CHECK_THROWS(validateRelativePath("a\\b.txt", windows));
     CHECK_THROWS(validateRelativePath("a?b", windows));
-    CHECK(validateRelativePath("carpeta/archivo.txt", windows) == "carpeta/archivo.txt");
+    CHECK(validateRelativePath("folder/file.txt", windows) == "folder/file.txt");
 
     PathRules shallow;
     shallow.maxDepth = 1;
@@ -236,7 +236,7 @@ void testManifestText() {
 }
 
 void testStore() {
-    begin("autorización de la oferta");
+    begin("Authorization of the tender");
     const fs::path root = makeTree();
     const OfferStore store = OfferStore::fromPaths({root.u8string()}, Limits{});
     const Entry* file = nullptr;
@@ -264,7 +264,7 @@ void testStore() {
 }
 
 void testStagedFiles() {
-    begin("recepción por bloques");
+    begin("block reception");
     const std::string content = pattern(300000);
     const fs::path staging = g_tmp / "staging";
     fs::create_directories(staging);
@@ -291,7 +291,7 @@ void testStagedFiles() {
     CHECK(readAll(dest / "file.bin") == "anterior");
     CHECK(readAll(placed) == content);
 
-    begin("truncado y digest");
+    begin("truncated and digested");
     {
         StagedFile partial(staging, "partial.bin", 1000);
         partial.writeAt(0, content.data(), 600);
@@ -319,7 +319,7 @@ void testStagedFiles() {
 }
 
 void testCopyOut() {
-    begin("copia al destino y colisiones");
+    begin("copy to destination and collisions");
     const fs::path source = g_tmp / "offer-source";
     writeFile(source / "a.txt", "nuevo");
     writeFile(source / "sub" / "b.txt", "b");
@@ -361,7 +361,7 @@ void testCopyOut() {
 }
 
 void testCacheLifecycle() {
-    begin("caché y concesiones");
+    begin("cache and concessions");
     CacheStore cache((g_tmp / "cache").u8string());
     const fs::path incoming = cache.newIncomingDir("0123456789abcdef0123456789abcdef");
     writeFile(incoming / "file.txt", "contenido");
@@ -443,7 +443,7 @@ void testWire() {
 }
 
 void testProtocol() {
-    begin("protocolo de transferencia");
+    begin("transfer protocol");
     const fs::path root = makeTree();
     const OfferStore store = OfferStore::fromPaths({root.u8string()}, Limits{});
     const BuiltOffer built = buildOffer({root.u8string()}, Limits{});
@@ -484,7 +484,7 @@ void testProtocol() {
                 StagedFile stage(recv, "unauthorized.txt", 1);
                 CancelToken cancel;
                 Entry fake;
-                fake.id = "no-existe";
+                fake.id = "missing";
                 fake.relPath = "unauthorized.txt";
                 fake.size = 1;
                 CHECK_THROWS(link->fetchFile(fake, stage, cancel, nullptr));
@@ -494,7 +494,7 @@ void testProtocol() {
     }
     CHECK(serverError.empty());
 
-    begin("lectura bajo demanda");
+    begin("reading on demand");
     {
         LoopbackPair pair = makeLoopbackPair();
         std::thread server([&] {
@@ -526,7 +526,7 @@ void testProtocol() {
         server.join();
     }
 
-    begin("cancelación en curso");
+    begin("cancellation in progress");
     {
         LoopbackPair pair = makeLoopbackPair();
         std::thread server([&] {
@@ -558,7 +558,7 @@ void testProtocol() {
         server.join();
     }
 
-    begin("petición no autorizada");
+    begin("unauthorised request");
     {
         LoopbackPair pair = makeLoopbackPair();
         std::thread server([&] {
@@ -584,7 +584,7 @@ void testProtocol() {
 }
 
 void testOrphanCleanup() {
-    begin("limpieza de temporales");
+    begin("cleaning of temporary");
     const fs::path dir = g_tmp / "orphans";
     writeFile(dir / "one.o2f-part", "x");
     writeFile(dir / "keep.txt", "y");
@@ -593,8 +593,8 @@ void testOrphanCleanup() {
     CHECK(fs::exists(dir / "keep.txt"));
 }
 
-// Certificado público autofirmado, generado solo para esta prueba. No incluye
-// clave privada ni se usa para abrir red: comprueba el cálculo de la huella.
+// Self-signed public certificate, generated only for this test. Not included
+// Private key is not used to open network: check the calculation of the footprint.
 const char* kTestCertificatePem = R"(-----BEGIN CERTIFICATE-----
 MIIDMzCCAhugAwIBAgIUWOfckL1uyBR9n1m5jmd8MPnc4AQwDQYJKoZIhvcNAQEL
 BQAwKTEnMCUGA1UEAwweT25lSW5Ud28gc2VsZi10ZXN0IGNlcnRpZmljYXRlMB4X
@@ -618,9 +618,9 @@ Sj+sEpQR8Q==
 )";
 
 void testCertificateFingerprint() {
-    begin("huella de certificado");
+    begin("certificate footprint");
     if (!tlsAvailable()) {
-        std::cout << "huella de certificado: omitida (compilado sin OpenSSL)\n";
+        std::cout << "certificate fingerprint: omitted (compiled without OpenSSL)\n";
         return;
     }
     const fs::path cert = g_tmp / "selftest-cert.pem";
@@ -629,7 +629,7 @@ void testCertificateFingerprint() {
     CHECK(pin.size() == 64);
     CHECK(pin == "5b9e9ce508e973354a5d7fccb55b8858ebcd2312b66b1dcddb46cb41cc74b9d8");
     const fs::path invalid = g_tmp / "invalid-cert.pem";
-    writeFile(invalid, "no es un certificado PEM\n");
+    writeFile(invalid, "is not a certificate PEM\n");
     CHECK_THROWS(certificateFingerprint(invalid.u8string()));
 }
 
@@ -649,10 +649,10 @@ int runSelfTests(bool verbose) {
     fs::remove_all(g_tmp, ec);
     fs::create_directories(g_tmp, ec);
     if (!fs::is_directory(g_tmp)) {
-        std::cerr << "no se pudo crear el temporal de pruebas\n";
+        std::cerr << "could not create test time\n";
         return 1;
     }
-    std::cout << "self-test aislado en " << g_tmp.u8string() << '\n';
+    std::cout << "self-test isolated in " << g_tmp.u8string() << '\n';
 
     try {
         testSha256();
@@ -669,16 +669,16 @@ int runSelfTests(bool verbose) {
         testOrphanCleanup();
     } catch (const std::exception& e) {
         ++g_failures;
-        std::cerr << "FALLO no controlado [" << g_current << "]: " << e.what() << '\n';
+        std::cerr << "UNHANDLED FAILURE [" << g_current << "]: " << e.what() << '\n';
     }
 
     std::cout << g_checks << " comprobaciones, " << g_failures << " fallos\n";
     if (g_failures == 0) {
         fs::remove_all(g_tmp, ec);
-        std::cout << "self-test correcto (sin portapapeles ni red)\n";
+        std::cout << "correct self-test (no clipboard or network)\n";
         return 0;
     }
-    std::cerr << "los datos del fallo se conservan en " << g_tmp.u8string() << '\n';
+    std::cerr << "the fault data are stored in " << g_tmp.u8string() << '\n';
     return 1;
 }
 

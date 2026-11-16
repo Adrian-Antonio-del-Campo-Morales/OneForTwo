@@ -282,7 +282,7 @@ private:
             || source.node_id == 0 || source.width == 0 || source.height == 0
             || source.width > max_capture_dimension || source.height > max_capture_dimension
             || static_cast<std::uint64_t>(source.width) * source.height > max_capture_pixels) {
-            // El portal no acredita el tipo o las dimensiones no son utilizables.
+            // The portal does not credit the type or dimensions are not usable.
             if (portal_) {
                 portal_->close();
             }

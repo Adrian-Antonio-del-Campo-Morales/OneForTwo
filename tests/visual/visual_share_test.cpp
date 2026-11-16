@@ -135,7 +135,7 @@ struct FakeSender {
         }
         const SendResult result = results.front();
         results.pop_front();
-        // busy/denied/disconnected no transfieren la propiedad del mensaje.
+        // busy/denied/disconnected does not transfer the ownership of the message.
         if (result == SendResult::queued) {
             messages.push_back(std::move(message));
         }
@@ -366,7 +366,7 @@ TEST_CASE(viewer_acceptance_presents_ordered_frames) {
     CHECK_EQ(harness.sentOf<VisualDecisionMessage>().front().decision, VisualDecision::accepted);
     CHECK_EQ(harness.viewer.clears, 0);
 
-    // Imagen antes de su anuncio de revisión: se descarta.
+    // Image before your review announcement: is discarded.
     VisualEncodedFrame before = encodedFrame(ref, 1, 1);
     harness.share->receiveFrame(before);
     CHECK_EQ(harness.viewer.presents, 0);
@@ -384,9 +384,9 @@ TEST_CASE(viewer_acceptance_presents_ordered_frames) {
 
     harness.share->receiveSourceState(ref, 2, VisualSourceState::available);
     harness.share->receiveFrame(encodedFrame(ref, 1, 1));
-    CHECK_EQ(harness.viewer.presents, 1); // revisión antigua
+    CHECK_EQ(harness.viewer.presents, 1); // Old revision
     harness.share->receiveFrame(encodedFrame(ref, 3, 3));
-    CHECK_EQ(harness.viewer.presents, 1); // revisión adelantada
+    CHECK_EQ(harness.viewer.presents, 1); // Advanced review
     harness.share->receiveFrame(encodedFrame(ref, 2, 2));
     CHECK_EQ(harness.viewer.presents, 2);
 }
@@ -444,7 +444,7 @@ TEST_CASE(origin_encodes_frames_with_revision_sequence_and_jpeg) {
 
     harness.share->receiveDecision(ref, VisualDecision::accepted);
     harness.drain();
-    CHECK_EQ(harness.capture.start_calls, 1); // no se inicia dos veces
+    CHECK_EQ(harness.capture.start_calls, 1); // does not start twice
 
     harness.capture.emitFrame(ref, makeBgra(64, 32));
     harness.drain();
@@ -456,7 +456,7 @@ TEST_CASE(origin_encodes_frames_with_revision_sequence_and_jpeg) {
     CHECK(isJpeg(frames.front().bytes));
     CHECK(frames.front().bytes.size() <= max_visual_encoded_bytes);
 
-    // Mismo instante: el límite de 30 fps descarta la captura.
+    // Same instant: the 30 fps limit discards capture.
     harness.capture.emitFrame(ref, makeBgra(64, 32));
     harness.drain();
     CHECK_EQ(harness.sentOf<VisualEncodedFrame>().size(), static_cast<std::size_t>(1));
@@ -522,7 +522,7 @@ TEST_CASE(stop_is_idempotent_and_remote_stop_does_not_reply) {
     const std::size_t before = viewer.sender.messages.size();
     viewer.share->receiveStop(viewer_ref);
     CHECK_EQ(viewer.viewer.closes, 1);
-    CHECK_EQ(viewer.sender.messages.size(), before); // no reenvía cierre
+    CHECK_EQ(viewer.sender.messages.size(), before); // no forward closure
     viewer.share->receiveStop(viewer_ref);
     CHECK_EQ(viewer.viewer.closes, 1);
 }
@@ -539,7 +539,7 @@ TEST_CASE(authorization_revocation_and_generation_change_invalidate_operations) 
     CHECK_EQ(harness.countSent<VisualStopMessage>(), static_cast<std::size_t>(1));
     harness.share->offerSource(7, VisualSourceKind::monitor);
     harness.drain();
-    CHECK_EQ(harness.capture.select_calls, 1); // rechazada por permiso
+    CHECK_EQ(harness.capture.select_calls, 1); // rejected by permission
 
     harness.authorize(8, allFeatures(), allFeatures());
     harness.share->offerSource(8, VisualSourceKind::monitor);

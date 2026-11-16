@@ -9,15 +9,14 @@
 #include <memory>
 
 /*
- * Adaptador de captura de monitor y ventana para Wayland.
+ * Monitor and window capture adapter for Wayland.
  *
- * selectSource abre una sesión ScreenCast propia y la retiene hasta que la
- * operación termina. El tipo efectivo de la fuente se valida con la respuesta
- * del portal; sin esa atestación la operación no está disponible. startCapture
- * consume únicamente el nodo autorizado con PipeWire.
+ * selectSource opens a ScreenCast session of its own and retains it until the operation ends. The
+ * source's effective type is validated with the portal's response; without that attestation the
+ * operation is not available. startCapture consumes only the authorized node with PipeWire.
  *
- * Las fábricas inyectables permiten probar el paquete con un portal simulado y
- * un consumidor PipeWire falso sin editar componentes de otras ramas.
+ * Injecting factories allow you to test the package with a simulated portal and a fake PipeWire
+ * consumer without editing components from other branches.
  */
 
 namespace oneintwo::wayland {

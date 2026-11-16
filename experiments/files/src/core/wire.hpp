@@ -1,5 +1,5 @@
-// Responsabilidad: codificación y validación de tramas y mensajes del protocolo
-// mínimo de transferencia. Los tamaños se comprueban antes de reservar memoria.
+// Responsibility: Encoding and validation of protocols' plots and messages
+// minimum transfer. Sizes are checked before booking memory.
 #pragma once
 
 #include "core/model.hpp"

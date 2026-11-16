@@ -11,9 +11,8 @@
 namespace oneintwo::test {
 
 /*
- * Consumidor PipeWire falso: registra el nodo autorizado, permite inyectar
- * fotogramas y conserva los callbacks después de stop() para comprobar que el
- * adaptador descarta entregas tardías.
+ * Consumer PipeWire fake: record the approved node, allow to inject frames and keep callbacks
+ * after stop() to check that the adapter discards late deliveries.
  */
 class FakePipeWireSource final : public wayland::PipeWireSource {
 public:

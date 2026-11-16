@@ -66,13 +66,13 @@ FrameConvertResult convertToBgra(const VideoBufferView& view, VisualFrame& out)
 
     VisualFrame frame;
     frame.size = {view.width, view.height};
-    // La salida es contigua: sin relleno de fila, exactamente ancho × alto × 4.
+    // The output is contiguous: without row filling, exactly width × height × 4.
     frame.bgra.resize(static_cast<std::size_t>(row_bytes) * view.height);
 
     const std::int64_t step = stride < 0 ? -static_cast<std::int64_t>(stride_abs)
                                          : static_cast<std::int64_t>(stride_abs);
-    // data apunta al comienzo del búfer; con stride negativo la primera fila
-    // de la imagen es la última zona del búfer.
+    // data points to the beginning of the buffer; with negative stride the first row
+    // of the image is the last area of the buffer.
     const std::uint8_t* first = stride < 0
         ? view.data + static_cast<std::size_t>(view.height - 1u) * stride_abs
         : view.data;

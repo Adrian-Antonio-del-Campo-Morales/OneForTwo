@@ -1,5 +1,5 @@
-// Responsabilidad: implementar la política del motor de sincronización.
-// El orden es determinista y no depende de relojes de pared.
+// Responsibility: implement the sync engine policy.
+// The order is deterministic and does not depend on wall clocks.
 
 #include "engine.hpp"
 
@@ -77,7 +77,7 @@ void SyncEngine::on_local_clipboard(const ClipboardContent& content) {
     return;
   }
 
-  // 1. Eco identificado por el marcador que escribió este proceso.
+  // 1. Echo identified by the marker who wrote this process.
   if (!content.marker.empty() && is_self_marker(content.marker)) {
     self_marker_.clear();
     emit(EngineEventKind::LocalEchoSuppressed,
@@ -86,9 +86,9 @@ void SyncEngine::on_local_clipboard(const ClipboardContent& content) {
     return;
   }
 
-  // 2. Respaldo: algunas aplicaciones o gestores de portapapeles eliminan
-  // formatos personalizados. Se suprime una única notificación idéntica
-  // dentro de una ventana corta. Es una heurística local, no autenticación.
+  // 2. Backup: Some clipboard applications or clipboard managers remove
+  // custom formats. A single identical notification is deleted
+  // It's a local heuristic, not authentication.
   const std::int64_t now =
       options_.now_ms ? options_.now_ms() : steady_now_ms();
   if (content.marker.empty() && has_self_write_fingerprint_ &&
@@ -183,8 +183,8 @@ ApplyResult SyncEngine::apply_remote(const ClipboardUpdate& update) {
   ClipboardUpdate applied = update;
   applied.text = validation.normalized;
 
-  // El marcador se registra antes de escribir para que una notificación
-  // concurrente del sistema ya se reconozca como eco propio.
+  // Bookmark is recorded before writing for a notification
+  // already recognized as its own echo.
   const std::string marker = make_marker(applied);
   self_marker_ = marker;
   self_write_fingerprint_ = fingerprint(applied.text);

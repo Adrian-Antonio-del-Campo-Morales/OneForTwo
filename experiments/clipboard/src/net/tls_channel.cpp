@@ -1,6 +1,6 @@
-// Responsabilidad: implementar el canal TLS con OpenSSL. El certificado del
-// par se fija por huella SHA-256 (sin CA ni nombres de host), y ambas partes
-// presentan certificado. No se implementa criptografía propia.
+// Responsibility: implement channel TLS with OpenSSL. The certificate of
+// torque is fixed by footprint SHA-256 (without AC or host names), and both parties
+// present certificate. No implementation of own cryptography.
 
 #include "net/tls_channel.hpp"
 
@@ -138,8 +138,8 @@ int pin_index() {
   return index;
 }
 
-// La verificación no encadena a una CA: exige que el certificado del par sea
-// exactamente el fijado por el usuario. preverify_ok se ignora a propósito.
+// Verification does not chain to an AC: requires that the pair certificate be
+// exactly the one set by the user. preverify_ok is deliberately ignored.
 int verify_pinned_peer(int /*preverify_ok*/, X509_STORE_CTX* store) {
   SSL* ssl = static_cast<SSL*>(X509_STORE_CTX_get_ex_data(
       store, SSL_get_ex_data_X509_STORE_CTX_idx()));
@@ -160,7 +160,7 @@ int verify_pinned_peer(int /*preverify_ok*/, X509_STORE_CTX* store) {
   return std::memcmp(digest, pin->sha256, 32) == 0 ? 1 : 0;
 }
 
-// No pasar FILE* de la CRT de la aplicación a la DLL de OpenSSL en Windows.
+// Do not pass FILE* from the CRT application to the DLL OpenSSL on Windows.
 X509* read_certificate(const std::string& path, const char* label,
                        std::string& error) {
   std::ifstream file(path, std::ios::binary | std::ios::ate);
@@ -606,7 +606,7 @@ void TlsChannel::interrupt() {
 
 void TlsChannel::shutdown_peer() {
   if (impl_->ssl != nullptr) {
-    // Un único intento: no se espera al cierre del par para no bloquear.
+    // One single attempt: not expected at the close of the pair to not block.
     (void)SSL_shutdown(impl_->ssl);
   }
   impl_->reset_peer();

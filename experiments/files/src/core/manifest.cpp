@@ -1,5 +1,5 @@
-// Responsabilidad: recorrer las rutas ofrecidas, validar cada nombre relativo,
-// rechazar tipos especiales y enlaces simbólicos, y serializar el manifiesto.
+// Responsibility: tour the routes offered, validate each relative name,
+// reject special types and symbolic links, and serialize the manifest.
 #include "core/manifest.hpp"
 
 #include <algorithm>
@@ -40,7 +40,7 @@ std::string uniqueTopLevelName(const std::string& name, std::set<std::string>& u
         const std::string candidate = stem + " (" + std::to_string(n) + ")" + ext;
         if (used.insert(key(candidate)).second) return candidate;
     }
-    throw Error("no se pudo asignar un nombre único en la oferta");
+    throw Error("could not assign a unique name in the offer");
 }
 
 class Builder {
@@ -53,14 +53,14 @@ public:
     void addRoot(const fs::path& absolute, const std::string& topName) {
         std::error_code ec;
         const fs::file_status st = fs::symlink_status(absolute, ec);
-        if (ec) throw Error("no se pudo consultar el elemento ofrecido");
-        if (fs::is_symlink(st)) throw Error("enlaces simbólicos no soportados");
+        if (ec) throw Error("could not refer to the item offered");
+        if (fs::is_symlink(st)) throw Error("unsupported symbolic links");
         if (fs::is_regular_file(st)) {
             addFile(absolute, topName, 0);
         } else if (fs::is_directory(st)) {
             addDirectory(absolute, topName, 0);
         } else {
-            throw Error("tipo de elemento no soportado (solo archivos y carpetas ordinarios)");
+            throw Error("unsupported element type (only ordinary files and folders)");
         }
     }
 
@@ -69,26 +69,26 @@ public:
 private:
     void push(Entry entry, const fs::path& absolute) {
         if (result_.offer.entries.size() >= limits_.maxEntries) {
-            throw Error("la oferta supera el número máximo de elementos");
+            throw Error("the offer exceeds the maximum number of items");
         }
         validateRelativePath(entry.relPath, rules_);
         if (!result_.absoluteByRel.emplace(entry.relPath, absolute.u8string()).second) {
-            throw Error("ruta duplicada en la oferta");
+            throw Error("route duplicated in the offer");
         }
         if (!entry.isDir) {
             result_.offer.totalBytes += entry.size;
             if (result_.offer.totalBytes > limits_.maxTotalBytes) {
-                throw Error("la oferta supera el tamaño total permitido");
+                throw Error("the offer exceeds the total size allowed");
             }
         }
         result_.offer.entries.push_back(std::move(entry));
     }
 
     void addFile(const fs::path& absolute, const std::string& rel, std::uint32_t depth) {
-        if (depth > limits_.maxDepth) throw Error("profundidad de carpeta fuera de límite");
+        if (depth > limits_.maxDepth) throw Error("Out-of-limit folder depth");
         std::error_code ec;
         const std::uintmax_t size = fs::file_size(absolute, ec);
-        if (ec) throw Error("no se pudo leer el tamaño de un archivo ofrecido");
+        if (ec) throw Error("could not read the size of a file offered");
         Entry e;
         e.id = randomId();
         e.relPath = rel;
@@ -98,7 +98,7 @@ private:
     }
 
     void addDirectory(const fs::path& absolute, const std::string& rel, std::uint32_t depth) {
-        if (depth > limits_.maxDepth) throw Error("profundidad de carpeta fuera de límite");
+        if (depth > limits_.maxDepth) throw Error("Out-of-limit folder depth");
         Entry e;
         e.id = randomId();
         e.relPath = rel;
@@ -110,7 +110,7 @@ private:
         for (fs::directory_iterator it(absolute, ec), end; !ec && it != end; it.increment(ec)) {
             children.push_back(*it);
         }
-        if (ec) throw Error("no se pudo enumerar una carpeta ofrecida");
+        if (ec) throw Error("could not list offered folder");
         std::sort(children.begin(), children.end(),
                   [](const fs::directory_entry& a, const fs::directory_entry& b) {
                       return a.path().filename().u8string() < b.path().filename().u8string();
@@ -121,14 +121,14 @@ private:
             validateRelativePath(name, rules_);
             const std::string childRel = rel + "/" + name;
             const fs::file_status st = child.symlink_status(ec);
-            if (ec) throw Error("no se pudo consultar un elemento de la carpeta");
-            if (fs::is_symlink(st)) throw Error("enlaces simbólicos no soportados");
+            if (ec) throw Error("could not view folder element");
+            if (fs::is_symlink(st)) throw Error("unsupported symbolic links");
             if (fs::is_directory(st)) {
                 addDirectory(child.path(), childRel, depth + 1);
             } else if (fs::is_regular_file(st)) {
                 addFile(child.path(), childRel, depth + 1);
             } else {
-                throw Error("tipo de elemento no soportado dentro de la carpeta");
+                throw Error("unsupported element type within folder");
             }
         }
     }
@@ -141,8 +141,8 @@ private:
 }  // namespace
 
 BuiltOffer buildOffer(const std::vector<std::string>& rootsUtf8, const Limits& limits) {
-    if (rootsUtf8.empty()) throw Error("no se indicó ninguna ruta para la oferta");
-    if (rootsUtf8.size() > limits.maxLocalPaths) throw Error("demasiadas rutas de origen");
+    if (rootsUtf8.empty()) throw Error("no route was indicated for the offer");
+    if (rootsUtf8.size() > limits.maxLocalPaths) throw Error("too many routes of origin");
 
     const PathRules probe = nativePathRules(limits);
     Builder builder(limits, probe.windows);
@@ -151,9 +151,9 @@ BuiltOffer buildOffer(const std::vector<std::string>& rootsUtf8, const Limits& l
     for (const std::string& root : rootsUtf8) {
         const fs::path absolute = fs::u8path(root);
         std::error_code ec;
-        if (!fs::exists(absolute, ec) || ec) throw Error("una ruta ofrecida no existe");
+        if (!fs::exists(absolute, ec) || ec) throw Error("a route offered does not exist");
         std::string name = absolute.filename().u8string();
-        if (name.empty()) throw Error("rutaofrecida sin nombre utilizable");
+        if (name.empty()) throw Error("routeoffered without usable name");
         name = uniqueTopLevelName(sanitizeLabel(name), usedNames, probe.windows);
         builder.addRoot(absolute, name);
     }
@@ -182,22 +182,22 @@ std::string serializeManifestText(const Offer& offer) {
 Offer parseManifestText(const std::string& text, const Limits& limits) {
     std::istringstream in(text);
     std::string line;
-    if (!std::getline(in, line)) throw Error("manifiesto vacío");
+    if (!std::getline(in, line)) throw Error("empty manifest");
     std::istringstream header(line);
     std::string magic, id, created, label;
-    if (!std::getline(header, magic, '\t') || magic != "O2F1") throw Error("manifiesto no reconocido");
+    if (!std::getline(header, magic, '\t') || magic != "O2F1") throw Error("manifest not recognised");
     if (!std::getline(header, id, '\t') || !std::getline(header, created, '\t') ||
         !std::getline(header, label)) {
-        throw Error("cabecera de manifiesto incompleta");
+        throw Error("incomplete manifest header");
     }
     Offer result;
     result.id = id;
     result.label = sanitizeLabel(label);
-    if (!isValidOpaqueId(result.id, 64)) throw Error("manifiesto con identificador inválido");
+    if (!isValidOpaqueId(result.id, 64)) throw Error("manifest with invalid identifier");
     try {
         result.createdAt = std::stoull(created);
     } catch (...) {
-        throw Error("fecha de manifiesto inválida");
+        throw Error("invalid manifest date");
     }
 
     const PathRules rules = nativePathRules(limits);
@@ -207,29 +207,29 @@ Offer parseManifestText(const std::string& text, const Limits& limits) {
         std::string id2, type, sizeText, rel;
         if (!std::getline(row, id2, '\t') || !std::getline(row, type, '\t') ||
             !std::getline(row, sizeText, '\t') || !std::getline(row, rel)) {
-            throw Error("fila de manifiesto incompleta");
+            throw Error("incomplete manifest row");
         }
-        if (type != "D" && type != "F") throw Error("tipo de elemento inválido en manifiesto");
+        if (type != "D" && type != "F") throw Error("type of invalid element in manifest");
         Entry e;
         e.id = id2;
         e.isDir = type == "D";
         try {
             e.size = std::stoull(sizeText);
         } catch (...) {
-            throw Error("tamaño inválido en manifiesto");
+            throw Error("Invalid size in manifest");
         }
-        if (!isValidOpaqueId(e.id, 64)) throw Error("identificador inválido en manifiesto");
+        if (!isValidOpaqueId(e.id, 64)) throw Error("Invalid identifier in manifest");
         e.relPath = validateRelativePath(rel, rules);
-        if (e.isDir && e.size != 0) throw Error("carpeta con tamaño distinto de cero");
+        if (e.isDir && e.size != 0) throw Error("folder with size other than zero");
         if (!e.isDir) result.totalBytes += e.size;
-        if (result.find(e.id) != nullptr) throw Error("identificador duplicado en manifiesto");
-        if (result.entries.size() >= limits.maxEntries) throw Error("manifiesto demasiado grande");
+        if (result.find(e.id) != nullptr) throw Error("duplicate identifier in manifest");
+        if (result.entries.size() >= limits.maxEntries) throw Error("manifest too large");
         for (const Entry& prev : result.entries) {
-            if (prev.relPath == e.relPath) throw Error("ruta duplicada en manifiesto");
+            if (prev.relPath == e.relPath) throw Error("duplicated manifest path");
         }
         result.entries.push_back(std::move(e));
     }
-    if (result.totalBytes > limits.maxTotalBytes) throw Error("manifiesto supera el tamaño permitido");
+    if (result.totalBytes > limits.maxTotalBytes) throw Error("manifesto exceeds the permitted size");
     return result;
 }
 

@@ -1,63 +1,58 @@
-# Manual de ejecución — experimento de portapapeles
+# Implementation manual — clipboard experiment
 
-Fecha: 4 de noviembre de 2026.
+Date: November 4, 2026.
 
-Estado: prototipo con adaptador Windows y adaptador Linux/Wayland basado en
-`xdg-desktop-portal` RemoteDesktop + Clipboard. El adaptador Wayland está
-implementado y compilado, pero **no se ha ejecutado en una sesión gráfica real**:
-este entorno no tiene escritorio. Las pruebas de lectura, escritura,
-observación, permisos y conexión entre equipos siguen siendo manuales.
+Status: Prototyping with Windows adapter and Linux/Wayland adapter based on `xdg-desktop-portal`
+RemoteDesktop + Clipboard. Wayland adapter is implemented and compiled, but **has not been executed
+in a real graphic session**: this environment does not have a desktop. Reading, writing,
+observation, permissions and connection between computers are still manual.
 
-Este documento pertenece a `experiments/clipboard/`. No depende del CMake raíz,
-del código de producto ni de otros experimentos. No se debe ejecutar más de un
-experimento a la vez en la misma sesión gráfica durante las pruebas manuales.
+This document belongs to `experiments/clipboard/`. It does not depend on the root CMake, product
+code or other experiments. It should not run more than one experiment at a time in the same
+graphical session during manual testing.
 
-## 1. Qué está verificado y qué no
+## 1. What is verified and what is not
 
-Verificado por el agente, sin tocar el escritorio ni la red:
+Checked by the agent, without touching the desktop or network:
 
-- Compilación Windows con MSVC/VS 2026, CMake 4.3.1 y OpenSSL 3.5.
-- Compilación Linux del núcleo y del adaptador Linux en Ubuntu 20.04 (WSL).
-- Compilación Linux del adaptador Wayland con `libdbus-1` (cabeceras extraídas
-  localmente de un `.deb`; no se instaló nada globalmente).
-- `--self-test`: **151 comprobaciones, 0 fallos** en la compilación Linux con
-  portal; **149, 0 fallos** en Windows y en la compilación Linux sin portal.
-- `--inventory`, `--help`, `--version` y `--emit-samples` (sólo archivos).
+- Windows compilation with MSVC/VS 2026, CMake 4.3.1 and OpenSSL 3.5.
+- Linux kernel and Linux adapter compilation in Ubuntu 20.04 (WSL).
+- Linux compilation of the Wayland adapter with `libdbus-1` (heads removed locally from a `.deb`;
+  nothing installed globally).
+- `--self-test`: **151 checks, 0 bugs** in the Linux compilation with portal; **149, 0 bugs ** in
+  Windows and in the Linux build without portal.
+- `--inventory`, `--help`,`--version` and `--emit-samples` (files only).
 
-No verificado: lectura/escritura real del portapapeles, pegado en un editor,
-observación en segundo plano, diálogo/permisos del portal, sesión Wayland real,
-TLS Linux en ejecución, conexión entre dos equipos y permisos del escritorio.
-Que no se haya podido probar aquí **no demuestra que Wayland no permita el
-acceso**; la implementación existe y la validación pendiente está descrita abajo.
+Unverified: lectura/escritura actual clipboard, pasted in an editor, background observation,
+portal dialog and permissions, real Wayland session, TLS Linux running, connection between two computers
+and desktop permissions. That could not be tested here **does not show Wayland does not allow
+access**; implementation exists and pending validation is described below.
 
-Diferencias que no deben confundirse:
+Differences not to be confused:
 
-- **Implementado y compilado:** el adaptador Wayland y su flujo D-Bus.
-- **Restricción demostrada del escritorio:** en GNOME 46 el botón Share del
-  diálogo RemoteDesktop sólo se habilita con “Allow Remote Interaction” o una
-  fuente de pantalla; con `SelectDevices(types=0)` ese interruptor no concede
-  dispositivos de entrada. Está documentado con la fuente en el apartado 10.
-- **No implementado:** el backend X11. No se usa como sustituto silencioso.
-- **No verificado:** todo lo que requiere una sesión gráfica, un portal real o
-  dos máquinas.
+- **Implemented and compiled:** Wayland adapter and D-Bus flow.
+- **Developed Desktop Restriction:** in GNOME 46 the Share button in the RemoteDesktop dialog is
+  only enabled with “Allow Remote Interaction” or a screen source; with `SelectDevices(types=0)`
+  that switch does not grant input devices. It is documented with the source in section 10.
+- **Not implemented:** the X11 backend. Not used as a silent substitute.
+- **Not verified:** everything that requires a graphic session, a real portal or two machines.
 
 ## 2. Requisitos
 
 ### Windows
 
 - Windows 10 u 11 x64.
-- Visual Studio 2026 Build Tools con la carga de trabajo C++ y Windows SDK, o
-  una instalación equivalente que incluya MSVC y el generador de Visual Studio.
-- CMake. En esta máquina se usó el CMake incluido en Visual Studio
-  (`cmake version 4.3.1-msvc1`). El CMake del sistema (3.24) no genera
-  proyectos para VS 18.
-- OpenSSL 3.x Win64 con bibliotecas de desarrollo y DLL. En esta máquina:
-  `C:\Program Files\OpenSSL-Win64`.
-- Las DLL `libssl-3-x64.dll` y `libcrypto-3-x64.dll` deben estar en `PATH` al
-  ejecutar el binario. Si OpenSSL no se encuentra al configurar, el prototipo
-  se compila sin modo entre equipos y lo indica.
+- Visual Studio 2026 Build Tools with the C++ and Windows SDK workload, or an equivalent
+  installation including MSVC and the Visual Studio generator.
+- CMake. CMake included in Visual Studio (`cmake version 4.3.1-msvc1`) was used on this machine.
+  System CMake (3.24) does not generate projects for VS 18.
+- OpenSSL 3.x Win64 with development libraries and DLL. On this machine: `C:\Program
+  Files\OpenSSL-Win64`.
+- DLL `libssl-3-x64.dll` and `libcrypto-3-x64.dll` must be in `PATH` when running the binary. If
+  OpenSSL is not found when configuring, the prototype is compiled without inter-team mode and
+  indicates it.
 
-Rutas usadas en esta máquina:
+Routes used on this machine:
 
 ```text
 CMake:   C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe
@@ -66,57 +61,53 @@ OpenSSL: C:\Program Files\OpenSSL-Win64
 
 ### Ubuntu
 
-Para compilar el núcleo y el adaptador Wayland nativo:
+To compile the native Wayland kernel and adapter:
 
 ```bash
 sudo apt update
 sudo apt install build-essential cmake pkg-config libdbus-1-dev
 ```
 
-Para habilitar además el modo entre equipos con TLS:
+To also enable the mode between computers with TLS:
 
 ```bash
 sudo apt install libssl-dev
 ```
 
-`libdbus-1-dev` aporta `dbus/dbus.h` y, en Linux multiarch,
-`dbus/dbus-arch-deps.h`; CMake los localiza con `pkg-config`. Si falta, CMake
-emite un aviso y compila el adaptador Linux como limitación explícita
-(`portal_client=unavailable`). No se instala nada automáticamente ni se usa
-`sudo` desde el binario.
+`libdbus-1-dev` provides `dbus/dbus.h` and, in Linux multiarch, `dbus/dbus-arch-deps.h`; CMake
+locates them with `pkg-config`. If missing, CMake issues a warning and compiles the Linux adapter as
+an explicit limitation (`portal_client=unavailable`). Nothing is installed automatically nor is
+`sudo` used from the binary.
 
-El agente no instaló paquetes globalmente. Para la verificación de este
-experimento se descargó localmente `libdbus-1-dev` y se extrajo en `/tmp`; ese
-camino es desechable. En una instalación normal basta el comando anterior.
+The agent did not install packages globally. For verification of this experiment `libdbus-1-dev` was
+downloaded locally and extracted in `/tmp`; that path is disposable. In a normal installation the
+previous command is sufficient.
 
-WSL sirve para compilar y ejecutar las auto-pruebas, no para probar el
-portapapeles: no hay sesión gráfica. Las pruebas de escritorio deben hacerse en
-una sesión Ubuntu real.
+WSL is used to compile and run auto-tests, not to test the clipboard: there is no graphical session.
+Desktop tests must be done in a real Ubuntu session.
 
-## 3. Compilación separada
+## 3. Separate compilation
 
-Hay tres comprobaciones distintas. No mezclar “compila” con “funciona en el
-escritorio”.
+There are three different checks. Do not mix “compile” with “works on the desktop”.
 
-### 3.1 Núcleo, sin adaptador nativo
+### 3.1 Core, No Native Adapter
 
-Sirve para verificar el modelo, el motor, el protocolo y el ejecutable sin
-depender de libdbus ni de OpenSSL:
+It serves to verify the model, engine, protocol and executable without relying on libdbus or
+OpenSSL:
 
 ```bash
-cd ~/ruta/a/OneInTwo/experiments/clipboard   # o /mnt/d/... si se compila en WSL
+cd ~/path/to/OneInTwo/experiments/clipboard   # or /mnt/d/... when building in WSL
 cmake -S . -B build/linux-core -DOIT_ENABLE_PORTAL=OFF -DOIT_ENABLE_PEER=OFF
 cmake --build build/linux-core -j
 ./build/linux-core/oneintwo-clipboard --self-test
 ```
 
-Resultado esperado: `checks=149 failures=0`, `SELF-TEST RESULT: PASS`, código
-de salida 0. El adaptador Linux compilado en este modo sólo informa su
-limitación; no finge lectura ni escritura.
+Expected result: `checks=149 failures=0`, `SELF-TEST RESULT: PASS`, output code 0. The Linux adapter
+compiled in this mode only reports its limitation; it does not fake reading or writing.
 
-### 3.2 Adaptador nativo Wayland
+### 3.2 Native Wayland adapter
 
-Con `libdbus-1-dev` instalado:
+With `libdbus-1-dev` installed:
 
 ```bash
 cmake -S . -B build/linux -DCMAKE_BUILD_TYPE=Release
@@ -125,19 +116,16 @@ cmake --build build/linux -j
 ./build/linux/oneintwo-clipboard --inventory
 ```
 
-La configuración debe mostrar:
+The settings must show:
 
 ```text
 -- xdg-desktop-portal backend enabled (libdbus: ...)
 ```
 
-Resultado esperado: `checks=151 failures=0`, `SELF-TEST RESULT: PASS`, y en el
-inventario `portal_client=compiled`. Si aparece un aviso de `libdbus-1` y
-`portal_client=unavailable`, el adaptador Wayland no se compiló; instalar
-`libdbus-1-dev` y volver a configurar.
+Expected result: `checks=151 failures=0`, `SELF-TEST RESULT: PASS`, and inventory `portal_client=compiled`. If a notice of `libdbus-1` and `portal_client=unavailable` appears, the Wayland adapter was not compiled; install `libdbus-1-dev` and re-configurate.
 
-Si no se puede instalar el paquete globalmente, una alternativa local (la usada
-aquí) es descargar y extraer el `.deb`:
+If the package cannot be installed globally, a local alternative (used here) is to download and
+extract the `.deb`:
 
 ```bash
 mkdir -p /tmp/oit-deps && cd /tmp/oit-deps
@@ -150,8 +138,8 @@ cmake -S /ruta/a/experiments/clipboard -B build/linux-local \
   -DDBUS_LIBRARY=/lib/x86_64-linux-gnu/libdbus-1.so.3
 ```
 
-La ruta multiarch y la versión del `.deb` pueden cambiar. No se copió ninguna
-cabecera al repositorio ni se modificó el sistema.
+The multiarch path and the version of the `.deb` can be changed. No headers were copied to the
+repository or changed the system.
 
 ### 3.3 Windows
 
@@ -163,26 +151,26 @@ $cmake = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\I
 & $cmake --build build/win --config Release
 ```
 
-Resultado esperado: `build\win\Release\oneintwo-clipboard.exe`, código de salida
-0. Es normal ver avisos C4996 sobre `fopen` en `tls_channel.cpp`; no impiden la
-compilación.
+Expected result: `build\win\Release\oneintwo-clipboard.exe`, output code
+0. It is normal to see C4996 notices about `fopen` in `tls_channel.cpp`; they do not prevent
+   compilation.
 
-Antes de ejecutar en esa consola:
+Before running on that console:
 
 ```powershell
 $env:PATH = "C:\Program Files\OpenSSL-Win64\bin;$env:PATH"
 ```
 
-Si la ruta de Visual Studio cambia, se puede localizar con:
+If the Visual Studio path changes, it can be located with:
 
 ```powershell
 & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
 ```
 
-## 4. Comprobaciones aisladas (reproducibles)
+## 4. Reproducible isolated checks
 
-Estas órdenes **no** leen ni escriben el portapapeles real, no abren sockets,
-no abren el bus de sesión y no capturan entrada. Son las que ya se ejecutaron:
+These commands **do not**read or write the actual clipboard, do not open sockets, do not start the
+session bus and do not capture input. They are the ones already executed:
 
 ```powershell
 .\build\win\Release\oneintwo-clipboard.exe --self-test
@@ -195,7 +183,7 @@ no abren el bus de sesión y no capturan entrada. Son las que ya se ejecutaron:
 ./build/linux/oneintwo-clipboard --inventory
 ```
 
-Salida esperada clave en Linux con portal:
+Key expected output on Linux with portal:
 
 ```text
 PASS text_validation
@@ -206,32 +194,17 @@ checks=151 failures=0
 SELF-TEST RESULT: PASS
 ```
 
-`--self-test` usa cadenas sintéticas y un adaptador falso. Comprueba UTF-8,
-límites, saltos de línea, orden lógico, eco, duplicados, generaciones,
-concurrencia y tramas malformadas. En la compilación con portal añade
-`portal_message_helpers`, que construye y parsea mensajes D-Bus en memoria:
-diccionario `a{sv}`, `mime_types`, `Response`, `SelectionOwnerChanged` y
-`SelectionTransfer`. No abre una conexión ni solicita permisos.
+`--self-test` uses synthetic chains and a fake adapter. Check UTF-8, boundaries, line breaks, logical order, echo, duplicates, generations, continuance and malformed plots. In the compilation with portal adds `portal_message_helpers`, which builds and parses D-Bus messages in memory: dictionary `a{sv}`, `mime_types`, `Response`, `SelectionOwnerChanged` and `SelectionTransfer`. It does not open a connection or request permissions.
 
-Sin argumentos sólo se muestra la ayuda; no se inicializa ningún servicio.
-`--inventory` en Windows muestra `backend=win32-clipboard`, capacidades
-`read=yes write=yes watch=yes independent_of_input=yes` y `tls=openssl`.
-En Linux Wayland con portal compilado muestra
-`backend=xdg-desktop-portal-clipboard`, `portal_client=compiled` y capacidades
-declaradas. Esas capacidades describen el adaptador, **no** una concesión ya
-negociada: el diálogo y el resultado de `Start` sólo se evalúan al crear el
-puerto (`--read-text`, `--publish-*`, `--watch` o una sesión entre equipos).
-En Linux X11 muestra `backend=linux-x11-unimplemented`; en una sesión sin
-gráficos, `linux-no-graphical-session`.
+Without arguments only the help is shown; no service is initialized. `--inventory` on Windows displays `backend=win32-clipboard`, `read=yes write=yes watch=yes independent_of_input=yes` and `tls=openssl` capabilities. On Linux Wayland with compiled portal shows `backend=xdg-desktop-portal-clipboard`, `portal_client=compiled` and declared capabilities. Those capabilities describe the adapter, **no** a concession already negotiated: the dialogue and the result of `Start` are only evaluated when creating the port (`--read-text`, `--publish-*`, `--watch` or a session between computers). On Linux X11 shows `backend=linux-x11-unimplemented`; in a session without graphics, `linux-no-graphical-session`.
 
-## 5. Validación manual en Ubuntu Wayland
+## 5. Manual validation in Ubuntu Wayland
 
-Requisitos: sesión gráfica Wayland real, `xdg-desktop-portal` y el backend del
-escritorio (por ejemplo `xdg-desktop-portal-gnome`), y el binario compilado con
-`libdbus-1-dev`. No se debe probar con el experimento en una sesión X11 ni
-forzar `WAYLAND_DISPLAY` sobre X11.
+Requirements: real Wayland graphic session, `xdg-desktop-portal` and desktop backend (e.g.
+`xdg-desktop-portal-gnome`), and binary compiled with `libdbus-1-dev`. You should not test the
+experiment in a X11 session or force `WAYLAND_DISPLAY` over X11.
 
-Primero registrar el entorno, sin abrir ninguna sesión:
+First register the environment, without opening any session:
 
 ```bash
 echo "session=$XDG_SESSION_TYPE desktop=$XDG_CURRENT_DESKTOP wayland=$WAYLAND_DISPLAY"
@@ -240,136 +213,114 @@ dpkg -l | grep -E 'xdg-desktop-portal|gnome-shell' | head -20
 ./build/linux/oneintwo-clipboard --inventory
 ```
 
-Anotar la versión de GNOME, la versión de `xdg-desktop-portal-gnome` y el
-backend. La mera presencia de la interfaz en D-Bus no concede acceso.
+Write down the GNOME version, the `xdg-desktop-portal-gnome` version and the backend. The mere
+presence of the interface in D-Bus does not grant access.
 
-1. **Lectura.** Copiar un texto sintético conocido en un editor Wayland y
-   ejecutar:
+1. **Reading.** Copy a known synthetic text into a Wayland editor and run:
 
    ```bash
    ./build/linux/oneintwo-clipboard --read-text --show-content
    ```
 
-   Debe aparecer el diálogo de RemoteDesktop. En GNOME 46:
-   - “Allow Remote Clipboard” debe quedar activado (el adaptador llama a
-     `RequestClipboard` antes de `Start`);
-   - “Allow Remote Interaction” debe activarse para habilitar Share; el
-     adaptador ha pedido `SelectDevices(types=0)`, así que ese interruptor **no
-     concede teclado, ratón ni táctil**. Si el portal devolviera un mask distinto
-     de cero, el adaptador rechaza la sesión y termina con error;
-   - no seleccionar una fuente de pantalla para “desbloquear” Share: este
-     experimento sólo comparte texto y no necesita captura de pantalla.
+   The RemoteDesktop dialog must appear. In GNOME 46:
+   - “Allow Remote Clipboard” must be activated (the adapter calls `RequestClipboard` before
+     `Start`);
+   - “Allow Remote Interaction” must be enabled to enable Share; the adapter has ordered
+     `SelectDevices(types=0)`, so that switch **does not grant keyboard, mouse or touch**. If the
+     portal returns a mask other than zero, the adapter rejects the session and ends with error;
+   - do not select a screen source to “unlock” Share: this experiment only shares text and does not
+     need screen capture.
 
-   Tras aprobar, comparar el contenido. Si se cancela, debe informarse
-   `Denied`/`clipboard unavailable`; no debe abrirse un fallback X11.
+   After approval, compare the content. If cancelled, `Denied`/`clipboard unavailable` should be
+   reported; a X11 failback should not be opened.
 
-2. **Escritura y pegado.** Ejecutar:
+2. **Write and paste.**Run:
 
    ```bash
-   ./build/linux/oneintwo-clipboard --publish-text "Hola ñ 😀" --show-content
+   ./build/linux/oneintwo-clipboard --publish-text "Hello 🌍 😀" --show-content
    ```
 
-   Aprobar el diálogo y pegar en un editor Wayland con Ctrl+V. Debe aparecer el
-   texto. En Wayland el proceso conserva la oferta y atiende las solicitudes
-   de pegado durante un máximo de **60 segundos después de autorizar**; pegar
-   dentro de ese intervalo. Ctrl+C termina antes. Al salir se retira la oferta.
-   `readback=match` comprueba la copia interna del adaptador y **no demuestra
-   un pegado real**: hay que observar el editor.
-   El protocolo del portal no transporta el marcador privado de Windows;
-   la salida lo indica y el motor usa la huella de contenido como respaldo de
-   eco. Verificar `readback=match`.
+   Approve the dialog and paste into a Wayland editor with Ctrl+V. The text must appear. In Wayland the process retains the offer and handles pasting requests for a maximum of **60 seconds after authorizing**; paste within that interval. Ctrl+C ends before. When the offer is removed. `readback=match` checks the internal copy of the adapter and **does not show a real pasting**: the editor must be observed. The portal protocol does not transport the private Windows marker; the output indicates it and the engine uses the content footprint as an echo backup. Verify `readback=match`.
 
-3. **Observación en segundo plano.** Ejecutar:
+3. **Remark in the background.** Execute:
 
    ```bash
    ./build/linux/oneintwo-clipboard --watch --show-content
    ```
 
-   Con la ventana del experimento inactiva, copiar texto en otra aplicación
-   Wayland. Debe aparecer un `change #1`; comprobar que no hay eco del texto
-   publicado por el propio experimento. Detener con Ctrl+C. No debe capturarse
-   ninguna pulsación: el proceso sólo recibe señales del portal.
+   With the experiment window inactive, copy text into another Wayland application. A `change #1`
+   must appear; check that there is no echo of the text published by the experiment itself. Stop
+   with Ctrl+C. No pulsation must be captured: the process only receives signals from the portal.
 
-4. **Permiso denegado.** Repetir la lectura y pulsar Cancelar en el diálogo.
-   Registrar el estado y el código de salida. No debe leerse el portapapeles ni
-   iniciarse otro backend.
+4. **Permission denied.**Repeat reading and press Cancel in dialog. Register status and output code.
+   Do not read clipboard or start another backend.
 
-5. **Portal ausente o no compatible.** En una sesión sin
-   `org.freedesktop.portal.Desktop` o sin la interfaz Clipboard, el puerto debe
-   fallar con `unavailable`/`not supported`, no con éxito simulado. No se debe
-   arreglar instalando un portal distinto durante esta prueba.
+5. **Portal missing or not supported.**In a session without `org.freedesktop.portal.Desktop` or
+   without the Clipboard interface, the port must fail with `unavailable`/`not supported`, not
+   simulated successfully. It must not be fixed by installing a different portal during this test.
 
-6. **X11.** En una sesión X11 real, `--inventory` debe mostrar
-   `linux-x11-unimplemented` y los modos de portapapeles deben terminar con
-   `clipboard unavailable`. Esto es una ausencia de implementación del
-   prototipo, no una prueba de que X11 no permita acceder al portapapeles. No se
-   usa Wayland como sustituto silencioso en X11.
+6. **X11.** In a real X11 session, `--inventory` should report `linux-x11-unimplemented`, and clipboard modes should exit with `clipboard unavailable`. The prototype lacks an X11 implementation. This result says nothing about X11's clipboard capabilities. The prototype never falls back to Wayland under X11.
 
-7. **Seguridad y datos.** Usar sólo texto sintético. No pegar secretos. El
-   diálogo del portal y el contenido del portapapeles pertenecen al escritorio;
-   no se registran en los logs salvo `--show-content`, que es explícito.
+7. **Security and data.** Use only synthetic text. Do not paste secrets. The portal dialog and
+   clipboard content belong to the desktop; they are not recorded in logs except `--show-content`,
+   which is explicit.
 
-Condiciones de éxito: el texto se lee y se pega; la observación detecta una
-copia; el adaptador no solicita entrada ni captura pantalla; el permiso denegado
-se informa; X11 y portal ausente no se presentan como éxito. Cualquier fallo se
-registra con la versión exacta del escritorio y el mensaje, no se convierte en
-una conclusión de viabilidad.
+Success conditions: the text is read and pasted; the observation detects a copy; the adapter does
+not request input or screenshot; permission denied is reported; X11 and missing portal are not
+presented as success. Any bug is recorded with the exact version of the desktop and message, does
+not become a feasibility conclusion.
 
-## 6. Pruebas locales en Windows
+## 6. Local tests on Windows
 
-Ejecutar en una consola con OpenSSL en `PATH`. Anotar cada observación en la
-matriz de `RESULTS.md`. No pegar secretos reales.
+Run on a console with OpenSSL in `PATH`. Write down each observation in the `RESULTS.md` matrix. Do
+not paste real secrets.
 
-1. **Inventario.** Ejecutar `--inventory` y guardar las líneas `platform`,
-   `windows_version`, `session_id`, `backend` y `limitation`.
-2. **Publicar un archivo.** Crear una carpeta desechable y ejecutar:
+1. **Inventory.**Run `--inventory` and save the `platform`, `windows_version`,`session_id`,`backend`
+   and `limitation` lines.
+2. **Publish a file.** Create a disposable folder and run:
 
    ```powershell
    .\build\win\Release\oneintwo-clipboard.exe --emit-samples "$env:TEMP\oneintwo-clipboard-test"
    .\build\win\Release\oneintwo-clipboard.exe --publish-file "$env:TEMP\oneintwo-clipboard-test\accents.txt" --show-content
    ```
 
-   Esperado: `written bytes=47 ...`, `readback=match`, y el contenido entre
-   marcadores. Abrir Notepad y pegar con Ctrl+V.
-3. **Texto sintético por argumento.** Ejecutar
-   `--publish-text "Hola ñ 😀" --show-content` y pegar en Notepad. En `cmd.exe`
-   los emoji pueden depender de la consola; si hay problemas, usar
+   Expected: `written bytes=47 ...`, `readback=match`, and contents between bookmarks. Open Notepad
+   and paste with Ctrl+V.
+3. **Synthetic text by argument.** Execute `--publish-text "Hello 🌍 😀" --show-content` and paste into
+   Notepad. In `cmd.exe` emoji can depend on the console; if there are problems, use
    `--publish-file`.
-4. **Leer.** Copiar un texto conocido desde Notepad, ejecutar `--read-text`
-   (sin `--show-content`) y comprobar que sólo muestra metadatos. Repetir con
-   `--read-text --show-content` y comparar el contenido.
-5. **Observar en segundo plano.** Ejecutar `--watch --show-content`, cambiar a
-   Notepad, copiar una línea y volver a la consola. Esperado: un solo
-   `change #1` con `marker=absent`; no debe repetirse indefinidamente. Detener
-   con Ctrl+C.
-6. **Otra aplicación enfocada.** Repetir el paso 5 copiando desde otro programa.
-   La ventana del experimento no necesita estar activa.
-7. **Sin captura de entrada.** Este prototipo no incluye captura ni inyección de
-   teclado/ratón; no hay un modo que la active.
-8. **Caso de fallo esperado.** Con otro programa manteniendo el portapapeles
-   abierto, `--read-text` puede devolver `busy` tras los reintentos. Registrar
-   el mensaje exacto; no presentarlo como éxito.
-9. **Formato no textual.** Copiar una imagen y ejecutar `--watch`: no debe
-   aparecer un cambio de texto ni borrarse el portapapeles.
+4. **Read.** Copy a known text from Notepad, run `--read-text` (without `--show-content`) and check
+   that it only displays metadata. Repeat with `--read-text --show-content` and compare the content.
+5. **Watch in the background.** Run `--watch --show-content`, switch to Notepad, copy a line and
+   return to the console. Expected: a single `change #1` with `marker=absent`; should not be
+   repeated indefinitely. Stop with Ctrl+C.
+6. **Another focused application.**Repeat step 5 by copying from another program.The experiment
+   window does not need to be active.
+7. **No input capture.**This prototype does not include capture or injection of keyboard or mouse input; there
+   is no mode to activate it.
+8. **Expected failure case.** With another program keeping the clipboard open, `--read-text` can
+   return `busy` after retry. Register the exact message; do not present it as a success.
+9. **Non-textual format.** Copy an image and run `--watch`: no text change or clipboard should
+   appear.
 
-## 7. Conexión entre dos equipos
+## 7. Connection between two teams
 
-Alcance real de esta entrega:
+Actual scope of this delivery:
 
-- **Windows ↔ Windows:** el adaptador Windows está implementado; el canal TLS
-  está compilado en Windows, pero la ejecución manual sigue pendiente.
-- **Windows ↔ Ubuntu:** el adaptador Wayland puede leer/escribir si el portal
-  concede permiso. En Linux falta compilar TLS en este entorno (no hay
-  `libssl-dev`), así que la conexión completa **no está verificada**. Instalar
-  `libssl-dev`, recompilar y comprobar `tls=openssl` antes de probar.
-- **Ubuntu → Windows:** el adaptador Wayland permite leer y publicar, pero no
-  se ha ejecutado; no se declara funcionando hasta la prueba manual.
-- **Ubuntu → Ubuntu:** igualmente pendiente de prueba manual.
+- **Windows ↔ Windows:** the Windows adapter is implemented; the TLS channel is compiled on Windows,
+  but manual execution is still pending.
+- **Windows ↔ Ubuntu:** Wayland adapter can leer/escribir if the portal grants permission. In Linux
+  it is missing to compile TLS in this environment (there is no `libssl-dev`), so the full
+  connection **is not verified**. Install `libssl-dev`, recompile and check `tls=openssl` before
+  testing.
+- **Ubuntu → Windows:**The Wayland adapter allows reading and publishing, but has not been executed;
+  it is not declared working until manual testing.
+- **Ubuntu → Ubuntu:** equally pending manual testing.
 
-### 7.1 Certificados y huellas
+### 7.1 Certificates and fingerprints
 
-Crear una carpeta fuera del repositorio (o usar `certificates/`, ya ignorada).
-Cada equipo genera su propio par; `alice`/`bob` son ejemplos.
+Creating a folder outside the repository (or using `certificates/`, already ignored). Each computer
+generates its own pair; `alice`/`bob` are examples.
 
 ```bash
 mkdir -p certificates
@@ -381,17 +332,15 @@ openssl x509 -in alice.crt -noout -fingerprint -sha256
 chmod 600 alice.key
 ```
 
-En Windows, usar el `openssl.exe` de `C:\Program Files\OpenSSL-Win64\bin` y
-proteger la clave con los permisos del usuario. **No compartir `.key`.**
-Intercambiar únicamente el certificado público `.crt` del otro equipo por un
-medio que permita verificar su procedencia (por ejemplo, comparar la huella por
-voz). El programa imprime `local_certificate_sha256` y
-`peer_certificate_sha256`; deben coincidir con las huellas de OpenSSL.
+On Windows, use the `openssl.exe` of `C:\Program Files\OpenSSL-Win64\bin` and protect the key with
+user permissions. **Do not share `.key`.** Exchange only the public certificate `.crt` of the other
+computer by a means that allows verification of its provenance (e.g., compare the fingerprint by
+voice).The program prints `local_certificate_sha256` and `peer_certificate_sha256`; they must match
+OpenSSL footprints.
 
-### 7.2 Iniciar el servidor y el cliente
+### 7.2 Start server and client
 
-En el equipo A (servidor), con puerto explícito y firewall limitado a la red
-privada:
+In team A (server), with explicit port and firewall limited to the private network:
 
 ```powershell
 .\build\win\Release\oneintwo-clipboard.exe --serve --bind 0.0.0.0 --port 47831 `
@@ -399,7 +348,7 @@ privada:
   --peer-cert certificates\bob.crt --show-content
 ```
 
-En el equipo B (cliente Ubuntu):
+On team B (client Ubuntu):
 
 ```bash
 ./build/linux/oneintwo-clipboard --connect --host 192.168.1.50 --port 47831 \
@@ -407,92 +356,84 @@ En el equipo B (cliente Ubuntu):
   --peer-cert certificates/alice.crt --show-content
 ```
 
-Sustituir la IP por la del servidor. No hay descubrimiento ni puerto por
-defecto. Si Ubuntu actúa como servidor, invertir los roles y comprobar que
-`--inventory` muestra `tls=openssl`; en este entorno esa compilación no se
-verificó.
+Replace IP with server. There is no discovery or default port. If Ubuntu acts as a server, reverse
+roles and check that `--inventory` displays `tls=openssl`; in this environment that compilation was
+not verified.
 
-Al arrancar en Ubuntu, el adaptador del portal puede abrir el diálogo antes de
-que el canal TLS quede listo. Aprobar la sesión de RemoteDesktop con
-`devices=0`; no seleccionar pantalla ni habilitar entrada. Si el portal deniega
-el acceso, el canal puede seguir estableciéndose, pero el extremo Ubuntu
-rechazará texto con `unavailable`.
+When booting in Ubuntu, the portal adapter can open the dialog before the TLS channel is ready.
+Approve the RemoteDesktop session with `devices=0`; do not select screen or enable input. If the
+portal refuses access, the channel can continue to be set, but the Ubuntu end will reject text with
+`unavailable`.
 
-### 7.3 Transferencia en ambos sentidos
+### 7.3 Transfer in both directions
 
-1. Con la sesión activa, copiar texto en A y pegarlo en un editor de B. En A
-   debe aparecer `local copy captured ... sent`; en B `received update` y
-   `remote update applied`.
-2. Repetir en sentido B → A. En B el portal debe haber concedido lectura; en A
-   el portapapeles Windows se escribe de forma nativa.
-3. Para inyectar muestras sin depender del editor, ejecutar en una segunda
-   terminal del equipo que envía:
+1. With the session active, copy text to A and paste it into a B editor. In A `local copy captured
+   ... sent` must appear; in B `received update` and `remote update applied`.
+2. Repeat in sense B → A. In B the portal must have granted reading; in A the Windows clipboard is
+   written natively.
+3. To inject samples without relying on the editor, run on a second terminal of the sending
+   computer:
 
    ```powershell
    .\build\win\Release\oneintwo-clipboard.exe --publish-file "$env:TEMP\oneintwo-clipboard-test\emoji.txt"
    ```
 
-   El proceso de publicación no escribe el marcador interno, por lo que el
-   observador de la sesión lo trata como copia del usuario y lo reenvía. Pegar en
-   el otro equipo y comprobar acentos, emoji y saltos de línea.
-4. Copiar rápidamente tres textos distintos. Esperado: gana la última operación
-   según el contador lógico; no hay bucles; los ecos aparecen como `echo
-   suppressed`.
-5. Detener un extremo con Ctrl+C. El otro debe terminar la sesión e informar
-   del cierre.
-6. Reconectar sin copiar nada. Esperado: **no** se reenvía el texto antiguo.
-7. Probar un certificado incorrecto en `--peer-cert`: el handshake debe fallar
-   por la fijación de huella.
+   The publication process does not write the internal marker, so the session observer treats it as
+   a copy of the user and forwards it. Paste on the other team and check accents, emoji and line
+   breaks.
+4. Quickly copy three different texts. Expected: wins the last operation according to the logical
+   counter; no loops; echoes appear as `echo suppressed`.
+5. Stop one end with Ctrl+C. The other must end the session and report the shutdown.
+6. Reconnect without copying anything. Expected: **no** old text is forwarded.
+7. Test an incorrect certificate in `--peer-cert`: the handshake must fail by fixing the footprint.
 
-La transferencia entre equipos no modifica el veredicto de P2 por sí sola: hay
-que registrar si Ubuntu leyó, publicó y observó el portapapeles real, y si el
-permiso del portal fue concedido o denegado.
+The inter-team transfer does not alter P2's verdict on its own: it must be recorded if Ubuntu read,
+published and observed the actual clipboard, and whether the portal's permission was granted or
+denied.
 
-## 8. Detener y restaurar
+## 8. Stop and restore
 
 - `--watch`, `--serve` y `--connect`: Ctrl+C.
 - `--read-text`, `--inventory`, `--self-test` y `--emit-samples`: terminan solos.
-- `--publish-text` y `--publish-file`: en Windows terminan tras publicar;
-  en Wayland atienden la oferta durante hasta 60 segundos y después terminan.
-  Ctrl+C permite terminar antes.
-- Al terminar un modo Wayland se cierra la sesión del portal. El prototipo no
-  crea servicios, claves de registro, reglas de firewall ni tareas de inicio.
-- Si se creó una regla de firewall para la prueba, retirarla manualmente.
-- Borrar `certificates/` y la carpeta de muestras. Los directorios `build/` son
-  artefactos locales ignorados.
-- En Windows, el texto publicado permanece en el portapapeles tras salir;
-  sustituirlo o borrarlo con el uso normal del escritorio.
-- En Wayland, el permiso del portal puede volver a solicitarse en cada proceso;
-  no hay confianza persistente que revocar en este prototipo.
+- `--publish-text` and `--publish-file`: in Windows they end after publishing; in Wayland they serve
+  the offer for up to 60 seconds and then they finish. Ctrl+C allows you to finish earlier.
+- Upon completion of Wayland mode, the portal session is closed. The prototype does not create
+  services, registration keys, firewall rules or startup tasks.
+- If a firewall rule was created for the test, remove it manually.
+- Delete `certificates/` and sample folder. `build/` directories are local artifacts ignored.
+- On Windows, the published text remains on the clipboard after exiting; replace it or delete it
+  with normal desktop usage.
+- In Wayland, the permission of the portal can be re-requested in each process; there is no
+  persistent confidence to revoke in this prototype.
 
-## 9. Matriz para el usuario
+## 9. User matrix
 
-Rellenar sólo con observaciones reales. No convertir una fila pendiente en
-éxito por haber compilado. `No ejecutado` es el valor inicial correcto.
+Fill with real observations only. Do not convert a pending row to success by having compiled it. `No
+ejecutado` is the correct initial value.
 
-### 9.1 Pruebas locales por sistema
+### 9.1 Local system testing
 
-| Sistema y sesión | Leer | Escribir | Observar en segundo plano | Sin captura de entrada | Permisos observados | Resultado |
+| System and Session | Read | Write | Watch in the background | No input capture | Observed permissions | Result |
 | --- | --- | --- | --- | --- | --- | --- |
-| Windows 10/11 (indicar versión) | Pendiente | Pendiente | Pendiente | Pendiente | Ninguno del portal; posible `busy` | No ejecutado |
-| Ubuntu + GNOME Wayland | Implementado; pendiente manual | Implementado; pendiente manual | Implementado; pendiente manual | Sí por diseño; verificar `devices=0` | RemoteDesktop + Clipboard; Share y “Allow Remote Interaction” | No ejecutado |
-| Ubuntu + X11 | No implementado | No implementado | No implementado | No aplica | No solicitados | No ejecutado |
+| Windows 10/11 (indicate version) | Pending | Pending | Pending | Pending | None of the portal; possible `busy` | Not run |
+| Ubuntu + GNOME Wayland | Implemented; manual check pending | Implemented; manual check pending | Implemented; manual check pending | Yes per design; verify `devices=0` | RemoteDesktop + Clipboard; Share and “Allow Remote Interaction” | Not run |
+| Ubuntu + X11 | Not implemented | Not implemented | Not implemented | Not applicable | None requested | Not run |
 
-### 9.2 Pruebas entre equipos
+### 9.2 Inter-equipment testing
 
-| Origen → destino | Texto | Estado esperado | Observado |
+| Source → destination | Text | Expected result | Observed result |
 | --- | --- | --- | --- |
-| Windows → Windows | Bidireccional | Debe funcionar si TLS y pegado son correctos | Pendiente |
-| Windows → Ubuntu | Bidireccional | Portal + TLS Linux; permiso manual | Pendiente |
-| Ubuntu → Windows | Bidireccional | Portal + TLS Linux; permiso manual | Pendiente |
-| Ubuntu → Ubuntu | Bidireccional | Portal en ambos extremos; permiso manual | Pendiente |
+| Windows → Windows | Bidireccional | Expected to work when both TLS and pasting succeed | Pending |
+| Windows → Ubuntu | Bidireccional | Portal + TLS Linux; permiso manual | Pending |
+| Ubuntu → Windows | Bidireccional | Portal + TLS Linux; permiso manual | Pending |
+| Ubuntu → Ubuntu | Bidireccional | Portal at both ends; manual permission | Pending |
 
-## 10. Restricciones y fuentes primarias
+## 10. Constraints and primary sources
 
 ### Portal oficial
 
-La interfaz Clipboard no crea una sesión propia: amplía una sesión de
-RemoteDesktop o InputCapture. El orden implementado es:
+The Clipboard interface does not create a session of its own: it expands a session of RemoteDesktop
+or InputCapture. The order implemented is:
 
 ```text
 RemoteDesktop.CreateSession
@@ -504,78 +445,67 @@ Clipboard.SetSelection / SelectionRead / SelectionWrite / SelectionWriteDone
 
 Fuentes:
 
-- Clipboard (v1): <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Clipboard.html>
-- RemoteDesktop (v2): <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.RemoteDesktop.html>
-- XML de Clipboard: <https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/main/data/org.freedesktop.portal.Clipboard.xml>
-- XML de RemoteDesktop: <https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/main/data/org.freedesktop.portal.RemoteDesktop.xml>
+- Clipboard (v1):
+  <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Clipboard.html>
+- RemoteDesktop (v2):
+  <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.RemoteDesktop.html>
+- XML de Clipboard:
+  <https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/main/data/org.freedesktop.portal.Clipboard.xml>
+- XML de RemoteDesktop:
+  <https://raw.githubusercontent.com/flatpak/xdg-desktop-portal/main/data/org.freedesktop.portal.RemoteDesktop.xml>
 
-`SelectDevices` documenta `types` como un bitmask y su valor por defecto es
-“todos”; este adaptador envía explícitamente `0`. `Start` devuelve `devices` y
-`clipboard_enabled`; el adaptador exige `clipboard_enabled=true` y rechaza
-cualquier `devices` distinto de cero.
+`SelectDevices` documents `types` as a bitmask and its default value is “all”; This adapter explicitly sends `0`. `Start` returns `devices` and `clipboard_enabled`; the adapter requires `clipboard_enabled=true` and rejects any `devices` other than zero.
 
-### GNOME 46: el interruptor que habilita Share
+### GNOME 46: the switch that enables Share
 
 En `xdg-desktop-portal-gnome` 46.0, `remotedesktopdialog.c`:
 
-- `update_button_sensitivity()` sólo habilita Share si hay una fuente de
-  pantalla seleccionada o si está activo “Allow Remote Interaction”;
-- `get_selected_device_types()` devuelve `dialog->device_types` cuando ese
-  interruptor está activo, y `dialog->device_types` es el mask recibido por
-  `SelectDevices`. Con `types=0`, el resultado sigue siendo 0;
-- `button_clicked()` lee “Allow Remote Clipboard” y lo envía como
-  `clipboard_enabled`; `clipboard_requested` hace visible y activa ese
-  interruptor.
+- `update_button_sensitivity()` only enables Share if a screen source is selected or if “Allow
+  Remote Interaction” is active;
+- `get_selected_device_types()` returns `dialog->device_types` when that switch is active, and `dialog->device_types` is the mask received by `SelectDevices`. With `types=0`, the result remains 0;
+- `button_clicked()` reads “Allow Remote Clipboard” and sends it as `clipboard_enabled`;
+  `clipboard_requested` makes that switch visible and activates.
 
-Fuente:
-<https://gitlab.gnome.org/GNOME/xdg-desktop-portal-gnome/-/raw/46.0/src/remotedesktopdialog.c>
-y <https://gitlab.gnome.org/GNOME/xdg-desktop-portal-gnome/-/raw/46.0/src/clipboard.c>.
+Source:
+<https://gitlab.gnome.org/GNOME/xdg-desktop-portal-gnome/-/raw/46.0/src/remotedesktopdialog.c> and
+<https://gitlab.gnome.org/GNOME/xdg-desktop-portal-gnome/-/raw/46.0/src/clipboard.c>.
 
-Por tanto, en GNOME 46 el caso “sólo portapapeles” es una restricción de la
-interfaz del diálogo: hay que activar “Allow Remote Interaction” para que Share
-se habilite, pero **no se concede entrada** si el mask es 0. El adaptador no
-activa entrada ni selecciona pantalla; si un portal/escritorio devuelve un mask
-distinto de cero, se niega a continuar. Otros escritorios y versiones pueden
-presentar diálogos distintos; no se han probado aquí.
+Therefore, in GNOME 46 the case “only clipboard” is a restriction of the dialog interface: you have
+to activate “Allow Remote Interaction” in order for Share to be enabled, but **no entry is granted**
+if the mask is 0. The adapter does not enable input or select screen; if a portal/escritorio returns
+a mask other than zero, it refuses to continue. Other desktops and versions can present different
+dialogues; they have not been tested here.
 
 ### X11
 
-El backend X11 **no está implementado** en este prototipo. La detección de una
-sesión X11 produce `linux-x11-unimplemented` y no se usa el portal Wayland como
-sustituto. Implementarlo requeriría `libX11`, propiedad de selección y
-`SelectionRequest`/`SelectionNotify`, además de una decisión de producto sobre
-permisos. No se afirma que X11 lo haga imposible.
+The X11 **backend is not implemented** in this prototype. The detection of a X11 session produces `linux-x11-unimplemented` and the Wayland portal is not used as a substitute. Implementing it would require `libX11`, selection property and `SelectionRequest`/`SelectionNotify`, in addition to a product decision on permits. It is not claimed that X11 makes it impossible.
 
-## 11. Limitaciones conocidas
+## 11. Known limitations
 
-- **Wayland no validado en escritorio.** El código compila y los mensajes
-  D-Bus se prueban en memoria, pero no se ha abierto un portal real.
-- **TLS Linux no compilado aquí.** WSL no tiene `libssl-dev`; no se afirma que
-  la compilación Linux con OpenSSL funcione hasta repetirla con el paquete.
-- **Portal y permisos.** El diálogo, la identificación de la aplicación y la
-  política de cada escritorio pueden denegar o limitar la sesión. No hay
-  confianza persistente ni se reutiliza una sesión entre procesos.
-- **Sin captura de entrada.** No se llama a `Notify*` ni a `ConnectToEIS`; no
-  se captura pantalla. El objetivo es sólo texto.
-- **Sólo texto.** Imágenes, formato enriquecido, archivos e historial quedan
-  fuera. Límite de 256 KiB; el texto vacío y los formatos no textuales se
-  ignoran; NUL se rechaza.
-- **Finales de línea.** El modelo usa LF; Windows escribe CRLF y normaliza al
-  leer. Un CR suelto se conserva.
-- **Marcador y eco.** El protocolo del portal no tiene el formato privado de
-  Windows. El motor suprime el eco por huella de contenido durante 1,5 s; una
-  copia humana idéntica en esa ventana puede suprimirse. Es una heurística.
-- **Windows y privilegios.** Aplicaciones elevadas/UIPI no están cubiertas. Otro
-  proceso puede mantener el portapapeles ocupado; se reintenta y luego se
-  informa `busy`.
-- **Sin tiempos de espera TLS.** Un par que conecte y no complete el handshake
-  puede bloquear la aceptación hasta Ctrl+C.
+- **Wayland not validated on desktop.** The code compiles and D-Bus messages are tested in memory,
+  but no real portal has been opened.
+- **TLS Linux not compiled here.** WSL does not have `libssl-dev`; it is not stated that the Linux
+  compilation with OpenSSL works until repeated with the package.
+- **Portal and permissions.** Dialogue, application identification, and desktop policy may deny or
+  limit the session. There is no persistent confidence or reuse of a session between processes.
+- **No input capture.**Do not call `Notify*` or `ConnectToEIS`; do not capture screen.The target is
+  text only.
+- ** Text only.** Images, enriched format, files and history are left out. 256 KiB limit; empty text
+  and non-textual formats are ignored; NUL is rejected.
+- **End of line.** The model uses LF; Windows writes CRLF and normalizes when reading. A loose CR is
+  preserved.
+- **Marker and echo.** The portal protocol does not have the private format of Windows. The engine
+  suppresses the echo by content footprint during 1,5 s; an identical human copy in that window can
+  be deleted. It is a heuristic.
+- **Windows and privileges.** elevadas/UIPI applications are not covered. Another process can keep
+  the clipboard occupied; it is retryed and then `busy` reported.
+- **No waiting times TLS.** A pair that connects and does not complete the handshake can block
+  acceptance up to Ctrl+C.
 
-## 12. Cómo registrar un fallo
+## 12. How to register a bug
 
-Anotar: fecha, sistema y sesión, versión de Ubuntu/GNOME, versión de
-`xdg-desktop-portal`/backend, comando exacto, resultado esperado, resultado
-observado, código de salida y las líneas de log relevantes. No incluir contenido
-privado del portapapeles ni claves. Añadir la fila correspondiente en
-`RESULTS.md`; una limitación documentada no es un fallo observado, y una
-compilación correcta no demuestra acceso al escritorio.
+Write down: date, system and session, version of Ubuntu/GNOME, version of
+`xdg-desktop-portal`/backend, exact command, expected result, observed result, output code and
+relevant log lines. Do not include private clipboard content or keys. Add the corresponding row in
+`RESULTS.md`; a documented limitation is not an observed fault, and a correct compilation does not
+show access to the desktop.

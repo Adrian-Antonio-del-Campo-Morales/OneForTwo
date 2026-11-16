@@ -1,6 +1,6 @@
-// Responsabilidad: sockets TCP y TLS 1.2/1.3 mediante OpenSSL. La identidad del
-// par se comprueba fijando la huella SHA-256 de su certificado; no se acepta una
-// huella distinta ni se cae a texto plano.
+// Responsibility: sockets TCP and TLS 1.2/1.3 by OpenSSL. The identity of the
+// the mark SHA-256 of your certificate is checked; no
+// different footprint nor falls to plain text.
 #include "core/net.hpp"
 
 #include <algorithm>
@@ -47,11 +47,11 @@ void ensureNetInit() {
         WSADATA data;
         return WSAStartup(MAKEWORD(2, 2), &data) == 0;
     }();
-    if (!ok) throw Error("no se pudo inicializar Winsock");
+    if (!ok) throw Error("could not initialise Winsock");
 }
 std::string lastNetError() {
     char buffer[64] = {0};
-    std::snprintf(buffer, sizeof(buffer), "error de red %d", WSAGetLastError());
+    std::snprintf(buffer, sizeof(buffer), "Network error %d", WSAGetLastError());
     return buffer;
 }
 bool wouldBlock() {
@@ -63,7 +63,7 @@ using Socket = int;
 constexpr Socket kInvalidSocket = -1;
 void closeSocket(Socket s) { ::close(s); }
 void ensureNetInit() {}
-std::string lastNetError() { return std::string("error de red: ") + std::strerror(errno); }
+std::string lastNetError() { return std::string("network error: ") + std::strerror(errno); }
 bool wouldBlock() { return errno == EINPROGRESS || errno == EWOULDBLOCK || errno == EAGAIN; }
 #endif
 
@@ -139,7 +139,7 @@ std::size_t TcpStream::readSome(void* buffer, std::size_t len) {
 }
 
 void TcpStream::writeAll(const void* buffer, std::size_t len) {
-    if (handle_ == -1) throw Error("conexión cerrada");
+    if (handle_ == -1) throw Error("closed connection");
     const auto* p = static_cast<const char*>(buffer);
     std::size_t done = 0;
     while (done < len) {
@@ -183,7 +183,7 @@ std::unique_ptr<TcpStream> tcpConnect(const std::string& host, std::uint16_t por
     addrinfo* result = nullptr;
     const std::string service = std::to_string(port);
     if (::getaddrinfo(host.c_str(), service.c_str(), &hints, &result) != 0 || result == nullptr) {
-        throw Error("no se pudo resolver la dirección del equipo remoto");
+        throw Error("could not resolve remote computer address");
     }
     struct AddrGuard {
         addrinfo* p;
@@ -213,7 +213,7 @@ std::unique_ptr<TcpStream> tcpConnect(const std::string& host, std::uint16_t por
             return std::unique_ptr<TcpStream>(new TcpStream(static_cast<std::intptr_t>(sock.release())));
         }
     }
-    throw Error("no se pudo conectar con el equipo remoto");
+    throw Error("could not connect to remote computer");
 }
 
 TcpListener::~TcpListener() { close(); }
@@ -227,11 +227,11 @@ std::unique_ptr<TcpListener> TcpListener::bind(const std::string& address, std::
     hints.ai_flags = AI_PASSIVE;
     addrinfo* result = nullptr;
     const std::string service = std::to_string(port);
-    // "0.0.0.0" se pasa explícitamente para escuchar en IPv4; con nullptr
-    // getaddrinfo puede devolver primero un socket IPv6 no dual.
+    // "0.0.0.0" is explicitly passed to listen in IPv4; with nullptr
+    // getaddrinfo can first return a non-dual IPv6 socket.
     const char* nodePtr = address.empty() ? nullptr : address.c_str();
     if (::getaddrinfo(nodePtr, service.c_str(), &hints, &result) != 0 || result == nullptr) {
-        err = "no se pudo preparar la dirección de escucha";
+        err = "could not prepare the listening address";
         return nullptr;
     }
     struct AddrGuard {
@@ -262,7 +262,7 @@ std::unique_ptr<TcpListener> TcpListener::bind(const std::string& address, std::
         }
         return listener;
     }
-    err = "no se pudo abrir el puerto de escucha";
+    err = "could not open listening port";
     return nullptr;
 }
 
@@ -294,7 +294,7 @@ std::string tlsBackend() {
 #if defined(O2F_WITH_TLS)
     return std::string("OpenSSL ") + OPENSSL_VERSION_TEXT;
 #else
-    return "sin TLS (compilado sin OpenSSL)";
+    return "without TLS (compiled without OpenSSL)";
 #endif
 }
 
@@ -318,7 +318,7 @@ public:
             const int err = SSL_get_error(ssl_, n);
             if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) continue;
             if (err == SSL_ERROR_ZERO_RETURN) return 0;
-            throw Error("fallo de lectura TLS");
+            throw Error("reading failure TLS");
         }
     }
 
@@ -333,7 +333,7 @@ public:
             }
             const int err = SSL_get_error(ssl_, n);
             if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) continue;
-            throw Error("fallo de escritura TLS");
+            throw Error("write failure TLS");
         }
     }
 
@@ -369,21 +369,21 @@ X509* peerCertificate(SSL* ssl) {
 
 std::string peerFingerprint(SSL* ssl, const char* role) {
     X509* cert = peerCertificate(ssl);
-    if (cert == nullptr) throw Error(std::string("el ") + role + " no presentó certificado");
+    if (cert == nullptr) throw Error(std::string("el ") + role + " did not submit a certificate");
     unsigned char* der = nullptr;
     const int derLen = i2d_X509(cert, &der);
     X509_free(cert);
-    if (derLen <= 0 || der == nullptr) throw Error("no se pudo leer el certificado del par");
+    if (derLen <= 0 || der == nullptr) throw Error("could not read pair certificate");
     const std::string hex = fingerprintOfDer(der, derLen);
     OPENSSL_free(der);
     return hex;
 }
 
-// Los certificados del prototipo son autofirmados: el callback acepta la cadena
-// y la autorización real es la comparación exacta de la huella fijada.
+// Prototyping certificates are self-signed: callback accepts chain
+// and the actual authorization is the exact comparison of the fixed footprint.
 int allowPinnedPeerCertificate(int, X509_STORE_CTX*) { return 1; }
 
-// Libera contexto y sesión salvo que el flujo TLS los adopte.
+// Releases context and session unless the TLS flow adopts them.
 class TlsHandles {
 public:
     TlsHandles(SSL_CTX* ctx, SSL* ssl) : ctx_(ctx), ssl_(ssl) {}
@@ -406,24 +406,24 @@ private:
 }  // namespace
 
 std::string certificateFingerprint(const std::string& pemPath) {
-    // En Windows la DLL de OpenSSL no puede consumir un FILE* de otra CRT
-    // (OPENSSL_Applink); se lee el PEM y se entrega a OpenSSL como memoria.
+    // In Windows the DLL OpenSSL cannot consume a FILE* of another CRT
+    // (OPENSSL_Applink); PEM is read and delivered to OpenSSL as memory.
     std::ifstream in(fs::u8path(pemPath), std::ios::binary);
-    if (!in) throw Error("no se pudo abrir el certificado indicado");
+    if (!in) throw Error("Could not open the above certificate");
     const std::string pem((std::istreambuf_iterator<char>(in)),
                           std::istreambuf_iterator<char>());
     if (pem.empty() || pem.size() > 1024u * 1024u) {
-        throw Error("el archivo de certificado no tiene un tamaño válido");
+        throw Error("certificate file does not have a valid size");
     }
     BIO* bio = BIO_new_mem_buf(pem.data(), static_cast<int>(pem.size()));
-    if (bio == nullptr) throw Error("no se pudo leer el certificado indicado");
+    if (bio == nullptr) throw Error("Could not read the above certificate");
     X509* cert = PEM_read_bio_X509(bio, nullptr, nullptr, nullptr);
     BIO_free(bio);
-    if (cert == nullptr) throw Error("el certificado indicado no es un PEM X.509 válido");
+    if (cert == nullptr) throw Error("the certificate indicated is not a valid PEM X.509");
     unsigned char* der = nullptr;
     const int len = i2d_X509(cert, &der);
     X509_free(cert);
-    if (len <= 0 || der == nullptr) throw Error("no se pudo calcular la huella del certificado");
+    if (len <= 0 || der == nullptr) throw Error("could not calculate the print of the certificate");
     const std::string hex = fingerprintOfDer(der, len);
     OPENSSL_free(der);
     return hex;
@@ -433,38 +433,38 @@ std::unique_ptr<Stream> wrapTlsServer(std::unique_ptr<TcpStream> raw, const std:
                                       const std::string& keyFile,
                                       const std::string& expectedClientPinHex) {
     if (expectedClientPinHex.size() != 64) {
-        throw Error("el servidor exige la huella SHA-256 del certificado de cliente");
+        throw Error("the server requires the fingerprint SHA-256 of the client certificate");
     }
     SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
-    if (ctx == nullptr) throw Error("no se pudo crear el contexto TLS del servidor");
+    if (ctx == nullptr) throw Error("Could not create server context TLS");
     SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
     SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
                        allowPinnedPeerCertificate);
     if (SSL_CTX_use_certificate_chain_file(ctx, certFile.c_str()) != 1) {
         SSL_CTX_free(ctx);
-        throw Error("no se pudo cargar el certificado del servidor");
+        throw Error("Could not load server certificate");
     }
     if (SSL_CTX_use_PrivateKey_file(ctx, keyFile.c_str(), SSL_FILETYPE_PEM) != 1) {
         SSL_CTX_free(ctx);
-        throw Error("no se pudo cargar la clave privada del servidor");
+        throw Error("could not load private server key");
     }
     if (SSL_CTX_check_private_key(ctx) != 1) {
         SSL_CTX_free(ctx);
-        throw Error("la clave privada no corresponde al certificado");
+        throw Error("the private key does not correspond to the certificate");
     }
     SSL* ssl = SSL_new(ctx);
     if (ssl == nullptr) {
         SSL_CTX_free(ctx);
-        throw Error("no se pudo crear la sesión TLS del servidor");
+        throw Error("Could not create server session TLS");
     }
     TlsHandles handles(ctx, ssl);
     if (SSL_set_fd(ssl, static_cast<int>(raw->nativeHandle())) != 1) {
-        throw Error("no se pudo asociar TLS al socket del servidor");
+        throw Error("could not bind TLS to the server socket");
     }
-    if (SSL_accept(ssl) <= 0) throw Error("fallo en el handshake TLS del servidor");
+    if (SSL_accept(ssl) <= 0) throw Error("failed handshake TLS server");
     const std::string actualClient = peerFingerprint(ssl, "cliente");
     if (!fixedTimeHexEquals(actualClient, expectedClientPinHex)) {
-        throw Error("certificado de cliente no autorizado");
+        throw Error("Unauthorized customer certificate");
     }
     std::unique_ptr<Stream> stream(new TlsStream(std::move(raw), ctx, ssl));
     handles.release();
@@ -476,42 +476,42 @@ std::unique_ptr<Stream> wrapTlsClient(std::unique_ptr<TcpStream> raw,
                                       const std::string& clientCertFile,
                                       const std::string& clientKeyFile) {
     if (expectedSha256Hex.size() != 64) {
-        throw Error("la huella del servidor debe tener 64 caracteres hexadecimales");
+        throw Error("the server footprint must have 64 hexadecimal characters");
     }
     if (clientCertFile.empty() || clientKeyFile.empty()) {
-        throw Error("el servidor exige certificado de cliente: indique --cert y --key");
+        throw Error("the server requires customer certificate: indicate --cert and --key");
     }
     SSL_CTX* ctx = SSL_CTX_new(TLS_client_method());
-    if (ctx == nullptr) throw Error("no se pudo crear el contexto TLS del cliente");
+    if (ctx == nullptr) throw Error("could not create customer context TLS");
     SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
-    // El certificado del servidor es autofirmado en este prototipo: la confianza
-    // se establece exclusivamente comparando su huella con la dada fuera de banda.
+    // The server certificate is self-signed in this prototype: trust
+    // is established exclusively by comparing its footprint with the given off-band.
     SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, nullptr);
     if (SSL_CTX_use_certificate_chain_file(ctx, clientCertFile.c_str()) != 1) {
         SSL_CTX_free(ctx);
-        throw Error("no se pudo cargar el certificado de cliente");
+        throw Error("could not load customer certificate");
     }
     if (SSL_CTX_use_PrivateKey_file(ctx, clientKeyFile.c_str(), SSL_FILETYPE_PEM) != 1) {
         SSL_CTX_free(ctx);
-        throw Error("no se pudo cargar la clave privada de cliente");
+        throw Error("could not load private client key");
     }
     if (SSL_CTX_check_private_key(ctx) != 1) {
         SSL_CTX_free(ctx);
-        throw Error("la clave de cliente no corresponde a su certificado");
+        throw Error("the customer key does not match your certificate");
     }
     SSL* ssl = SSL_new(ctx);
     if (ssl == nullptr) {
         SSL_CTX_free(ctx);
-        throw Error("no se pudo crear la sesión TLS del cliente");
+        throw Error("Could not create customer session TLS");
     }
     TlsHandles handles(ctx, ssl);
     if (SSL_set_fd(ssl, static_cast<int>(raw->nativeHandle())) != 1) {
-        throw Error("no se pudo asociar TLS al socket del cliente");
+        throw Error("could not bind TLS to the client socket");
     }
-    if (SSL_connect(ssl) <= 0) throw Error("fallo en el handshake TLS del cliente");
+    if (SSL_connect(ssl) <= 0) throw Error("failure in the customer handshake TLS");
     const std::string actual = peerFingerprint(ssl, "servidor");
     if (!fixedTimeHexEquals(actual, expectedSha256Hex)) {
-        throw Error("la huella del certificado del servidor no coincide con la esperada");
+        throw Error("the fingerprint of the server certificate does not match the expected");
     }
     std::unique_ptr<Stream> stream(new TlsStream(std::move(raw), ctx, ssl));
     handles.release();
@@ -521,17 +521,17 @@ std::unique_ptr<Stream> wrapTlsClient(std::unique_ptr<TcpStream> raw,
 #else
 
 std::string certificateFingerprint(const std::string&) {
-    throw Error("compilado sin OpenSSL: no se puede calcular la huella del certificado");
+    throw Error("compiled without OpenSSL: certificate footprint cannot be calculated");
 }
 
 std::unique_ptr<Stream> wrapTlsServer(std::unique_ptr<TcpStream>, const std::string&,
                                       const std::string&, const std::string&) {
-    throw Error("compilado sin OpenSSL: TLS no disponible");
+    throw Error("compiled without OpenSSL: TLS not available");
 }
 
 std::unique_ptr<Stream> wrapTlsClient(std::unique_ptr<TcpStream>, const std::string&,
                                       const std::string&, const std::string&) {
-    throw Error("compilado sin OpenSSL: TLS no disponible");
+    throw Error("compiled without OpenSSL: TLS not available");
 }
 
 #endif

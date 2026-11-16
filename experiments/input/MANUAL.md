@@ -1,31 +1,41 @@
-# Manual de ejecución — Teclado y ratón
+# Run Manual — Keyboard and Mouse
 
-Actualizado: **5 de noviembre de 2026**. Describe el código actual, incluidos Windows, Wayland y la alternativa X11. Atajo, demostración local y R2/R9 Wayland verificados; recuperación ante cortes y entrada entre equipos pendientes. Este manual es para ejecución explícita del usuario; compilar o ejecutar self-tests no autoriza el arranque automático de captura o inyección.
+Updated: **November 5, 2026**. Describes the current code, including Windows, Wayland and the
+alternative X11. Shortcut, local demo and verified R2/R9 Wayland; recovery from cuts and entry
+between pending computers. This manual is for explicit user execution; compiling or running
+self-tests does not allow automatic booting of capture or injection.
 
-## 1. Antes de empezar
+## 1. Before you begin
 
-- Un monitor por equipo y disposición horizontal.
-- Un equipo aporta el teclado/ratón; cualquiera puede actuar como origen.
-- Usar un editor y datos desechables. Soltar modificadores y botones antes de cruzar.
-- Sin argumentos o con `--help`, el programa muestra ayuda.
-- `input_self_test` y `--self-test` no usan escritorio ni red.
-- `--diagnose` consulta el escritorio y, en Wayland, el bus de sesión; no solicita las sesiones de control.
-- `--check-target` en Wayland abre solo GlobalShortcuts y espera el atajo;
-  no abre RemoteDesktop, EIS ni red, ni exige geometría. Es la primera prueba
-  supervisada de la versión corregida, verificada con el usuario y la guía de 30 s.
-- `--inject-demo` mueve el cursor y escribe. `--source` y `--target` usan dispositivos y red.
-- Destino Wayland: **Ctrl+Shift+F12**, mediante GlobalShortcuts y con identificador nuevo. Windows/X11 conservan Ctrl+Alt+F12. No usar Ctrl+Alt+F12 para esta prueba Wayland: coincide con el cambio de consola de Mutter.
-- Compilación nativa Ubuntu/Wayland, demostración, emergencia con EIS activo y retirada de permiso verificadas. Cortes entre equipos pendientes; el incidente anterior con reinicio se conserva (EXP-INPUT-02).
+- One monitor per unit and horizontal layout.
+- One device provides the keyboard and mouse. Either device can act as the source.
+- Use an editor and disposable data. Unleash modifiers and buttons before crossing.
+- Without arguments or with `--help`, the program displays help.
+- `input_self_test` and `--self-test` do not use desktop or network.
+- `--diagnose` consults the desktop and, in Wayland, the session bus; does not request control
+  sessions.
+- `--check-target` in Wayland opens only GlobalShortcuts and waits for the shortcut; does not open
+  RemoteDesktop, EIS nor network, nor requires geometry. It is the first supervised test of the
+  corrected version, verified with the user and the 30 s guide.
+- `--inject-demo` moves the cursor and writes. `--source` and `--target` use devices and network.
+- Target Wayland: **Ctrl+Shift+F12**, using GlobalShortcuts and with new identifier. Windows/X11
+  retain Ctrl+Alt+F12. Do not use Ctrl+AlT+F12 for this Wayland test: it matches the mutter console
+  change.
+- Native Ubuntu/Wayland compilation, demonstration, emergency with active EIS and verified
+  withdrawal of permission. Cuts between pending equipment; the previous restart incident is
+  preserved (EXP-INPUT-02).
 
-## 2. Requisitos y compilación
+## 2. Requirements and compilation
 
-Ejecutar desde la carpeta real del experimento. La aplicación principal y sus instaladores no están integrados: estos comandos construyen únicamente el prototipo.
+Run from the actual experiment folder. The main application and its installers are not integrated:
+these commands build only the prototype.
 
 ### 2.1 Windows
 
-Necesita compilador C++17, Windows SDK, CMake 3.16 o posterior y OpenSSL con cabeceras/bibliotecas para la misma arquitectura. El entorno de referencia inicial figura en [RESULTS.md](RESULTS.md).
+You need to compile C++17, Windows SDK, CMake 3.16 or later and OpenSSL with cabeceras/bibliotecas
+for the same architecture. The initial reference environment is shown in [RESULTS.md](RESULTS.md).
 
-En una x64 Native Tools Command Prompt:
+In an x64 Native Tools Command Prompt:
 
 ```bat
 cd /d D:\DEVEL\OneInTwo\experiments\input
@@ -34,19 +44,19 @@ cmake --build build\windows
 build\windows\input_self_test.exe
 ```
 
-Si faltan `rc.exe` o `mt.exe`, cargar las herramientas del Windows SDK o indicar sus rutas mediante `CMAKE_RC_COMPILER` y `CMAKE_MT`. Ajustar las rutas a la instalación real.
+If `rc.exe` or `mt.exe` are missing, load the Windows SDK tools or indicate their routes using `CMAKE_RC_COMPILER` and `CMAKE_MT`. Adjust the routes to the actual installation.
 
-Antes de ejecutar `input_experiment.exe`, proporcionar sus DLL de OpenSSL. Por ejemplo, en PowerShell:
+Before running `input_experiment.exe`, provide your OpenSSL DLL. For example, in PowerShell:
 
 ```powershell
 $env:Path = "C:\Program Files\OpenSSL-Win64\bin;" + $env:Path
 ```
 
-El self-test independiente no necesita las DLL de OpenSSL.
+The independent self-test does not require OpenSSL DLL.
 
-### 2.2 Ubuntu con Wayland — objetivo inicial
+### 2.2 Ubuntu with Wayland — initial target
 
-Identificar sesión y bibliotecas:
+Identify session and libraries:
 
 ```bash
 echo "$XDG_SESSION_TYPE"
@@ -54,18 +64,21 @@ echo "$WAYLAND_DISPLAY"
 pkg-config --modversion gio-2.0 libei-1.0 openssl
 ```
 
-El código exige InputCapture v2 para origen; RemoteDesktop v2 y GlobalShortcuts v1 para destino. La disponibilidad real se comprobará en diagnóstico y preparación. No se afirma que una versión concreta de Ubuntu los ofrezca.
+The code requires InputCapture v2 for origin; RemoteDesktop v2 and GlobalShortcuts v1 for
+destination. Actual availability will be checked in diagnosis and preparation. It is not stated that
+a specific version of Ubuntu offers them.
 
-En una Ubuntu cuyos repositorios proporcionen las dependencias, el usuario puede instalar:
+In an Ubuntu whose repositories provide dependencies, the user can install:
 
 ```bash
 sudo apt update
 sudo apt install build-essential cmake pkg-config libssl-dev libglib2.0-dev libei-dev
 ```
 
-Si un paquete no existe en esa versión, registrar el bloqueo; no presentar el backend como construido. Las instalaciones y cambios de sistema son pasos manuales.
+If a package does not exist in that version, record the lock; do not present the backend as built.
+Installations and system changes are manual steps.
 
-Forzar la compilación Wayland evita confundir un binario sin backend con un resultado satisfactorio:
+Force Wayland compilation avoids confusing a binary without backend with a satisfactory result:
 
 ```bash
 cd ~/OneInTwo/experiments/input
@@ -75,11 +88,11 @@ cmake --build build/wayland -j
 ./build/wayland/input_self_test
 ```
 
-Estos comandos son instrucciones pendientes, no una compilación Linux ya verificada.
+These commands are pending instructions, not a verified Linux build.
 
-### 2.3 Ubuntu con Xorg — alternativa separada
+### 2.3 Ubuntu with Xorg — separate alternative
 
-Solo si se desea probar X11:
+Only if you want to try X11:
 
 ```bash
 sudo apt install build-essential cmake libssl-dev libx11-dev libxi-dev libxtst-dev
@@ -89,11 +102,12 @@ cmake --build build/x11 -j
 ./build/x11/input_self_test
 ```
 
-Ejecutar ese binario desde una sesión Xorg. La selección de backend no sustituye Wayland por X11 dentro de una sesión Wayland.
+Run that binary from an Xorg session. The backend selection does not replace Wayland with X11 within
+a Wayland session.
 
-### 2.4 Solo núcleo y flujos con dobles
+### 2.4 Single core and double flows
 
-Para un entorno sin escritorio o cabeceras nativas:
+For an environment without desktop or native headers:
 
 ```bash
 cmake -S . -B build/portable -DONEINTWO_BACKEND=none -DONEINTWO_WITH_TLS=OFF
@@ -101,11 +115,14 @@ cmake --build build/portable --target input_self_test -j
 ./build/portable/input_self_test
 ```
 
-No se construye la aplicación nativa. La referencia observada en Windows el 5 de noviembre es **538 comprobaciones, 0 fallos**, salida 0. Una diferencia en el número requiere comprobar versión del código y binario; cualquier fallo impide continuar con las pruebas reales. Esta batería no valida GDBus/libei ni X11.
+The native application is not built. The reference observed in Windows on November 5th is **538
+checks, 0 bugs**, output 0. A difference in number requires checking code version and binary; any
+bug prevents continuing with the actual tests. This battery does not validate GDBus/libei or X11.
 
-## 3. Certificados e identidad
+## 3. Certificates and identity
 
-Cada equipo usa su certificado y clave propios. Intercambiar y comparar las huellas del certificado público por una vía de confianza; conservar la clave privada en su equipo.
+Each team uses its own certificate and key. To exchange and compare the traces of the public
+certificate by a means of trust; to keep the private key on your computer.
 
 PowerShell:
 
@@ -126,11 +143,14 @@ chmod 600 certificates/ubuntu.key
 openssl x509 -in certificates/ubuntu.crt -noout -fingerprint -sha256
 ```
 
-Guardar las huellas: Windows recibirá la de Ubuntu y Ubuntu la de Windows. `--peer-fingerprint` admite 64 dígitos hexadecimales, con separadores. Las huellas abreviadas de ejemplos deben sustituirse por valores completos.
+Save the fingerprints: Windows will receive Ubuntu's and Ubuntu's from Windows.
+`--peer-fingerprint` supports 64 hexadecimal digits, with separators. The abbreviated prints of
+examples should be replaced by full values.
 
-Estos certificados sirven para los experimentos; no implementan la vinculación persistente de la aplicación.
+These certificates serve for experiments; they do not implement the persistent linkage of the
+application.
 
-## 4. Diagnóstico y permisos
+## 4. Diagnosis and permits
 
 Windows:
 
@@ -144,90 +164,83 @@ Ubuntu/Wayland:
 ./build/wayland/input_experiment --diagnose
 ```
 
-En Xorg, sustituir el ejecutable por `./build/x11/input_experiment`. Si se compilaron ambos adaptadores, el programa elige según la sesión.
+In Xorg, replace the executable with `./build/x11/input_experiment`. If both adapters were compiled,
+the program chooses according to the session.
 
-Registrar nombre de backend, sesión, capacidades declaradas y notas. En Wayland el diagnóstico consulta versiones de portales; la geometría definitiva y los dispositivos EIS se comprueban al preparar cada papel. Una capacidad declarada no es un permiso concedido.
+Register name of backend, session, declared capabilities and notes. In Wayland the diagnosis
+consults versions of portals; the definitive geometry and EIS devices are checked when preparing
+each paper. A declared capacity is not a permission granted.
 
-| Papel Wayland | Preparación manual esperada |
+| Papel Wayland | Manual preparation expected |
 | --- | --- |
-| Origen | Autorizar InputCapture para teclado/puntero; obtener una zona y armar una barrera en el borde |
-| Destino | Autorizar RemoteDesktop para teclado/puntero y reservar el atajo de emergencia mediante GlobalShortcuts |
-| Destino con dispositivos insuficientes | Rechazo si falta teclado, puntero absoluto, puntero para botones/rueda o una región válida |
-| Denegación/cancelación | Error explícito y liberación de las sesiones preparadas, sin habilitar control |
-| Retirada de permisos durante la prueba | Recuperación o cierre; registrar comportamiento real |
+| Origen | Authorize InputCapture for teclado/puntero; obtain an area and assemble a barrier on the edge |
+| Destino | Authorize RemoteDesktop for teclado/puntero and reserve the emergency shortcut using GlobalShortcuts |
+| Target with insufficient devices | Rejection if keyboard is missing, absolute pointer, pointer for botones/rueda or a valid region |
+| Denial or cancellation | Explicit error and release of prepared sessions, without enabling control |
+| Withdrawal of permits during the test | Recovery or closure; recording actual behaviour |
 
-El destino prepara permisos antes de escuchar en red. El origen también prepara InputCapture antes de conectar. Durante esa preparación no acercar el cursor al borde de prueba hasta que el programa anuncie que está armado.
+The destination prepares permissions before listening to the network. The source also prepares
+InputCapture before connecting. During that preparation do not bring the cursor to the test edge
+until the program announces that it is armed.
 
-Si el escritorio no reserva la salida local requerida, el backend destino debe rechazar la preparación. No dar por verificado el atajo por aceptar un diálogo: comprobar que la combinación realmente libera el control.
+If the desktop does not reserve the required local output, the destination backend must refuse the
+preparation. Do not take the shortcut for accepting a dialogue: check that the combination actually
+releases the control.
 
-### Comprobar la salida sin inyectar
+### Check the output without injecting
 
-#### Guía supervisada con vuelta automática a los 30 segundos
+#### Guidance supervised with automatic lap at 30 seconds
 
-Este ensayo aislado pasó con el usuario presente el 5 de noviembre; no valida
-todavía control EIS ni recuperación de una imagen congelada. Para repetirlo,
-con el usuario presente, desde la raíz del repositorio:
+This isolated trial passed with the user present on November 5th; it does not yet validate EIS
+control or recovery of a frozen image. To repeat it, with the present user, from the root of the
+repository:
 
 ```bash
 env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py
 ```
 
-La ventana explica los pasos y **no inicia la prueba al abrirse**:
+The window explains the steps and **does not start the test when opening**:
 
-1. Pulsar «Iniciar prueba de 30 segundos» en la guía.
-2. En GNOME, comprobar la fila «Devolver el control local (OneInTwo)» con
-   Ctrl+Shift+F12 y pulsar **«Añadir» / «Add», arriba a la derecha**.
-   Si propone Ctrl+Alt+F12 o compartir pantalla/control, pulsar Cancelar.
-3. Volver a la guía y esperar **«AHORA: pulsa y suelta Ctrl+Shift+F12»**,
-   arriba en grande, junto a la cuenta atrás.
-   Pulsarlo una sola vez. Si ya no aparece el diálogo porque el permiso está
-   guardado, esperar igualmente al mensaje de la guía.
-4. Esperar sin más teclas. A los 30 s de armar el temporizador se cierra el
-   ámbito del ensayo y se intenta reactivar la sesión gráfica original.
-   «Cancelar y volver al escritorio» permite hacerlo antes.
+1. Click "Start 30-second test" on the guide.
+2. In GNOME, check the row "Return Local Control (OneInTwo)" with Ctrl+Shift+F12 and click **"Add" /
+   "Add", top right**. If you propose Ctrl+Alt+F12 or share pantalla/control, click Cancel.
+3. Return to the guide and wait **"NOW: press and release Ctrl+Shift+F12"**, big up, next to the
+   countdown. Press it once. If the dialog is no longer displayed because the permission is saved,
+   wait for the guide message as well.
+4. Wait without further keys. At 30 s the timer closes the scope of the test and attempts are made
+   to reactivate the original graphic session. "Cancel and return to desktop" allows it to do so
+   earlier.
 
-La vuelta depende de un servicio transitorio separado de la guía y del
-prototipo. Se comprueba primero que puede reactivar la sesión sin pedir
-contraseña; si falla, no arranca el ensayo. La prueba del supervisor con un
-proceso `sleep` funcionó. No se ha validado un retorno desde otra VT ni se
-promete reparar GNOME o la imagen si el compositor se bloquea. Confirmar
-siempre el resultado visual con el usuario. Sigue siendo solo GlobalShortcuts,
-sin RemoteDesktop, EIS, captura ni red. Python, PyGObject y GTK3 ya están
-presentes; no se instala nada. Los logs quedan en `manual-output/guided-*`.
+The return depends on a transitory service separated from the guide and the prototype. It is first checked that you can reactivate the session without asking for password; If it fails, it does not start the trial. The supervisor's test with a `sleep` process worked. A return from another VT has not been validated and GNOME or the image is promised to be repaired if the composer crashes. Always confirm the visual result with the user. It is still only GlobalShortcuts, without RemoteDesktop, EIS, capture and network. Python, PyGObject and GTK3 are already present; Nothing's installed. Logs are at `manual-output/guided-*`.
 
-#### Comando directo anterior con guarda de 60 segundos
+#### Previous direct command with 60 seconds save
 
-El ensayo anterior con Ctrl+Alt+F12 abrió EIS y terminó en una congelación
-comunicada por el usuario, con recuperación mediante reinicio. Sigue
-registrado como fallo en EXP-INPUT-02. La preparación se ha corregido por
-petición del usuario. El primer intento corregido, solo de GlobalShortcuts,
-terminó a los 63 s por la guarda externa; el atajo aún no quedó verificado.
+The previous trial with Ctrl+Alt+F12 opened EIS and ended in a user-reported freeze, with reboot
+recovery. It is still recorded as failure in EXP-INPUT-02. The preparation has been fixed by user
+request. The first corrected attempt, only from GlobalShortcuts, ended at 63 s by external guard;
+the shortcut was not yet verified.
 
-La versión nueva usa Ctrl+Shift+F12 y `oneintwo-emergency-v2`, para no reutilizar
-una concesión persistida de Ctrl+Alt+F12. `--check-target` abre **solo
-GlobalShortcuts**: ningún permiso RemoteDesktop, conexión EIS, transacción de
-emulación o red. No necesita desactivar monitores para esta comprobación.
+The new version uses Ctrl+Shift+F12 and `oneintwo-emergency-v2`, so as not to reuse a persistent
+Ctrl+Alt+F12 concession. `--check-target` opens **GlobalShortcuts only**: no RemoteDesktop
+permission, EIS connection, emulation transaction or network. You do not need to disable monitors
+for this check.
 
-En una futura sesión supervisada, con recuperación independiente preparada,
-autorizar solo el atajo. Si el diálogo propone la combinación antigua, cancelar;
-no pulsarla. Cuando aparezca la espera, pulsar Ctrl+Shift+F12 una vez. Debe
-imprimir «Atajo local verificado» y cerrar con código 0; permiso rechazado,
-sesión cerrada o tiempo agotado dan código 1. No avanzar a inyección si falla.
-El límite de espera empieza después del permiso; usar también la guarda externa
-indicada abajo. No interpretar esta separación como garantía de que un
-compositor o controlador gráfico nunca pueda bloquearse.
+In a future supervised session, with independent recovery prepared, authorize only the shortcut. If
+the dialog proposes the old combination, cancel; do not press it. When the wait appears, press
+Ctrl+Shift+F12 once. You must print "Verified local shortcut" and close with code 0; rejected
+permission, closed session or time out give code 1. Do not advance to injection if failed. The
+waiting limit starts after permission; also use the external save indicated below. Do not interpret
+this separation as a guarantee that a composer or graphic controller can never be blocked.
 
-GlobalShortcuts exige identidad de aplicación. En la validación Ubuntu se
-preparó una entrada `io.github.OneForTwo.InputExperiment.desktop` en el
-directorio de logs del proyecto, con enlace del mismo nombre en
-`~/.local/share/applications/`. Debe identificar este prototipo con
-`Type=Application`, `Name=OneInTwo — prueba de entrada`, `Exec` apuntando al
-binario real, `Terminal=true` y `NoDisplay=true`; no usar la identidad de otra
-aplicación. El enlace es temporal y puede retirarse al acabar. No hace falta
-instalación global ni autoinicio.
+GlobalShortcuts requires application identity. In the Ubuntu validation, a
+`io.github.OneForTwo.InputExperiment.desktop` entry was prepared in the project log directory, with
+a link of the same name in `~/.local/share/applications/`. You must identify this prototype with
+`Type=Application`, `Name=OneInTwo — input test`,`Exec` pointing to the real
+binary,`Terminal=true` and `NoDisplay=true`; do not use the identity of another application. The
+link is temporary and can be removed when finished. No global installation or autostart is needed.
 
-Desde la raíz del repositorio, con ese registro preparado, lanzar el prototipo
-en un ámbito de aplicación transitorio:
+From the root of the repository, with that record prepared, launch the prototype in a transitional
+scope of application:
 
 ```bash
 env -u LD_LIBRARY_PATH systemd-run --user --scope --collect \
@@ -236,66 +249,52 @@ env -u LD_LIBRARY_PATH systemd-run --user --scope --collect \
   /bin/bash -c 'source .local-state/ubuntu-validation/env.sh; exec timeout --signal=TERM --kill-after=3s 60s ./experiments/input/build/ubuntu-wayland/input_experiment --check-target --max-seconds 60'
 ```
 
-Los 60 segundos externos incluyen autorización e inicio, no solo la espera
-del atajo. El gestor systemd limita el ámbito independientemente del bucle del
-prototipo; `timeout` limita también el proceso, con tres segundos de margen
-antes del cierre forzado. Esto no garantiza recuperar un compositor bloqueado.
-Si se agota el tiempo en un diálogo, registrar el ensayo como incompleto.
+The 60 external seconds include permission and start, not just waiting for the shortcut. The systemd
+manager limits the scope regardless of the prototype loop; `timeout` also limits the process, with
+three seconds of margin before forced closure. This does not guarantee to recover a blocked
+composer. If time runs out in a dialog, record the essay as incomplete.
 
-Cargar las bibliotecas locales dentro del hijo: `systemd-run` debe usar las
-del sistema. El log indica la descripción de la combinación devuelta por el
-portal; recibir un identificador no prueba que la combinación física funcione.
-El diálogo del atajo puede no repetirse si el escritorio conserva la concesión.
-Para investigar una desconexión sin inyectar, `ONEINTWO_EI_DEBUG=1` habilita el
-log de libei; limitarlo a la preparación con datos de prueba. No habilitarlo
-sobre sesiones con contenido privado.
+Load local libraries into the child: `systemd-run` must use those of the system. The log indicates
+the description of the combination returned by the portal; receiving an identifier does not prove
+that the physical combination works. The shortcut dialog may not be repeated if the desktop retains
+the concession. To investigate an uninjected disconnection, `ONEINTWO_EI_DEBUG=1` enables the libei
+log; limit it to preparation with test data. Do not enable it on sessions with private content.
 
-## 5. Inyección local opcional
+## 5. Optional local injection
 
-Esta prueba sí mueve y escribe. El atajo aislado, el supervisor de 30 s y una
-demostración local pasaron el 5 de noviembre: texto `oneintwo`, movimiento y
-escritorio respondiendo confirmados por el usuario. Con el usuario presente, la guía local incluye
-un recuadro de texto desechable y los pasos para autorizar la demostración:
+This test does move and type. The isolated shortcut, the 30 s supervisor and a local demonstration
+passed on November 5: `oneintwo` text, movement and desktop responding confirmed by the user. With
+the user present, the local guide includes a disposable text box and steps to authorize the
+demonstration:
 
 ```bash
 env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py --inject-demo
 ```
 
-Pulsar Iniciar, comprobar y pulsar/soltar Ctrl+Shift+F12 cuando diga AHORA,
-autorizar interacción remota de teclado y ratón sin pantalla y, cuando diga
-ZONA DE PRUEBA, enfocar el recuadro de la guía. No escribir ni cambiar de
-ventana. El prototipo espera 5 s e intenta mover el puntero unos píxeles y
-escribir `oneintwo`, sin clics. El límite independiente de 30 s incluye los
-diálogos y cierra solo el ámbito de este ensayo; si se agota antes, registrar
-la prueba como incompleta. El botón Cancelar permite terminar antes.
-La guía no registra el contenido del recuadro; confirmar texto, movimiento
-y respuesta del escritorio con el usuario. Logs en `manual-output/guided-*`.
+Select Start and press and release Ctrl+Shift+F12 when the guide says NOW. Authorize remote keyboard and mouse interaction without screen access. When the guide says TEST AREA, focus its text box. Keep the same window open and leave the keyboard alone. The prototype waits 5 s, then attempts to move the pointer by a few pixels and type `oneintwo` without clicking. The independent 30 s limit includes the dialogs and closes only this trial's scope. If it expires first, record the trial as incomplete. Select Cancel to finish early. The guide does not record the text box contents. Ask the user to confirm the text, pointer movement, and desktop response. Logs are in `manual-output/guided-*`.
 
-Con un editor desechable externo, el ejemplo Windows es:
+With an external disposable editor, the example Windows is:
 
 ```powershell
 .\build\windows\input_experiment.exe --inject-demo --arm-seconds 5
 ```
 
-En Wayland, tanto `--inject-demo` como `--target` reservan primero el atajo
-y exigen **pulsar y soltar Ctrl+Shift+F12 en 30 segundos**, antes de solicitar
-RemoteDesktop o conectar EIS. Si falta activación, liberación o el portal
-cierra el atajo, terminan sin abrir control. Esta verificación se repite en
-cada ejecución; el ensayo separado no guarda una marca de confianza.
+In Wayland, both `--inject-demo` and `--target` first reserve the shortcut and require **clicking
+and dropping Ctrl+Shift+F12 in 30 seconds**, before requesting RemoteDesktop or connecting EIS. If
+activation, release or portal is missing, they end up without opening control. This verification is
+repeated at each run; the separate test does not keep a mark of confidence.
 
-Solo después aparecen los permisos de RemoteDesktop. Autorizar teclado y
-ratón sin pantalla, con un único monitor activo y editor desechable preparado.
-Después comienza la cuenta atrás: enfocar el editor durante ese intervalo.
-EIS espera dispositivos reanudados y no inicia emulación al preparar permisos;
-la inicia al enviar el primer evento real. Pausa, retirada o cierre detienen
-el flujo, sin reanudarlo automáticamente. El cierre normal libera las teclas
-y botones que este emisor haya dejado pulsados y finaliza su emulación.
+Only after the RemoteDesktop permissions appear. Authorize keyboard and mouse without screen, with a
+single active monitor and disposable editor ready. Then start the countdown: focus the editor during
+that interval. EIS expects resumed devices and does not start emulation when preparing permissions;
+it starts when sending the first real event. Pause, withdrawal or closing stop the flow, without
+automatically resuming it. The normal lock releases the keys and buttons that this emitter has left
+pressed and finishes its emulation.
 
-La prueba intenta un movimiento breve y escribe `oneintwo`. Registrar lo
-observado: «Demostracion finalizada» no certifica texto, movimiento o recuperación.
-El siguiente comando directo anterior solo limita el proceso; para repetir
-en esta máquina usar la guía de 30 s de arriba, que añade recuperación
-independiente. Desde la raíz y con la identidad de aplicación preparada:
+The test tries a short movement and writes `oneintwo`. Register what you observed: "Finished demo"
+does not certify text, movement or recovery. The following previous direct command only limits the
+process; to repeat on this machine use the 30 s guide above, which adds independent recovery. From
+the root and with the application identity prepared:
 
 ```bash
 env -u LD_LIBRARY_PATH systemd-run --user --scope --collect \
@@ -304,53 +303,45 @@ env -u LD_LIBRARY_PATH systemd-run --user --scope --collect \
   /bin/bash -c 'source .local-state/ubuntu-validation/env.sh; exec timeout --signal=TERM --kill-after=3s 60s ./experiments/input/build/ubuntu-wayland/input_experiment --inject-demo --arm-seconds 10'
 ```
 
-La guarda limita el proceso; no garantiza restaurar un compositor congelado.
+The guard limits the process; it does not guarantee to restore a frozen composer.
 
-Completar antes `--check-target`. La demostración atiende el atajo durante
-la cuenta atrás y entre eventos; no iniciar captura si la recuperación local
-no ha sido comprobada en el escritorio real.
+Complete before `--check-target`. The demo handles the shortcut during the countdown and between
+events; do not start capture if local recovery has not been tested on the actual desktop.
 
 ## 6. Red local
 
-### Comprobaciones locales R2/R9 antes de pasar a dos equipos
+### Local checks R2/R9 before moving on to two teams
 
-Requieren un monitor activo y usuario presente. Las guías conservan el
-supervisor independiente de 30 s y la verificación del atajo antes de EIS:
+They require an active monitor and present user. The guides retain the independent 30 s supervisor
+and the shortcut check before EIS:
 
 ```bash
 env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py --emergency-check
-# En otra ejecución, después de terminar la anterior:
+# In a separate run, after the first has finished:
 env -u LD_LIBRARY_PATH GDK_BACKEND=wayland /usr/bin/python3 experiments/input/tools/shortcut_check.py --revoke-check
 ```
 
-Siguen el guion de inyección local, pero mantienen EIS abierto después de
-escribir. R2: cuando diga AHORA SALIDA, pulsar y soltar Ctrl+Shift+F12 otra
-vez. R9: cuando diga AHORA RETIRA EL PERMISO, pulsar el indicador superior
-de GNOME «Stop Screen Sharing». No usar el botón Cancelar como sustituto de
-retirar permiso. La guía debe confirmar la salida esperada y el escritorio
-responder. Un timeout no valida la salida. Después del rechazo inicial por
-varios monitores y la pausa, R2 y R9 pasaron con un único monitor el 5 de
-noviembre: salida 0, cierre antes del temporizador y escritorio operativo
-confirmado por el usuario. Evidencia detallada en RESULTS.md.
+They follow the local injection script, but keep EIS open after writing. R2: when you say EXIT NOW, press and drop Ctrl+Shift+F12 again. R9: when reading REVOKE PERMISSION NOW, press the upper indicator of GNOME ‘Stop Screen Sharing’. Do not use the Cancel button as a substitute for withdrawing permission. The guide should confirm the expected output and the desktop respond. A timeout doesn't validate the output. After initial rejection by multiple monitors and pause, R2 and R9 passed with a single monitor on November 5: output 0, closure before the timer and operating desktop confirmed by the user. Evidence detailed in RESULTS.md.
 
-La CLI usa `--inject-demo --wait-for-stop --arm-seconds 3 --max-seconds 30`;
-ese argumento adicional sirve solo para esta comprobación experimental.
+The CLI uses `--inject-demo --wait-for-stop --arm-seconds 3 --max-seconds 30`; that additional
+argument serves only for this experimental test.
 
-Puerto del ejemplo: **47830/TCP**. Ambos equipos deben ser alcanzables. El destino escucha en las interfaces que use su implementación; el usuario debe limitar el cortafuegos a la IP del origen.
+Example port: **47830/TCP**. Both computers must be achievable. The target listens to the interfaces
+that use their implementation; the user must limit the firewall to the source IP.
 
-Ejemplo opcional en Windows con una consola de administración:
+Optional example on Windows with an admin console:
 
 ```powershell
 New-NetFirewallRule -DisplayName "OneInTwo input 47830" -Direction Inbound -Protocol TCP -LocalPort 47830 -RemoteAddress 192.168.1.20 -Action Allow -Profile Private
 ```
 
-Retirar la regla al terminar:
+Remove the rule when finished:
 
 ```powershell
 Remove-NetFirewallRule -DisplayName "OneInTwo input 47830"
 ```
 
-Si Ubuntu usa UFW, una regla limitada sería:
+If Ubuntu uses UFW, a limited rule would be:
 
 ```bash
 sudo ufw allow from 192.168.1.20 to any port 47830 proto tcp
@@ -362,17 +353,20 @@ Su retirada:
 sudo ufw delete allow from 192.168.1.20 to any port 47830 proto tcp
 ```
 
-Sustituir la IP por la del origen real. El agente no ejecuta estos cambios. No publicar claves ni abrir el puerto a Internet.
+Replace IP with the real source. The agent does not execute these changes. Do not post keys or open
+the port to the Internet.
 
-## 7. Prueba Windows como origen y Ubuntu como destino
+## 7. Test Windows as source and Ubuntu as destination
 
-Primera sesión corta: destino 60 segundos y origen 30 segundos, para dejar margen a la preparación. Los temporizadores de control empiezan después de preparar permisos/conexión, no limitan todo el tiempo empleado en los diálogos.
+First short session: destination 60 seconds and origin 30 seconds, to leave room for preparation.
+Control timers start after preparing permissions and the connection, do not limit all the time spent in the
+dialogues.
 
-1. Lanzar primero el destino Ubuntu y completar permisos.
-2. Esperar el anuncio de escucha TLS.
-3. Lanzar el origen Windows.
-4. Enfocar en Ubuntu el editor desechable antes del cruce.
-5. Esperar el anuncio de origen armado y cruzar con modificadores/botones sueltos.
+1. Launch destination Ubuntu first and complete permissions.
+2. Wait for the TLS listening ad.
+3. Start the Windows source.
+4. Focus on Ubuntu the disposable editor before crossing.
+5. Wait for the armed source announcement and cross with modificadores/botones loose.
 
 Ubuntu:
 
@@ -382,7 +376,7 @@ Ubuntu:
   --peer-fingerprint "HUELLA_COMPLETA_DE_WINDOWS" --max-seconds 60
 ```
 
-Windows, situado a la izquierda de Ubuntu:
+Windows, located to the left of Ubuntu:
 
 ```powershell
 .\build\windows\input_experiment.exe --source --connect 192.168.1.50:47830 --edge right `
@@ -390,11 +384,13 @@ Windows, situado a la izquierda de Ubuntu:
   --peer-fingerprint "HUELLA_COMPLETA_DE_UBUNTU" --arm-seconds 10 --max-seconds 30
 ```
 
-Sustituir dirección y huellas. El borde de retorno se deduce en destino. Verificar movimiento, clic, rueda, texto y vuelta por el borde opuesto. Probar inmediatamente la salida local antes de ampliar la duración.
+Replace direction and fingerprints. The return edge is deduced at destination. Check movement,
+click, wheel, text and turn on the opposite edge. Immediately test the local output before extending
+the duration.
 
-## 8. Invertir los papeles
+## 8. Investing roles
 
-Windows como destino:
+Windows as target:
 
 ```powershell
 .\build\windows\input_experiment.exe --target --listen 47830 `
@@ -402,7 +398,7 @@ Windows como destino:
   --peer-fingerprint "HUELLA_COMPLETA_DE_UBUNTU" --max-seconds 60
 ```
 
-Ubuntu como origen, situado a la derecha de Windows:
+Ubuntu as source, located to the right of Windows:
 
 ```bash
 ./build/wayland/input_experiment --source --connect 192.168.1.20:47830 --edge left \
@@ -410,83 +406,96 @@ Ubuntu como origen, situado a la derecha de Windows:
   --peer-fingerprint "HUELLA_COMPLETA_DE_WINDOWS" --arm-seconds 10 --max-seconds 30
 ```
 
-El origen Wayland recibe la activación de la barrera del compositor. Al volver solicita Release con posición sugerida: verificar el retorno real sin exigir que el cursor aparezca en una coordenada exacta.
+The Wayland origin receives the activation of the composer's barrier. Upon return request Release
+with suggested position: verify the actual return without requiring the cursor to appear in an exact
+coordinate.
 
-Una dirección correcta no valida la inversa. Si se prueba Xorg, repetir y registrar en filas separadas.
+A correct address does not validate the inverse. If Xorg is tested, repeat and register in separate
+rows.
 
 ## 9. Matriz manual
 
-La columna Observado distingue la evidencia local Ubuntu de los casos aún
-pendientes. Registrar sistema, sesión/escritorio, portales, libei y layout;
-el detalle y los intentos anteriores se conservan en RESULTS.md.
+The Observed column distinguishes local Ubuntu evidence from pending cases. Register system,
+session and desktop, portals, libei and layout; the details and previous attempts are preserved in
+RESULTS.md.
 
-| Caso | Acción | Resultado que se debe comprobar | Observado |
+| Caso | Action | Result to be checked | Observado |
 | --- | --- | --- | --- |
-| D1 | Diagnóstico Windows | Backend y capacidades declaradas coherentes | Pendiente |
-| D2 | Diagnóstico Wayland | Portales y capacidades exigidas; sin fallback X11 | Ubuntu verificado; origen bloqueado por InputCapture v1 |
-| D3 | Diagnóstico Xorg opcional | X11/XI2/XTest, si se compiló ese backend | Pendiente |
-| P1 | Denegar o cancelar InputCapture | Origen rechaza y limpia la preparación | Pendiente |
-| P2 | Denegar RemoteDesktop o el atajo | Destino no habilita la sesión de control | Cancelación RemoteDesktop verificada en Ubuntu |
-| P3 | Aceptar permisos | Geometría y dispositivos requeridos disponibles | Destino Ubuntu verificado, un monitor |
-| I1/I2 | Inyección local Windows/Wayland | Movimiento y texto en el editor elegido | I2 Ubuntu superado; I1 Windows pendiente |
-| C1 | Windows → Ubuntu | Cruce, entrada y retorno | Pendiente |
-| C2 | Ubuntu → Windows | Activación por barrera, entrada y retorno | Pendiente |
-| C3 | Salir y acercarse de nuevo al borde | Sin rebotes ni sesiones duplicadas | Pendiente |
-| K1 | Teclado español | ñ, acentos, AltGr, símbolos y modificadores | Pendiente |
-| K2 | Clic, arrastre y rueda tras cruzar | Acciones y liberaciones correctas | Pendiente |
-| R1 | Emergencia en origen | Captura liberada sin esperar al destino | Pendiente |
-| R2 | Emergencia en destino | Entrada liberada y salida local operativa | Ubuntu local superado, 5 noviembre 2026 |
-| R3 | Actividad física en destino Windows | Sesión termina y se libera estado | Pendiente |
-| R4 | Corte de red con tecla/botón pulsado | Recuperación local y watchdog remoto | Pendiente |
-| R5 | Cerrar proceso origen desde otro medio | Destino libera por su temporizador | Pendiente |
-| R6 | Alcanzar duración máxima | Cierre y limpieza en ambos extremos | Pendiente |
-| R7 | Cancelar antes de cruzar | Salida y cierre de sesiones autorizadas | Pendiente |
-| R8 | Huella incorrecta en cada extremo | Rechazo, sin sesión de control autorizada | Pendiente |
-| R9 | Retirar sesión/permiso del escritorio | Error, liberación y recuperación | Ubuntu local superado, 5 noviembre 2026 |
-| R10 | Cierre de EIS o cambio de zona | Recuperación o rechazo con explicación | Pendiente |
-| R11 | Falta de portal/dispositivos/atajo | Error concreto, sin simular éxito | Pendiente |
-| R12 | Puerto inaccesible | No queda captura activa ni entrada inyectada | Pendiente |
+| D1 | Diagnosis Windows | Reported backend and capabilities are consistent | Pending |
+| D2 | Wayland Diagnosis | Required portals and capabilities; no failback X11 | Ubuntu verified. InputCapture v1 blocks source operation |
+| D3 | Optional Xorg diagnosis | X11/XI2/XTest, if that backend was compiled | Pending |
+| P1 | Deny or cancel InputCapture | Origin rejects and cleans preparation | Pending |
+| P2 | Deny RemoteDesktop or the shortcut | Destination does not enable control session | Cancellation RemoteDesktop verified in Ubuntu |
+| P3 | Grant permissions | Geometry and required devices available | Ubuntu target verified with one monitor |
+| I1/I2 | Local injection Windows/Wayland | Movement and text in the chosen editor | I2 Ubuntu exceeded; I1 Windows pending |
+| C1 | Windows → Ubuntu | Crossing, entry and return | Pending |
+| C2 | Ubuntu → Windows | Activation by barrier, entry and return | Pending |
+| C3 | Go out and get close to the edge again | No repeated crossings or duplicate sessions | Pending |
+| K1 | Spanish keyboard | ñ, accents, AltGr, symbols and modifiers | Pending |
+| K2 | Click, drag and wheel after crossing | Correct actions and releases | Pending |
+| R1 | Emergency recovery at source | Catch released without waiting for destination | Pending |
+| R2 | Emergency recovery at target | Released entry and local operational exit | Local Ubuntu check passed on November 5, 2026 |
+| R3 | Physical activity in Windows destination | Session ends and state is released | Pending |
+| R4 | Network cut with key or mouse button pressed | Local Recovery and Remote Watchdog | Pending |
+| R5 | Close source process from another medium | Destination frees by its timer | Pending |
+| R6 | Reaching maximum duration | Closure and cleaning on both ends | Pending |
+| R7 | Cancel before crossing | Departure and closure of authorized meetings | Pending |
+| R8 | Improper print on each end | Rejection, no control session authorized | Pending |
+| R9 | Remove session or permission from desktop | Error, release and recovery | Local Ubuntu check passed on November 5, 2026 |
+| R10 | EIS closure or change of zone | Recovery or rejection with explanation | Pending |
+| R11 | Lack of portal/devices/fit | Concrete error, without simulating success | Pending |
+| R12 | Puerto inaccesible | No active capture or injected input left | Pending |
 
-Para probar una huella incorrecta, modificar un dígito y repetir con el error en cada extremo por separado. Para probar pérdida de origen, disponer de otro medio de cerrar el proceso; no matar el receptor mientras mantenga entrada inyectada como primera prueba.
+To test an incorrect footprint, modify a digit and repeat with the error at each end separately. To
+prove loss of origin, have another means of closing the process; do not kill the receiver while
+keeping inlet injected as first test.
 
-La identidad de tecla es posicional HID. Usar distribución española en ambos extremos y registrar la tecla física si no coincide el carácter. Ejemplo:
+The key identity is HID positional. Use Spanish distribution at both ends and register the physical
+key if the character does not match. Example:
 
 ```text
-ñ Ñ á é í ó ú ü < > @ € # ~
-Ctrl, Alt, Shift y AltGr
+♪ I'm going to ♪
+Ctrl, Alt, Shift, and AltGr
 ```
 
-## 10. Recuperación y límites
+## 10. Recovery and limits
 
-- Origen: la combinación de emergencia prevista es Ctrl+Alt+F12 durante captura. Debe devolver a control local; su comportamiento real está sin verificar.
-- Destino Windows: hook local de emergencia y detección de actividad física.
-- Destino X11: reserva del atajo mediante XGrabKey.
-- Destino Wayland: GlobalShortcuts con Ctrl+Shift+F12; exige activación y liberación antes de RemoteDesktop/EIS. Si falla, no se abre control.
-- Pérdida de comunicación: objetivo del código de 2 s en origen y 1,5 s de watchdog en destino. Son temporizadores configurados, no latencias medidas.
-- Wayland origen solicita posición de retorno; Wayland destino no restaura un cursor global previo.
-- El watchdog no sobrevive a la muerte del propio receptor. Usar la salida prevista y liberar estados antes de cerrar forzosamente ese proceso.
-- Un monitor, región única, sin reconexión automática, vídeo, portapapeles ni dispositivos múltiples.
-- No se garantiza control de ventanas elevadas Windows ni del escritorio seguro.
-- No se sincronizan modificadores/botones previos al cruce.
-- La biblioteca y API compiladas no demuestran soporte de la sesión real.
+- Source: The expected emergency combination is Ctrl+Alt+F12 during capture. You must return to
+  local control; your actual behavior is unverified.
+- Destination Windows: local emergency hook and physical activity detection.
+- Destination X11: Save the shortcut using XGrabKey.
+- Wayland Destination: GlobalShortcuts with Ctrl+Shift+F12; requires activation and release before
+  RemoteDesktop/EIS. If failed, no control is opened.
+- Loss of communication: target of the 2 s code in origin and 1,5 s of watchdog in destination. They
+  are configured timers, not measured latencies.
+- Wayland origin requests return position; Wayland destination does not restore a previous global
+  cursor.
+- The watchdog does not survive the death of the receiver itself. Use the intended output and
+  release states before necessarily closing that process.
+- A monitor, unique region, without automatic reconnection, video, clipboard or multiple devices.
+- Control of Windows elevated windows and secure desktop is not guaranteed.
+- Modifier keys and mouse buttons held before crossing are not synchronized.
+- The compiled library and API do not demonstrate actual session support.
 
-## 11. Diagnóstico de problemas
+## 11. Diagnosis of problems
 
-| Síntoma | Qué comprobar |
+| Symptoms | What to check |
 | --- | --- |
-| Wayland detectado, backend no incluido | Reconstruir con `ONEINTWO_WAYLAND=ON` y sus dependencias; no usar una compilación portable |
-| Captura no disponible | InputCapture v2 y capacidades de teclado/puntero que detecta el prototipo |
-| Inyección no disponible | RemoteDesktop v2 y GlobalShortcuts v1; luego permisos y dispositivos EIS |
-| Geometría cero en diagnóstico | Repetir la observación después de preparar permisos; no se conoce necesariamente antes |
-| Preparación del destino rechazada | Atajo no concedido, dispositivo absoluto ausente, región ausente o varias regiones |
-| Error de permisos o tiempo de espera | Diálogo rechazado/cancelado o portal sin respuesta; registrar el texto completo |
-| No conecta | Destino ya autorizado y escuchando, IP, puerto y cortafuegos |
-| Error de certificado | Huella completa del otro equipo y par certificado/clave correctos |
-| Binario Windows no arranca | DLL de OpenSSL de arquitectura compatible en PATH |
-| No vuelve al origen | Registrar borde, coordenadas, backend y estado; usar salida local y marcar fallo |
-| Teclas incorrectas | Distribución, conversión HID y modificadores; no dar por válida la prueba por aparecer texto |
+| Wayland detected, backend missing from build | Rebuild with `ONEINTWO_WAYLAND=ON` and its dependencies; do not use a portable build |
+| Catch not available | InputCapture v2 and teclado/puntero capabilities that detects the prototype |
+| Injection not available | RemoteDesktop v2 and GlobalShortcuts v1, then check permissions and EIS devices |
+| Zero geometry in diagnosis | Repeat observation after preparing permissions; not necessarily known before |
+| Preparation of rejected destination | Unallocated catch, absent absolute device, absent region or several regions |
+| Permission error or timeout | denied or cancelled dialogue or no-response portal; record full text |
+| No conecta | Destination already authorized and listening, IP, port and firewall |
+| Certificate error | Full footprint of the other equipment and correct certificado/clave pair |
+| Windows executable fails to start | OpenSSL DLL compatible architecture in PATH |
+| Cannot return to the source | Register border, coordinates, backend and status; use local output and mark bug |
+| Wrong keys | Distribution, HID conversion and modifiers; not valid proof to appear text |
 
 ## 12. Registro
 
-Anotar los resultados en [RESULTS.md](RESULTS.md), manteniendo separadas compilación, self-test y cada prueba real. La referencia de 538/0 corresponde al self-test Windows ejecutado el 5 de noviembre; no es evidencia de un handshake, un portal o un pegado real.
+Write down the results in [RESULTS.md](RESULTS.md), keeping separate compilation, self-test and each
+real test. The 538/0 reference corresponds to the self-test Windows executed on November 5th; it is
+not evidence of a handshake, portal, or actual pasting.
 

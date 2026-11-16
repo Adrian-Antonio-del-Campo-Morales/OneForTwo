@@ -64,7 +64,7 @@ void WgcCaptureCore::start(Sink sink)
         pool_size_ = initial_size_;
         session_ = pool_->createSession();
         if (!session_) {
-            throw std::runtime_error("WGC capture session unavailable");
+            throw std::runtime_error("WGC capture session unvailable");
         }
         session_->configureCursor();
         session_->start();
@@ -112,8 +112,8 @@ void WgcCaptureCore::releaseGraphics()
         }
         pool_ = nullptr;
     }
-    // La fábrica retiene el item, el dispositivo y los recursos WinRT. La
-    // captura no se reinicia tras stop(), así que se liberan aquí.
+    // The factory retains the WinRT item, device and resources.
+    // capture is not restarted after stop(), so they are released here.
     factory_ = nullptr;
 }
 
@@ -134,8 +134,8 @@ void WgcCaptureCore::poll()
         try {
             initialise_thread_();
         } catch (...) {
-            // La captura real ya se inicializó en createWin32Capture; si el
-            // inicializador falla, los objetos WinRT reportarán el error.
+            // The actual catch is already initialized in createWin32Capture; if the
+            // initializer fails, WinRT objects will report error.
         }
     }
     auto last_check = std::chrono::steady_clock::now();
@@ -188,8 +188,8 @@ void WgcCaptureCore::poll()
             const VisualSize content = frame->contentSize();
             if (saneSize(content)) {
                 if (content.width != pool_size_.width || content.height != pool_size_.height) {
-                    // El frame pertenece al pool anterior: cerrarlo antes de
-                    // recrear el pool y descartar este frame de transición.
+                    // The frame belongs to the previous pool: close it before
+                    // recreate the pool and discard this transition frame.
                     closeFrame();
                     if (!pool_->recreate(content)) {
                         publishState(VisualSourceState::closed);

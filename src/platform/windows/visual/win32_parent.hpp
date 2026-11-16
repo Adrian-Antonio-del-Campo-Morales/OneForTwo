@@ -6,7 +6,7 @@
 
 namespace oneintwo::windows {
 
-// Devuelve el HWND del padre del selector, o 0 si no está disponible.
+// Returns the HWND of the selector parent, or 0 if it is not available.
 std::uintptr_t nativeParentWindow(const PlatformContext& context);
 
 } // namespace oneintwo::windows

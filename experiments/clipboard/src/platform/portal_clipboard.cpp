@@ -1,20 +1,20 @@
-// Responsabilidad: adaptador Linux/Wayland real mediante xdg-desktop-portal.
+// Responsibility: Real Linux/Wayland adapter via xdg-desktop-portal.
 //
-// Flujo oficial (xdg-desktop-portal 1.x):
+// Official flow (xdg-desktop-portal 1.x):
 //   RemoteDesktop.CreateSession
 //   Clipboard.RequestClipboard
-//   RemoteDesktop.SelectDevices(types=0)   // no se solicita entrada
+//   RemoteDesktop.SelectDevices(types=0) // no entry requested
 //   RemoteDesktop.Start
 //   Clipboard.SetSelection / SelectionRead / SelectionWrite / SelectionWriteDone
 //
-// El cliente no llama nunca a Notify* ni ConnectToEIS, no captura entrada y no
-// usa X11 como sustituto. GNOME 46+ exige habilitar "Allow Remote Interaction"
-// o seleccionar una pantalla en su diálogo para habilitar Share; con
-// SelectDevices(types=0) ese interruptor no concede dispositivos de entrada. El
-// adaptador rechaza cualquier mask distinto de cero y no simula entrada.
+// The client never calls Notify* or ConnectToEIS, does not capture input and does not
+// use X11 as a substitute. GNOME 46+ requires enabling "Allow Remote Interaction"
+// or select a screen in your dialog to enable Share; with
+// SelectDevices(types=0) that switch does not grant input devices.
+// adapter rejects any mask other than zero and does not simulate input.
 //
-// Dependencia: libdbus-1 (API pública). La compilación sin las cabeceras de
-// desarrollo compila el adaptador de limitación, no este archivo.
+// Dependence: libdbus-1 (API public). Compilation without headers
+// development compiles the limitation adapter, not this file.
 
 #include "platform/portal_clipboard.hpp"
 
@@ -375,9 +375,9 @@ void parse_options_array(DBusMessageIter* array, ParsedOptions& out) {
                (type == DBUS_TYPE_ARRAY || type == DBUS_TYPE_STRUCT)) {
       DBusMessageIter values = variant;
       if (type == DBUS_TYPE_STRUCT) {
-        // xdg-desktop-portal-gnome 46 emite el valor como tupla (as), aunque
-        // la especificación del portal describe mime_types como as. Se aceptan
-        // ambas formas para no perder las señales reales.
+        // xdg-desktop-portal-gnome 46 emits the value as tuple (as), though
+        // the specification of the portal describes mime_types as ace. Accepted
+        // both ways to not lose the real signals.
         dbus_message_iter_recurse(&variant, &values);
       }
       if (dbus_message_iter_get_arg_type(&values) == DBUS_TYPE_ARRAY) {
@@ -526,8 +526,8 @@ bool write_all(int fd, const std::string& text) {
   return true;
 }
 
-// SelectionRead puede entregar un pipe no bloqueante antes de que el dueño
-// escriba. Esperar datos/EOF con un plazo total, sin tratar EAGAIN como fallo.
+// SelectionRead can deliver a non-blocking pipe before the owner
+// write. Wait datos/EOF with a total deadline, without treating EAGAIN as a bug.
 Status read_selection_pipe(int fd, std::string& text, int timeout_ms) {
   text.clear();
   const auto deadline = std::chrono::steady_clock::now() +
@@ -552,7 +552,7 @@ Status read_selection_pipe(int fd, std::string& text, int timeout_ms) {
     if (ready == 0) {
       return {StatusCode::Busy, "portal selection pipe timed out"};
     }
-    // POLLHUP puede acompañar datos pendientes; drenar antes de aceptar EOF.
+    // POLLHUP can accompany pending data; drain before accepting EOF.
     const ssize_t count = ::read(fd, buffer, sizeof(buffer));
     if (count < 0) {
       if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -1332,8 +1332,8 @@ bool run_portal_pipe_isolated_checks(std::string& detail) {
   char byte;
   const bool initially_empty = ::read(descriptors[0], &byte, 1) < 0 &&
                               (errno == EAGAIN || errno == EWOULDBLOCK);
-  // Menos de PIPE_BUF: el escritor termina incluso si falla el lector.
-  const std::string expected = std::string(u8"Hola ñ 😀\n") +
+  // Less than PIPE_BUF: the writer ends even if the reader fails.
+  const std::string expected = std::string(u8"Hi! é 😀!\n") +
                                std::string(2048, 'x');
   bool write_ok = false;
   std::thread producer([&] {

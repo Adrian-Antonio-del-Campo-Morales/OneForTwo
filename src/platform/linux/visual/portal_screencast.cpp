@@ -27,7 +27,7 @@ constexpr char kPropertiesInterface[] = "org.freedesktop.DBus.Properties";
 constexpr std::uint32_t kSourceMonitor = 1;
 constexpr std::uint32_t kSourceWindow = 2;
 
-// El diálogo del compositor puede tardar; los pasos internos no.
+// The composer's dialogue may take time; internal steps may not.
 constexpr int kInteractiveTimeoutMs = 120000;
 constexpr int kInternalTimeoutMs = 10000;
 
@@ -530,7 +530,7 @@ private:
                            (void)error;
                            return;
                        }
-                       // Portales anteriores a AvailableSourceTypes solo documentan monitores.
+                       // Portals prior to AvailableSourceTypes only document monitors.
                        ScreenCastSupport support;
                        support.monitor = true;
                        complete(support, true);
@@ -595,7 +595,7 @@ private:
                                                        ? kSourceMonitor
                                                        : kSourceWindow));
         g_variant_builder_add(&options, "{sv}", "multiple", g_variant_new_boolean(FALSE));
-        // Cursor oculto: la imagen compartida no incorpora el puntero local.
+        // Hidden Cursor: the shared image does not incorporate the local pointer.
         g_variant_builder_add(&options, "{sv}", "cursor_mode", g_variant_new_uint32(1));
 
         callPortal(kScreenCastInterface, "SelectSources",
@@ -690,7 +690,7 @@ private:
         }
         if (!sources.front().has_source_type
             || !typeMatchesKind(sources.front().source_type, kind_)) {
-            // Sin atestación del tipo efectivo no se puede garantizar el aislamiento.
+            // Without effective rate attestation, isolation cannot be guaranteed.
             finish(ScreenCastStatus::unavailable, {});
             return;
         }

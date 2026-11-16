@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
-# Raíz del repositorio obtenida desde la ruta de este archivo, para funcionar
-# como proyecto independiente y como subdirectorio del raíz.
+# Derive the repository root from this file so the package can build
+# independently or as a subdirectory of the root project.
 get_filename_component(ONEINTWO_REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 
 set(ONEINTWO_CAPTURE_STANDALONE OFF)
@@ -10,13 +10,13 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     set(ONEINTWO_CAPTURE_STANDALONE ON)
 endif()
 
-# En CI se activa para que la falta de cabeceras WGC falle en compilación y
-# para construir un ejecutable que compruebe el enlace de los import libs.
+# CI enables this option to fail compilation when WGC headers are missing
+# and to build an executable that checks import library linkage.
 option(ONEINTWO_REQUIRE_WGC
-    "Exigir cabeceras WGC y comprobar el enlace del backend" OFF)
+    "Require WGC headers and check backend linkage" OFF)
 
-# Modelo portable: selección, identidad de la fuente, orden de callbacks y
-# contrato BGRA. Se prueba sin Windows con un puerto falso.
+# The portable model covers selection, source identity, callback order, and
+# the BGRA contract. Tests use a fake port and can run outside Windows.
 add_library(oneintwo_capture_windows_model STATIC
     ${ONEINTWO_REPO_ROOT}/src/platform/windows/visual/capture_model.cpp
     ${ONEINTWO_REPO_ROOT}/src/platform/windows/visual/unavailable_port.cpp
@@ -27,8 +27,8 @@ target_include_directories(oneintwo_capture_windows_model PUBLIC
 target_compile_features(oneintwo_capture_windows_model PUBLIC cxx_std_17)
 set_target_properties(oneintwo_capture_windows_model PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-# Núcleo nativo portable: sesión, frame pool y frames se inyectan, de modo que
-# el ciclo de vida WGC puede probarse con dobles sin WinRT ni GPU.
+# The portable native core injects the session, frame pool, and frames so
+# tests can cover the WGC lifecycle without WinRT or a GPU.
 add_library(oneintwo_wgc_capture_core STATIC
     ${ONEINTWO_REPO_ROOT}/src/platform/windows/visual/wgc_capture_core.cpp
 )
@@ -41,7 +41,7 @@ set(ONEINTWO_CAPTURE_PARENT_SOURCES
     ${ONEINTWO_REPO_ROOT}/src/platform/windows/visual/win32_parent_default.cpp)
 set(ONEINTWO_CAPTURE_PARENT_LIBRARIES "")
 set(ONEINTWO_CAPTURE_QT ON CACHE BOOL
-    "Usar Qt para el padre del selector cuando esté disponible")
+    "Use Qt for the picker parent window when available")
 if(ONEINTWO_CAPTURE_QT)
     find_package(Qt6 QUIET COMPONENTS Widgets)
     if(Qt6Widgets_FOUND)
@@ -52,14 +52,14 @@ if(ONEINTWO_CAPTURE_QT)
 endif()
 
 if(WIN32)
-    # Línea estable para que CI pueda publicar y validar el SDK realmente
-    # seleccionado por el generador Visual Studio.
+    # Keep this output stable so CI can report and verify the SDK selected by
+    # the Visual Studio generator.
     message(STATUS
         "OneInTwo selected Windows SDK: '${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}'")
 
-    # IsCursorCaptureEnabled llegó con el SDK 10.0.19041. El backend lo usa
-    # siempre; el QI de runtime conserva Windows 1903/1909. Fallar aquí evita
-    # una build que compile el fallback silenciosamente.
+    # SDK 10.0.19041 introduced IsCursorCaptureEnabled. The backend always
+    # uses it, with runtime QueryInterface preserving support for Windows
+    # 1903/1909. Fail here to prevent silently building the fallback.
     set(ONEINTWO_WINDOWS_SDK_MIN "10.0.19041")
     set(_oneintwo_sdk_version "${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
     if(NOT _oneintwo_sdk_version AND DEFINED ENV{WindowsSDKVersion})
@@ -67,8 +67,8 @@ if(WIN32)
     endif()
     if(_oneintwo_sdk_version AND _oneintwo_sdk_version VERSION_LESS ONEINTWO_WINDOWS_SDK_MIN)
         message(FATAL_ERROR
-            "OneInTwo requiere Windows SDK ${ONEINTWO_WINDOWS_SDK_MIN} o posterior "
-            "para IsCursorCaptureEnabled; el SDK seleccionado es '${_oneintwo_sdk_version}'.")
+            "OneInTwo requires Windows SDK ${ONEINTWO_WINDOWS_SDK_MIN} or later "
+            "for IsCursorCaptureEnabled. The selected SDK is '${_oneintwo_sdk_version}'.")
     endif()
 
     include(CheckCXXSourceCompiles)
@@ -96,9 +96,9 @@ if(WIN32)
     set(CMAKE_REQUIRED_FLAGS "${_oneintwo_required_flags}")
     if(NOT ONEINTWO_HAS_WGC_CURSOR_API)
         message(FATAL_ERROR
-            "OneInTwo requiere Windows SDK ${ONEINTWO_WINDOWS_SDK_MIN} o posterior "
-            "(IGraphicsCaptureSession2/IsCursorCaptureEnabled); no se encontró la API "
-            "en las cabeceras seleccionadas.")
+            "OneInTwo requires Windows SDK ${ONEINTWO_WINDOWS_SDK_MIN} or later "
+            "(IGraphicsCaptureSession2/IsCursorCaptureEnabled); the API was not found "
+            "in the selected headers.")
     endif()
 
     add_library(oneintwo_capture_windows STATIC
@@ -110,8 +110,8 @@ if(WIN32)
     target_include_directories(oneintwo_capture_windows PUBLIC
         $<BUILD_INTERFACE:${ONEINTWO_REPO_ROOT}/src>)
     target_compile_features(oneintwo_capture_windows PUBLIC cxx_std_17)
-    # IsCursorCaptureEnabled exige el SDK 10.0.19041; el QI de runtime conserva
-    # Windows 1903/1909 sin intentar llamar a la propiedad.
+    # IsCursorCaptureEnabled requires SDK 10.0.19041. Runtime QueryInterface
+    # avoids calling the property on Windows 1903/1909.
     target_compile_definitions(oneintwo_capture_windows PRIVATE
         UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX
         _WIN32_WINNT=0x0A00 WINVER=0x0A00)
@@ -148,9 +148,9 @@ if(WIN32)
             _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     endif()
     if(MSVC)
-        # El cppwinrt incluido en el SDK 19041 usa nombres que no resuelven con
-        # /permissive- en los compiladores v143 actuales. La lane mínima conserva
-        # ese SDK con /permissive; las cabeceras modernas siguen en modo estricto.
+        # The cppwinrt headers in SDK 19041 use names that current v143 compilers
+        # cannot resolve with /permissive-. The minimum-SDK job uses /permissive
+        # for those headers, and recent SDKs retain strict mode.
         set(_oneintwo_msvc_sdk "${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
         if(NOT _oneintwo_msvc_sdk AND CMAKE_GENERATOR_PLATFORM MATCHES "version=([0-9.]+)")
             set(_oneintwo_msvc_sdk "${CMAKE_MATCH_1}")
@@ -165,13 +165,13 @@ if(WIN32)
     endif()
 else()
     message(STATUS
-        "oneintwo_capture_windows: el backend nativo solo se construye en Windows; "
-        "el modelo portable queda disponible para las pruebas")
+        "oneintwo_capture_windows: the native backend builds on Windows only. "
+        "The portable model remains available for tests")
 endif()
 
 if(NOT DEFINED ONEINTWO_BUILD_TESTS)
     set(ONEINTWO_BUILD_TESTS ${ONEINTWO_CAPTURE_STANDALONE} CACHE BOOL
-        "Construir las pruebas del paquete")
+        "Build the package tests")
 endif()
 
 if(ONEINTWO_BUILD_TESTS)

@@ -85,7 +85,7 @@ bool cleanDevice(const TrustedDevice& device, TrustedDevice* cleaned,
                  std::string* error) {
     if (!safeId(device.device_id)) {
         if (error != nullptr) {
-            *error = "el identificador del dispositivo no es válido";
+            *error = "the device identifier is invalid";
         }
         return false;
     }
@@ -101,7 +101,7 @@ bool cleanDevice(const TrustedDevice& device, TrustedDevice* cleaned,
         const std::string normalized = PairingStore::normalizePin(pin);
         if (normalized.empty()) {
             if (error != nullptr) {
-                *error = "la huella del dispositivo no es un SHA-256 válido";
+                *error = "the device footprint is not a valid SHA-256";
             }
             return false;
         }
@@ -112,7 +112,7 @@ bool cleanDevice(const TrustedDevice& device, TrustedDevice* cleaned,
     }
     if (result.pins.empty() || result.pins.size() > 2) {
         if (error != nullptr) {
-            *error = "un par debe tener una o dos huellas como máximo";
+            *error = "a pair must have one or two prints at most.";
         }
         return false;
     }
@@ -237,21 +237,21 @@ bool PairingStore::reload(std::string* error) {
     std::error_code filesystem_error;
     if (!fs::exists(path, filesystem_error)) {
         if (filesystem_error) {
-            return fail("no se pudo consultar el almacén de pares: " +
+            return fail("Could not close temporary folder: %s " +
                         filesystem_error.message());
         }
-        // La ausencia del archivo es un almacén vacío, no un error.
+        // The absence of the file is an empty warehouse, not an error.
         devices_.clear();
         return true;
     }
 
     std::ifstream input(path);
     if (!input) {
-        return fail("no se pudo leer el almacén de pares");
+        return fail("could not read the peer store");
     }
     std::string line;
     if (!std::getline(input, line) || line != kHeader) {
-        return fail("el almacén de pares no tiene el formato esperado");
+        return fail("the torque storage does not have the expected formatting");
     }
     std::vector<TrustedDevice> parsed;
     while (std::getline(input, line)) {
@@ -261,20 +261,20 @@ bool PairingStore::reload(std::string* error) {
         const auto fields = split(line, '\t');
         if (fields.size() < 5 || !safeId(fields[0]) || fields[1].empty() ||
             !isValidPin(fields[4])) {
-            return fail("el almacén de pares contiene una entrada no válida");
+            return fail("the pair store contains an invalid entry");
         }
         TrustedDevice device;
         device.device_id = fields[0];
         device.name = sanitize(fields[1]);
         device.host = sanitize(fields[2]);
         if (!parsePort(fields[3], &device.port)) {
-            return fail("el almacén de pares contiene un puerto no válido");
+            return fail("the torque storage contains a invalid port");
         }
         for (std::size_t index = 4; index < fields.size(); ++index) {
             const std::string pin = normalizePin(fields[index]);
             if (pin.empty()) {
                 return fail(
-                    "el almacén de pares contiene una huella no válida");
+                    "the torque storage contains an invalid footprint");
             }
             if (std::find(device.pins.begin(), device.pins.end(), pin) ==
                 device.pins.end()) {
@@ -282,17 +282,17 @@ bool PairingStore::reload(std::string* error) {
             }
         }
         if (device.pins.empty() || device.pins.size() > 2) {
-            return fail("el almacén de pares contiene demasiadas huellas");
+            return fail("The pair store contains too many prints.");
         }
         if (std::any_of(parsed.begin(), parsed.end(),
                         [&device](const TrustedDevice& other) {
                             return other.device_id == device.device_id;
                         })) {
-            return fail("el almacén de pares contiene un dispositivo duplicado");
+            return fail("the pair store contains a duplicate device");
         }
         parsed.push_back(std::move(device));
     }
-    // Solo se publica el estado nuevo cuando el archivo entero es válido.
+    // Only the new state is published when the entire file is valid.
     devices_ = std::move(parsed);
     return true;
 }
@@ -352,7 +352,7 @@ bool PairingStore::retireFallback(const std::string& device_id,
                                   std::string* error) {
     const auto existing = find(device_id);
     if (!existing.has_value()) {
-        setError("el dispositivo no está emparejado", error);
+        setError("the device is not matched", error);
         return false;
     }
     if (existing->pins.size() < 2) {
@@ -370,7 +370,7 @@ bool PairingStore::retireFallback(const std::string& device_id,
                          return device.device_id == device_id;
                      });
     if (iterator == candidate.end()) {
-        setError("el dispositivo no está emparejado", error);
+        setError("the device is not matched", error);
         return false;
     }
     iterator->pins.resize(1);
@@ -382,7 +382,7 @@ bool PairingStore::rotatePin(const std::string& device_id,
                              std::string* error) {
     const auto current = find(device_id);
     if (!current.has_value()) {
-        setError("el dispositivo no está emparejado", error);
+        setError("the device is not matched", error);
         return false;
     }
     TrustedDevice updated = *current;
@@ -394,16 +394,16 @@ std::optional<TrustedDevice> PairingStore::rotatePin(
     const TrustedDevice& device, std::string* error) {
     const auto existing = find(device.device_id);
     if (!existing.has_value()) {
-        setError("el dispositivo no está emparejado", error);
+        setError("the device is not matched", error);
         return std::nullopt;
     }
     if (device.pins.empty()) {
-        setError("la huella nueva no es un SHA-256 válido", error);
+        setError("the new footprint is not a valid SHA-256", error);
         return std::nullopt;
     }
     const std::string new_pin = normalizePin(device.pins.front());
     if (new_pin.empty()) {
-        setError("la huella nueva no es un SHA-256 válido", error);
+        setError("the new footprint is not a valid SHA-256", error);
         return std::nullopt;
     }
 
@@ -436,7 +436,7 @@ std::optional<TrustedDevice> PairingStore::rotatePin(
                          return item.device_id == cleaned.device_id;
                      });
     if (iterator == next.end()) {
-        setError("el dispositivo no está emparejado", error);
+        setError("the device is not matched", error);
         return std::nullopt;
     }
     *iterator = cleaned;
@@ -471,7 +471,7 @@ bool PairingStore::writeFile(const std::vector<TrustedDevice>& devices,
     }
     if (filesystem_error) {
         if (error != nullptr) {
-            *error = "no se pudo crear el directorio del almacén de pares";
+            *error = "Could not close temporary folder: %s";
         }
         return false;
     }
@@ -487,12 +487,12 @@ bool PairingStore::writeFile(const std::vector<TrustedDevice>& devices,
         content << '\n';
     }
 
-    // QSaveFile usa un temporal único y un reemplazo atómico, también en
-    // Windows. Si algo falla, el archivo anterior permanece intacto.
+    // QSaveFile uses a unique temporal and atomic replacement, also in
+    // Windows. If something fails, the previous file remains intact.
     QSaveFile output(QString::fromStdString(path.string()));
     if (!output.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         if (error != nullptr) {
-            *error = "no se pudo escribir el almacén de pares: " +
+            *error = "Could not close temporary folder: %s " +
                      output.errorString().toStdString();
         }
         return false;
@@ -501,21 +501,21 @@ bool PairingStore::writeFile(const std::vector<TrustedDevice>& devices,
     if (output.write(bytes) != static_cast<qint64>(bytes.size())) {
         output.cancelWriting();
         if (error != nullptr) {
-            *error = "no se pudo guardar el almacén de pares";
+            *error = "Could not close temporary folder: %s";
         }
         return false;
     }
     if (!output.commit()) {
         if (error != nullptr) {
-            *error = "no se pudo reemplazar el almacén de pares: " +
+            *error = "Could not replace torque storage: " +
                      output.errorString().toStdString();
         }
         return false;
     }
 
-    // El contenido ya está reemplazado; los permisos y el fsync son la última
-    // barrera de integridad y durabilidad. Los errores de fsync no se ignoran
-    // para la lógica de memoria, pero no pueden revertir el reemplazo.
+    // Content is already replaced; permissions and fsync are the last
+    // barrier of integrity and durability. fsync errors are not ignored
+    // for memory logic, but they can't reverse the replacement.
     std::error_code permissions_error;
     fs::permissions(path, fs::perms::owner_read | fs::perms::owner_write,
                     fs::perm_options::replace, permissions_error);

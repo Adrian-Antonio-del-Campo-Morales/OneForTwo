@@ -65,7 +65,7 @@ struct Coordinator::Impl {
         dependencies.session.setGrantedFeatures(grants_send, grants_receive);
         refreshAuthorization();
         dependencies.view.setSessionAvailable(false);
-        dependencies.view.setStatus("Sin sesión");
+        dependencies.view.setStatus("No session");
     }
 
     ~Impl() {
@@ -145,11 +145,11 @@ struct Coordinator::Impl {
 
     void shareSource(VisualSourceKind source) {
         if (!dependencies.session.established()) {
-            dependencies.view.setError("No hay una sesión establecida");
+            dependencies.view.setError("There is no set session");
             return;
         }
         if (locked) {
-            dependencies.view.setError("La sesión está bloqueada");
+            dependencies.view.setError("Session is locked");
             return;
         }
         if (visual) {
@@ -182,15 +182,15 @@ struct Coordinator::Impl {
 
     void sendManualNotice(NotificationContent content) {
         if (!dependencies.session.established()) {
-            dependencies.view.setError("No hay una sesión establecida");
+            dependencies.view.setError("There is no set session");
             return;
         }
         if (locked) {
-            dependencies.view.setError("La sesión está bloqueada");
+            dependencies.view.setError("Session is locked");
             return;
         }
         if (!dependencies.session.effectiveSendFeatures().manual_notifications) {
-            dependencies.view.setError("El envío manual de avisos está desactivado");
+            dependencies.view.setError("Manual posting of notices is disabled");
             return;
         }
         dependencies.notifications.sendManual(generation, content);
@@ -213,7 +213,7 @@ struct Coordinator::Impl {
             dependencies.view.setVisualActive(false, "");
         }
         refreshAuthorization();
-        dependencies.view.setStatus(locked ? "Sesión bloqueada" : "Sesión reanudada");
+        dependencies.view.setStatus(locked ? "Locked session" : "Resumed meeting");
     }
 
     void receive(FeatureMessage message) {
@@ -301,7 +301,7 @@ void Coordinator::sessionEstablished(SessionGeneration generation) {
     impl_->active.reset();
     impl_->dependencies.view.setVisualActive(false, "");
     impl_->dependencies.view.setSessionAvailable(true);
-    impl_->dependencies.view.setStatus("Sesión establecida");
+    impl_->dependencies.view.setStatus("Established meeting");
     impl_->refreshAuthorization();
 }
 
@@ -310,7 +310,7 @@ void Coordinator::sessionClosed() {
     impl_->active.reset();
     impl_->dependencies.view.setVisualActive(false, "");
     impl_->dependencies.view.setSessionAvailable(false);
-    impl_->dependencies.view.setStatus("Sin sesión");
+    impl_->dependencies.view.setStatus("No session");
     if (impl_->visual) {
         impl_->visual->setAuthorization(0, FeatureSet{}, FeatureSet{});
     }

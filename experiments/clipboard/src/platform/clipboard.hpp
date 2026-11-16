@@ -1,8 +1,8 @@
 #pragma once
 
-// Responsabilidad: contrato del adaptador nativo del portapapeles. El motor
-// sólo usa esta interfaz; el código de plataforma queda detrás de la fábrica.
-// Ninguna función de este encabezado accede al portapapeles por sí sola.
+// Responsibility: Native clipboard adapter contract. The engine
+// Just use this interface; the platform code is behind the factory.
+// No function of this header accesses the clipboard alone.
 
 #include <memory>
 #include <string>
@@ -16,7 +16,7 @@ namespace oit {
 struct ClipboardCapabilities {
   bool read = false;
   bool write = false;
-  bool watch = false;  // notificaciones mientras el proceso sigue vivo
+  bool watch = false;  // notifications while the process is still alive
   bool independent_of_input = false;
   std::string backend;
   std::string session;
@@ -48,11 +48,11 @@ struct PortCreation {
   Status status;
 };
 
-// Crea el adaptador real de la plataforma actual. Si no existe una vía
-// soportada devuelve port == nullptr y un estado explícito (nunca un doble).
+// Creates the actual adapter of the current platform. If no track exists
+// supported returns port==nullptr and an explicit state (never a double).
 PortCreation create_clipboard_port();
 
-// Capacidades e inventario no leen ni escriben el portapapeles.
+// Capabilities and inventory do not read or write the clipboard.
 ClipboardCapabilities clipboard_capabilities();
 std::string platform_inventory_text();
 std::string platform_name();

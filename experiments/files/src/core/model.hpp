@@ -1,5 +1,5 @@
-// Responsabilidad: modelo común de ofertas de archivos, límites, validación de
-// rutas relativas e identificadores opacos compartidos por el resto del prototipo.
+// Responsibility: common model of file offers, limits, validation of
+// relative paths and opaque identifiers shared by the rest of the prototype.
 #pragma once
 
 #include <cstddef>
@@ -10,7 +10,7 @@
 
 namespace o2f {
 
-// Error controlado del prototipo: se muestra al usuario sin volcar datos privados.
+// Prototyping Controlled Error: The user is shown without overturning private data.
 struct Error : std::runtime_error {
     using std::runtime_error::runtime_error;
 };
@@ -29,8 +29,8 @@ struct Limits {
 };
 
 struct Entry {
-    std::string id;       // identificador opaco; el receptor nunca envía rutas absolutas
-    std::string relPath;  // componentes separados por '/', validados
+    std::string id;       // opaque identifier; receiver never sends absolute paths
+    std::string relPath;  // components separated by '/', validated
     bool isDir = false;
     std::uint64_t size = 0;
 };
@@ -64,16 +64,16 @@ struct PathRules {
     std::size_t maxNameBytes = 255;
 };
 
-// Lanza Error si la ruta relativa no es segura o excede los límites indicados.
-// Devuelve la misma ruta cuando es aceptable.
+// Launch Error if the relative path is not safe or exceeds the limits indicated.
+// Returns the same route when it is acceptable.
 std::string validateRelativePath(const std::string& relPath, const PathRules& rules);
 
-// Reglas del sistema donde corre el receptor: en Windows se rechazan nombres que
-// el sistema no puede representar (reservados, caracteres prohibidos, punto final).
+// System rules where the receiver runs: in Windows names that are rejected
+// the system cannot represent (reserved, prohibited characters, end point).
 PathRules nativePathRules(const Limits& limits);
 
-// Identificador opaco seguro para nombrar carpetas de caché: solo alfanuméricos,
-// guion y guion bajo. Evita que un par remoto introduzca separadores de ruta.
+// Safe opaque identifier for naming cache folders: alphanumeric only,
+// screenplay and bass script. Prevents a remote pair from introducing route separators.
 bool isValidOpaqueId(const std::string& id, std::size_t maxLen);
 
 std::string randomId(std::size_t bytes = 16);

@@ -235,28 +235,28 @@ TEST_CASE(trust_store_keeps_one_pin_per_device_and_rotates_it) {
     PairingStore store(path);
     CHECK(store.lastError().empty());
     TrustedDevice device;
-    device.device_id = "equipo-b";
-    device.name = "Equipo B";
+    device.device_id = "equipment-b";
+    device.name = "Equipment B";
     device.host = "127.0.0.1";
     device.port = 45871;
     device.pins = {pin_a};
     CHECK(store.save(device));
-    CHECK(store.pinTrusted("equipo-b", pin_a));
-    CHECK(!store.pinTrusted("equipo-b", pin_b));
+    CHECK(store.pinTrusted("equipment-b", pin_a));
+    CHECK(!store.pinTrusted("equipment-b", pin_b));
 
     const std::string wrong(64, '0');
-    CHECK(!store.pinTrusted("equipo-b", wrong));
-    CHECK(store.rotatePin("equipo-b", pin_b));
-    CHECK(store.pinTrusted("equipo-b", pin_b));
-    CHECK(store.pinTrusted("equipo-b", pin_a));
-    CHECK(!store.pinTrusted("equipo-b", wrong));
+    CHECK(!store.pinTrusted("equipment-b", wrong));
+    CHECK(store.rotatePin("equipment-b", pin_b));
+    CHECK(store.pinTrusted("equipment-b", pin_b));
+    CHECK(store.pinTrusted("equipment-b", pin_a));
+    CHECK(!store.pinTrusted("equipment-b", wrong));
 
     PairingStore reopened(path);
     CHECK(reopened.lastError().empty());
-    const auto reloaded = reopened.find("equipo-b");
+    const auto reloaded = reopened.find("equipment-b");
     CHECK(reloaded.has_value());
     if (reloaded.has_value()) {
-        CHECK_EQ(reloaded->name, std::string("Equipo B"));
+        CHECK_EQ(reloaded->name, std::string("Equipment B"));
         CHECK_EQ(reloaded->host, std::string("127.0.0.1"));
         CHECK_EQ(reloaded->port, static_cast<std::uint16_t>(45871));
         CHECK_EQ(reloaded->pins.size(), static_cast<std::size_t>(2));
@@ -264,12 +264,12 @@ TEST_CASE(trust_store_keeps_one_pin_per_device_and_rotates_it) {
     }
 
     TrustedDevice listener;
-    listener.device_id = "equipo-c";
-    listener.name = "Equipo C";
+    listener.device_id = "c-team";
+    listener.name = "Equipment C";
     listener.port = 45454;
     listener.pins = {pin_b};
     CHECK(store.save(listener));
-    const auto listener_reloaded = PairingStore(path).find("equipo-c");
+    const auto listener_reloaded = PairingStore(path).find("c-team");
     CHECK(listener_reloaded.has_value());
     if (listener_reloaded.has_value()) {
         CHECK(listener_reloaded->host.empty());
@@ -290,15 +290,15 @@ TEST_CASE(trust_store_rotates_pin_and_peer_metadata_together) {
     PairingStore store(path);
     CHECK(store.lastError().empty());
     TrustedDevice original;
-    original.device_id = "equipo-b";
-    original.name = "Equipo B";
+    original.device_id = "equipment-b";
+    original.name = "Equipment B";
     original.host = "127.0.0.1";
     original.port = 45871;
     original.pins = {old_pin};
     CHECK(store.save(original));
 
     TrustedDevice updated = original;
-    updated.name = "Equipo B renombrado";
+    updated.name = "Renamed Team B";
     updated.host = "192.0.2.10";
     updated.port = 47123;
     updated.pins = {new_pin};
@@ -307,7 +307,7 @@ TEST_CASE(trust_store_rotates_pin_and_peer_metadata_together) {
     if (!rotated.has_value()) {
         return;
     }
-    CHECK_EQ(rotated->name, std::string("Equipo B renombrado"));
+    CHECK_EQ(rotated->name, std::string("Renamed Team B"));
     CHECK_EQ(rotated->host, std::string("192.0.2.10"));
     CHECK_EQ(rotated->port, static_cast<std::uint16_t>(47123));
     CHECK_EQ(rotated->pins.size(), static_cast<std::size_t>(2));
@@ -316,12 +316,12 @@ TEST_CASE(trust_store_rotates_pin_and_peer_metadata_together) {
 
     PairingStore reopened(path);
     CHECK(reopened.lastError().empty());
-    const auto persisted = reopened.find("equipo-b");
+    const auto persisted = reopened.find("equipment-b");
     CHECK(persisted.has_value());
     if (!persisted.has_value()) {
         return;
     }
-    CHECK_EQ(persisted->name, std::string("Equipo B renombrado"));
+    CHECK_EQ(persisted->name, std::string("Renamed Team B"));
     CHECK_EQ(persisted->host, std::string("192.0.2.10"));
     CHECK_EQ(persisted->port, static_cast<std::uint16_t>(47123));
     CHECK_EQ(persisted->pins.size(), static_cast<std::size_t>(2));
@@ -341,8 +341,8 @@ TEST_CASE(trust_store_exposes_primary_and_fallback_and_retires_backup) {
 
     PairingStore store(path);
     TrustedDevice device;
-    device.device_id = "equipo-b";
-    device.name = "Equipo B";
+    device.device_id = "equipment-b";
+    device.name = "Equipment B";
     device.host = "127.0.0.1";
     device.port = 45871;
     device.pins = {old_pin};
@@ -350,28 +350,28 @@ TEST_CASE(trust_store_exposes_primary_and_fallback_and_retires_backup) {
     device.pins = {new_pin};
     CHECK(store.rotatePin(device).has_value());
 
-    CHECK_EQ(store.primaryPin("equipo-b").value_or(""), new_pin);
-    CHECK_EQ(store.fallbackPin("equipo-b").value_or(""), old_pin);
-    CHECK(store.pinRole("equipo-b", new_pin) ==
+    CHECK_EQ(store.primaryPin("equipment-b").value_or(""), new_pin);
+    CHECK_EQ(store.fallbackPin("equipment-b").value_or(""), old_pin);
+    CHECK(store.pinRole("equipment-b", new_pin) ==
           PairingStore::PinRole::primary);
-    CHECK(store.pinRole("equipo-b", old_pin) ==
+    CHECK(store.pinRole("equipment-b", old_pin) ==
           PairingStore::PinRole::fallback);
-    CHECK(store.primaryPinTrusted("equipo-b", new_pin));
-    CHECK(!store.primaryPinTrusted("equipo-b", old_pin));
-    // La compatibilidad de pinTrusted conserva el respaldo como confianza.
-    CHECK(store.pinTrusted("equipo-b", old_pin));
+    CHECK(store.primaryPinTrusted("equipment-b", new_pin));
+    CHECK(!store.primaryPinTrusted("equipment-b", old_pin));
+    // PinTrusted compatibility retains the backup as confidence.
+    CHECK(store.pinTrusted("equipment-b", old_pin));
 
     std::string error;
-    CHECK(store.retireFallback("equipo-b", &error));
+    CHECK(store.retireFallback("equipment-b", &error));
     CHECK(error.empty());
-    CHECK(store.primaryPin("equipo-b").has_value());
-    CHECK(!store.fallbackPin("equipo-b").has_value());
-    CHECK(!store.pinTrusted("equipo-b", old_pin));
-    CHECK(store.primaryPinTrusted("equipo-b", new_pin));
-    CHECK(store.retireFallback("equipo-b", &error));
+    CHECK(store.primaryPin("equipment-b").has_value());
+    CHECK(!store.fallbackPin("equipment-b").has_value());
+    CHECK(!store.pinTrusted("equipment-b", old_pin));
+    CHECK(store.primaryPinTrusted("equipment-b", new_pin));
+    CHECK(store.retireFallback("equipment-b", &error));
 
     PairingStore reopened(path);
-    const auto persisted = reopened.find("equipo-b");
+    const auto persisted = reopened.find("equipment-b");
     CHECK(persisted.has_value());
     if (persisted.has_value()) {
         CHECK_EQ(persisted->pins.size(), static_cast<std::size_t>(1));
@@ -388,15 +388,15 @@ TEST_CASE(trust_store_rolls_back_save_remove_and_rotation_on_write_failure) {
 
     PairingStore store(path);
     TrustedDevice original;
-    original.device_id = "equipo-b";
-    original.name = "Nombre original";
+    original.device_id = "equipment-b";
+    original.name = "Original name";
     original.host = "127.0.0.1";
     original.port = 45871;
     original.pins = {old_pin};
     CHECK(store.save(original));
 
-    // Un directorio en la ruta de destino hace fallar el reemplazo de
-    // QSaveFile sin depender de permisos especiales de la plataforma.
+    // A directory in the destination path fails to replace
+    // QSaveFile without relying on special platform permissions.
     std::error_code filesystem_error;
     CHECK(std::filesystem::remove(path, filesystem_error));
     CHECK(!filesystem_error);
@@ -404,30 +404,30 @@ TEST_CASE(trust_store_rolls_back_save_remove_and_rotation_on_write_failure) {
     CHECK(!filesystem_error);
 
     TrustedDevice replacement = original;
-    replacement.name = "Nombre que no debe persistir";
+    replacement.name = "Name that should not persist";
     replacement.pins = {new_pin};
     std::string error;
     CHECK(!store.save(replacement, &error));
     CHECK(!error.empty());
-    const auto after_save = store.find("equipo-b");
+    const auto after_save = store.find("equipment-b");
     CHECK(after_save.has_value());
     if (after_save.has_value()) {
-        CHECK_EQ(after_save->name, std::string("Nombre original"));
+        CHECK_EQ(after_save->name, std::string("Original name"));
         CHECK_EQ(after_save->pins.front(), old_pin);
     }
 
     error.clear();
-    CHECK(!store.remove("equipo-b", &error));
+    CHECK(!store.remove("equipment-b", &error));
     CHECK(!error.empty());
-    CHECK(store.find("equipo-b").has_value());
+    CHECK(store.find("equipment-b").has_value());
 
     error.clear();
     CHECK(!store.rotatePin(replacement, &error));
     CHECK(!error.empty());
-    const auto after_rotation = store.find("equipo-b");
+    const auto after_rotation = store.find("equipment-b");
     CHECK(after_rotation.has_value());
     if (after_rotation.has_value()) {
-        CHECK_EQ(after_rotation->name, std::string("Nombre original"));
+        CHECK_EQ(after_rotation->name, std::string("Original name"));
         CHECK_EQ(after_rotation->pins.size(), static_cast<std::size_t>(1));
         CHECK_EQ(after_rotation->pins.front(), old_pin);
     }
@@ -442,8 +442,8 @@ TEST_CASE(trust_store_rolls_back_fallback_retirement_on_write_failure) {
 
     PairingStore store(path);
     TrustedDevice device;
-    device.device_id = "equipo-b";
-    device.name = "Equipo B";
+    device.device_id = "equipment-b";
+    device.name = "Equipment B";
     device.host = "127.0.0.1";
     device.port = 45871;
     device.pins = {old_pin};
@@ -458,9 +458,9 @@ TEST_CASE(trust_store_rolls_back_fallback_retirement_on_write_failure) {
     CHECK(!filesystem_error);
 
     std::string error;
-    CHECK(!store.retireFallback("equipo-b", &error));
+    CHECK(!store.retireFallback("equipment-b", &error));
     CHECK(!error.empty());
-    const auto current = store.find("equipo-b");
+    const auto current = store.find("equipment-b");
     CHECK(current.has_value());
     if (current.has_value()) {
         CHECK_EQ(current->pins.size(), static_cast<std::size_t>(2));
@@ -477,8 +477,8 @@ TEST_CASE(trust_store_reload_preserves_last_good_state_on_corruption) {
 
     PairingStore store(path);
     TrustedDevice device;
-    device.device_id = "equipo-b";
-    device.name = "Equipo B";
+    device.device_id = "equipment-b";
+    device.name = "Equipment B";
     device.host = "127.0.0.1";
     device.port = 45871;
     device.pins = {pin};
@@ -487,13 +487,13 @@ TEST_CASE(trust_store_reload_preserves_last_good_state_on_corruption) {
     {
         std::ofstream corrupt(path, std::ios::trunc);
         CHECK(corrupt.good());
-        corrupt << "archivo corrupto\n";
+        corrupt << "corrupt file\n";
     }
     std::string error;
     CHECK(!store.reload(&error));
     CHECK(!error.empty());
     CHECK(!store.lastError().empty());
-    CHECK(store.find("equipo-b").has_value());
+    CHECK(store.find("equipment-b").has_value());
 }
 
 TEST_CASE(sas_pairing_over_temporary_tls_accepts_matching_confirmation) {
@@ -506,7 +506,7 @@ TEST_CASE(sas_pairing_over_temporary_tls_accepts_matching_confirmation) {
     server.transport = std::make_unique<QtTlsTransport>(
         pairingServerConfig(oneintwo_test::certificate_b,
                             oneintwo_test::private_key_b));
-    server.arm(PairingLocal{"device-b", "Equipo B", pin_b}, "device-a");
+    server.arm(PairingLocal{"device-b", "Equipment B", pin_b}, "device-a");
     std::string error;
     CHECK(server.transport->start(&error));
     CHECK(error.empty());
@@ -517,7 +517,7 @@ TEST_CASE(sas_pairing_over_temporary_tls_accepts_matching_confirmation) {
         pairingClientConfig(oneintwo_test::certificate_a,
                             oneintwo_test::private_key_a,
                             server.transport->listeningPort()));
-    client.arm(PairingLocal{"device-a", "Equipo A", pin_a}, "device-b");
+    client.arm(PairingLocal{"device-a", "Equipment A", pin_a}, "device-b");
     CHECK(client.transport->start(&error));
     CHECK(error.empty());
 
@@ -542,11 +542,11 @@ TEST_CASE(sas_pairing_over_temporary_tls_accepts_matching_confirmation) {
     PairingStore store(tempPath(directory, "devices.tsv"));
     TrustedDevice peer_a;
     peer_a.device_id = "device-a";
-    peer_a.name = "Equipo A";
+    peer_a.name = "Equipment A";
     peer_a.pins = {server.peer.fingerprint};
     TrustedDevice peer_b;
     peer_b.device_id = "device-b";
-    peer_b.name = "Equipo B";
+    peer_b.name = "Equipment B";
     peer_b.pins = {client.peer.fingerprint};
     CHECK(store.save(peer_a));
     CHECK(store.save(peer_b));
@@ -556,8 +556,8 @@ TEST_CASE(sas_pairing_over_temporary_tls_accepts_matching_confirmation) {
     client.transport->close();
     server.transport->close();
 
-    // El pin guardado debe servir para una conexión normal, sin el modo de
-    // emparejamiento ni una huella sin autenticar.
+    // The saved pin must serve for a normal connection, without the mode of
+    // pairing or an unauthenticated print.
     TlsTransportConfig normal_server;
     normal_server.mode = TlsTransportMode::listen;
     normal_server.certificate_pem = oneintwo_test::certificate_b;
@@ -596,7 +596,7 @@ TEST_CASE(sas_pairing_rejects_when_one_side_refuses) {
     server.transport = std::make_unique<QtTlsTransport>(
         pairingServerConfig(oneintwo_test::certificate_b,
                             oneintwo_test::private_key_b));
-    server.arm(PairingLocal{"device-b", "Equipo B", pin_b}, "device-a");
+    server.arm(PairingLocal{"device-b", "Equipment B", pin_b}, "device-a");
     std::string error;
     CHECK(server.transport->start(&error));
 
@@ -605,7 +605,7 @@ TEST_CASE(sas_pairing_rejects_when_one_side_refuses) {
         pairingClientConfig(oneintwo_test::certificate_a,
                             oneintwo_test::private_key_a,
                             server.transport->listeningPort()));
-    client.arm(PairingLocal{"device-a", "Equipo A", pin_a}, "device-b");
+    client.arm(PairingLocal{"device-a", "Equipment A", pin_a}, "device-b");
     CHECK(client.transport->start(&error));
 
     CHECK(waitUntil([&] {
@@ -613,7 +613,7 @@ TEST_CASE(sas_pairing_rejects_when_one_side_refuses) {
     }));
     CHECK_EQ(server.sas, client.sas);
 
-    server.pairing->reject("no coincide la pantalla");
+    server.pairing->reject("does not match the screen");
     CHECK(server.pairing->state() == PairingState::rejected);
     CHECK(waitUntil([&] { return client.failed; }));
     CHECK(!client.completed);

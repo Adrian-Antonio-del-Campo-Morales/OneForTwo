@@ -24,29 +24,29 @@ namespace oneintwo {
 namespace {
 
 QString modalityName(VisualSourceKind source) {
-    return source == VisualSourceKind::monitor ? QStringLiteral("Pantalla completa")
-                                               : QStringLiteral("Una ventana");
+    return source == VisualSourceKind::monitor ? QStringLiteral("Full screen")
+                                               : QStringLiteral("A window");
 }
 
 QString joinFeatures(const FeatureSet& features) {
     QStringList parts;
     if (features.share_monitor) {
-        parts << QStringLiteral("pantalla");
+        parts << QStringLiteral("screen");
     }
     if (features.share_window) {
-        parts << QStringLiteral("ventana");
+        parts << QStringLiteral("window");
     }
     if (features.manual_notifications) {
-        parts << QStringLiteral("avisos manuales");
+        parts << QStringLiteral("manual notices");
     }
     if (features.forwarded_notifications) {
-        parts << QStringLiteral("reenvío");
+        parts << QStringLiteral("forwarding");
     }
     if (features.text_clipboard) {
         parts << QStringLiteral("texto");
     }
     if (features.file_clipboard) {
-        parts << QStringLiteral("archivos");
+        parts << QStringLiteral("files");
     }
     if (features.input) {
         parts << QStringLiteral("entrada");
@@ -76,9 +76,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     layout->setSpacing(10);
 
     auto* header = new QHBoxLayout();
-    peer_label_ = new QLabel(QStringLiteral("Par: sin identificar"), central);
+    peer_label_ = new QLabel(QStringLiteral("Pair: not identified"), central);
     peer_label_->setObjectName(QStringLiteral("peerLabel"));
-    status_label_ = new QLabel(QStringLiteral("Sin sesión"), central);
+    status_label_ = new QLabel(QStringLiteral("No session"), central);
     status_label_->setObjectName(QStringLiteral("statusLabel"));
     pair_button_ = new QPushButton(QStringLiteral("Emparejar dispositivo…"), central);
     pair_button_->setObjectName(QStringLiteral("pairButton"));
@@ -93,7 +93,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     profile_combo_ = new QComboBox(central);
     profile_combo_->setObjectName(QStringLiteral("profileCombo"));
     profile_combo_->addItem(QStringLiteral("Habitual"), static_cast<int>(ProfileId::usual));
-    profile_combo_->addItem(QStringLiteral("Solo envíos"), static_cast<int>(ProfileId::sends_only));
+    profile_combo_->addItem(QStringLiteral("Only shipments"), static_cast<int>(ProfileId::sends_only));
     profile_combo_->addItem(QStringLiteral("Pausa"), static_cast<int>(ProfileId::paused));
     profile_row->addWidget(profile_combo_);
     profile_row->addStretch(1);
@@ -102,15 +102,15 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     profile_row->addWidget(quit);
     layout->addLayout(profile_row);
 
-    auto* share_box = new QGroupBox(QStringLiteral("Compartir en directo"), central);
+    auto* share_box = new QGroupBox(QStringLiteral("Live Sharing"), central);
     auto* share_layout = new QHBoxLayout(share_box);
-    share_monitor_ = new QPushButton(QStringLiteral("Compartir pantalla"), share_box);
+    share_monitor_ = new QPushButton(QStringLiteral("Share Screen"), share_box);
     share_monitor_->setObjectName(QStringLiteral("shareMonitorButton"));
-    share_window_ = new QPushButton(QStringLiteral("Compartir ventana"), share_box);
+    share_window_ = new QPushButton(QStringLiteral("Share Window"), share_box);
     share_window_->setObjectName(QStringLiteral("shareWindowButton"));
     stop_button_ = new QPushButton(QStringLiteral("Detener"), share_box);
     stop_button_->setObjectName(QStringLiteral("stopButton"));
-    visual_state_label_ = new QLabel(QStringLiteral("Sin operación visual"), share_box);
+    visual_state_label_ = new QLabel(QStringLiteral("No visual operation"), share_box);
     visual_state_label_->setObjectName(QStringLiteral("visualActiveLabel"));
     share_layout->addWidget(share_monitor_);
     share_layout->addWidget(share_window_);
@@ -118,14 +118,14 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     share_layout->addWidget(visual_state_label_, 1);
     layout->addWidget(share_box);
 
-    offer_panel_ = new QGroupBox(QStringLiteral("Invitación recibida"), central);
+    offer_panel_ = new QGroupBox(QStringLiteral("Invitation received"), central);
     offer_panel_->setObjectName(QStringLiteral("offerPanel"));
     auto* offer_layout = new QHBoxLayout(offer_panel_);
-    offer_label_ = new QLabel(QStringLiteral("Sin invitación"), offer_panel_);
+    offer_label_ = new QLabel(QStringLiteral("No invitation"), offer_panel_);
     offer_label_->setObjectName(QStringLiteral("offerLabel"));
-    auto* accept = new QPushButton(QStringLiteral("Aceptar"), offer_panel_);
+    auto* accept = new QPushButton(QStringLiteral("Accept"), offer_panel_);
     accept->setObjectName(QStringLiteral("acceptOfferButton"));
-    auto* reject = new QPushButton(QStringLiteral("Rechazar"), offer_panel_);
+    auto* reject = new QPushButton(QStringLiteral("Decline"), offer_panel_);
     reject->setObjectName(QStringLiteral("rejectOfferButton"));
     offer_layout->addWidget(offer_label_, 1);
     offer_layout->addWidget(accept);
@@ -133,10 +133,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     offer_panel_->hide();
     layout->addWidget(offer_panel_);
 
-    auto* permissions = new QGroupBox(QStringLiteral("Permisos por sentido"), central);
+    auto* permissions = new QGroupBox(QStringLiteral("Permissions by meaning"), central);
     auto* grid = new QGridLayout(permissions);
     grid->addWidget(new QLabel(QStringLiteral("Modalidad"), permissions), 0, 0);
-    grid->addWidget(new QLabel(QStringLiteral("Enviar"), permissions), 0, 1);
+    grid->addWidget(new QLabel(QStringLiteral("Send"), permissions), 0, 1);
     grid->addWidget(new QLabel(QStringLiteral("Recibir"), permissions), 0, 2);
     const auto add_permission_row = [&](int row, const QString& name, QCheckBox*& send,
                                         QCheckBox*& receive, const QString& send_name,
@@ -149,37 +149,37 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
         grid->addWidget(send, row, 1);
         grid->addWidget(receive, row, 2);
     };
-    add_permission_row(1, QStringLiteral("Pantalla completa"), send_monitor_, receive_monitor_,
+    add_permission_row(1, QStringLiteral("Full screen"), send_monitor_, receive_monitor_,
                        QStringLiteral("permissionSendMonitor"),
                        QStringLiteral("permissionReceiveMonitor"));
-    add_permission_row(2, QStringLiteral("Una ventana"), send_window_, receive_window_,
+    add_permission_row(2, QStringLiteral("A window"), send_window_, receive_window_,
                        QStringLiteral("permissionSendWindow"),
                        QStringLiteral("permissionReceiveWindow"));
-    add_permission_row(3, QStringLiteral("Avisos manuales"), send_manual_, receive_manual_,
+    add_permission_row(3, QStringLiteral("Manual warnings"), send_manual_, receive_manual_,
                        QStringLiteral("permissionSendManual"),
                        QStringLiteral("permissionReceiveManual"));
-    add_permission_row(4, QStringLiteral("Reenvío automático"), send_forwarded_,
+    add_permission_row(4, QStringLiteral("Automatic forwarding"), send_forwarded_,
                        receive_forwarded_, QStringLiteral("permissionSendForwarded"),
                        QStringLiteral("permissionReceiveForwarded"));
     layout->addWidget(permissions);
 
-    auto* notice_box = new QGroupBox(QStringLiteral("Enviar aviso manual"), central);
+    auto* notice_box = new QGroupBox(QStringLiteral("Send manual warning"), central);
     auto* notice_layout = new QGridLayout(notice_box);
     notice_title_ = new QLineEdit(notice_box);
     notice_title_->setObjectName(QStringLiteral("noticeTitle"));
-    notice_title_->setPlaceholderText(QStringLiteral("Título"));
+    notice_title_->setPlaceholderText(QStringLiteral("Title"));
     notice_body_ = new QPlainTextEdit(notice_box);
     notice_body_->setObjectName(QStringLiteral("noticeBody"));
-    notice_body_->setPlaceholderText(QStringLiteral("Cuerpo del aviso"));
+    notice_body_->setPlaceholderText(QStringLiteral("Warning body"));
     notice_body_->setMaximumHeight(90);
-    auto* send_notice = new QPushButton(QStringLiteral("Enviar aviso"), notice_box);
+    auto* send_notice = new QPushButton(QStringLiteral("Send Notice"), notice_box);
     send_notice->setObjectName(QStringLiteral("sendNoticeButton"));
     notice_layout->addWidget(notice_title_, 0, 0, 1, 2);
     notice_layout->addWidget(notice_body_, 1, 0, 1, 2);
     notice_layout->addWidget(send_notice, 2, 1);
     layout->addWidget(notice_box);
 
-    auto* apps_box = new QGroupBox(QStringLiteral("Aplicaciones autorizadas para reenvío"), central);
+    auto* apps_box = new QGroupBox(QStringLiteral("Applications authorised for forwarding"), central);
     auto* apps_layout = new QVBoxLayout(apps_box);
     app_list_ = new QListWidget(apps_box);
     app_list_->setObjectName(QStringLiteral("appList"));
@@ -187,8 +187,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     auto* app_row = new QHBoxLayout();
     app_input_ = new QLineEdit(apps_box);
     app_input_->setObjectName(QStringLiteral("appInput"));
-    app_input_->setPlaceholderText(QStringLiteral("Identificador de aplicación"));
-    auto* add_app = new QPushButton(QStringLiteral("Añadir"), apps_box);
+    app_input_->setPlaceholderText(QStringLiteral("Application identifier"));
+    auto* add_app = new QPushButton(QStringLiteral("Add"), apps_box);
     add_app->setObjectName(QStringLiteral("addAppButton"));
     app_row->addWidget(app_input_, 1);
     app_row->addWidget(add_app);
@@ -288,7 +288,7 @@ void MainWindow::bindActions(UiActions actions) {
 
 void MainWindow::showVisualOffer(const VisualShareOffer& offer, const std::string& peer_name) {
     current_offer_ = offer;
-    offer_label_->setText(QStringLiteral("Invitación de %1: %2")
+    offer_label_->setText(QStringLiteral("%1 invitation: %2")
                               .arg(QString::fromStdString(peer_name))
                               .arg(modalityName(offer.source)));
     offer_panel_->show();
@@ -299,7 +299,7 @@ void MainWindow::showVisualOffer(const VisualShareOffer& offer, const std::strin
 void MainWindow::dismissVisualOffer() {
     current_offer_.reset();
     offer_panel_->hide();
-    offer_label_->setText(QStringLiteral("Sin invitación"));
+    offer_label_->setText(QStringLiteral("No invitation"));
 }
 
 void MainWindow::setVisualActive(bool active, const std::string& description) {
@@ -307,7 +307,7 @@ void MainWindow::setVisualActive(bool active, const std::string& description) {
     stop_button_->setEnabled(active);
     share_monitor_->setEnabled(session_available_ && !active);
     share_window_->setEnabled(session_available_ && !active);
-    visual_state_label_->setText(description.empty() ? QStringLiteral("Sin operación visual")
+    visual_state_label_->setText(description.empty() ? QStringLiteral("No visual operation")
                                                       : QString::fromStdString(description));
 }
 
@@ -375,7 +375,7 @@ void MainWindow::setPermissionChecks(FeatureSet send, FeatureSet receive) {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
-    // Cerrar la configuración conserva el agente y el visor independiente.
+    // Close the settings keeps the agent and the independent viewer.
     hide();
     event->ignore();
 }
@@ -416,7 +416,7 @@ std::set<std::string> MainWindow::checkedApplications() const {
 
 void MainWindow::updateEffectiveLabel() {
     effective_label_->setText(
-        QStringLiteral("Efectivo · Envío: %1 | Recepción: %2")
+        QStringLiteral("Effective · Send: %1 · Receive: %2")
             .arg(joinFeatures(effective_send_))
             .arg(joinFeatures(effective_receive_)));
 }

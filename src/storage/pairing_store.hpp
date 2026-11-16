@@ -7,13 +7,13 @@
 
 namespace oneintwo {
 
-// Un par confiable se identifica por device_id, no por nombre ni por la IP.
-// `pins` mantiene la huella activa primero y, durante una rotación, la anterior.
+// A reliable pair is identified by device_id, not by name or IP.
+// `pins` maintains the active footprint first and, during a rotation, the previous one.
 struct TrustedDevice {
     std::string device_id;
     std::string name;
-    // host vacío significa que este equipo debe escuchar en `port`; con host,
-    // la aplicación se conecta a ese extremo.
+    // empty host means this computer should listen in `port`; with host,
+    // the application is connected to that end.
     std::string host;
     std::uint16_t port = 0;
     std::vector<std::string> pins;
@@ -45,27 +45,27 @@ public:
 
     bool save(const TrustedDevice& device, std::string* error = nullptr);
     bool remove(const std::string& device_id, std::string* error = nullptr);
-    // Compatibilidad: acepta tanto la huella principal como el respaldo.
+    // Compatibility: accepts both the main footprint and the backrest.
     bool pinTrusted(const std::string& device_id,
                     const std::string& fingerprint) const;
-    // Para decisiones que solo deben aceptar la identidad activa.
+    // For decisions that must only accept active identity.
     bool primaryPinTrusted(const std::string& device_id,
                            const std::string& fingerprint) const;
 
-    // Retira el respaldo cuando ya se ha establecido una conexión autenticada
-    // con la huella principal. Es idempotente si no hay respaldo.
+    // Remove the backup when an authenticated connection has already been established
+    // It's idepotent if there's no backup.
     bool retireFallback(const std::string& device_id,
                         std::string* error = nullptr);
 
-    // Rotación: la huella nueva pasa a ser la activa y la anterior se conserva
-    // como máximo durante la transición. Nunca se acumulan más de dos.
+    // Rotation: the new footprint becomes active and the previous one is preserved
+    // at most during transition. Never accumulate more than two.
     bool rotatePin(const std::string& device_id,
                    const std::string& new_fingerprint,
                    std::string* error = nullptr);
 
-    // Variante para un reemparejamiento: actualiza también nombre, host y
-    // puerto. `device.pins.front()` es la huella nueva; conserva las anteriores
-    // como secundarias y escribe el almacén una sola vez.
+    // Option for a re-pair: also updates name, host and
+    // port. `device.pins.front()` is the new footprint; it retains the previous ones
+    // as high schools and writes the warehouse once.
     std::optional<TrustedDevice> rotatePin(const TrustedDevice& device,
                                            std::string* error = nullptr);
 

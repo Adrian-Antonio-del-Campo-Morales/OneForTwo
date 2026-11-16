@@ -1,5 +1,5 @@
-// Responsabilidad: recepción por bloques en archivos temporales, verificación
-// de tamaño y SHA-256, y publicación sin sobrescrituras silenciosas.
+// Responsibility: block reception in temporary files, verification
+// of size and SHA-256, and publication without silent overwriting.
 #pragma once
 
 #include "core/model.hpp"
@@ -32,8 +32,8 @@ struct Progress {
 };
 using ProgressFn = std::function<void(const Progress&)>;
 
-// Archivo incompleto en un directorio de recepción. Solo se convierte en
-// definitivo tras comprobar tamaño y digest; al destruirse sin finish se elimina.
+// Incomplete file in a receiving directory. It only becomes
+// After checking size and digest; when destroyed without finish it is removed.
 class StagedFile {
 public:
     StagedFile(const std::filesystem::path& stagingDir, const std::string& relPath,
@@ -42,7 +42,7 @@ public:
     StagedFile(const StagedFile&) = delete;
     StagedFile& operator=(const StagedFile&) = delete;
 
-    // Escribe un bloque en orden secuencial estricto.
+    // Write a block in strict sequential order.
     void writeAt(std::uint64_t offset, const void* data, std::size_t len);
     void finish(const std::string& expectedDigestHex);
     void discard();
@@ -61,12 +61,12 @@ private:
     bool finished_ = false;
 };
 
-// Nombre libre en destDir para el nombre indicado; no crea ni modifica nada.
+// Free name in destDir for the indicated name; does not create or modify anything.
 std::filesystem::path nextFreePath(const std::filesystem::path& destDir,
                                    const std::string& fileName, int& counter);
 
-// Copia source a destDir con un nombre que no exista. copy_file con
-// copy_options::none falla si el destino aparece, por lo que nunca lo sobrescribe.
+// Copy source to destDir with a name that does not exist. copy_file with
+// copy_options::none fails if fate appears, so it never overwrites it.
 std::filesystem::path placeFileNoOverwrite(const std::filesystem::path& source,
                                            const std::filesystem::path& destDir,
                                            const std::string& fileName);
@@ -76,13 +76,13 @@ struct CopyOutStats {
     std::uint64_t bytes = 0;
 };
 
-// Copia una oferta publicada en la caché a una carpeta de destino, creando
-// carpetas nuevas (nunca fusionando) y resolviendo colisiones con sufijos.
+// Copy an offer published in the cache to a destination folder, creating
+// new folders (never merging) and resolving collisions with suffixes.
 CopyOutStats copyOutOffer(const Offer& offer, const std::filesystem::path& offerDir,
                           const std::filesystem::path& destDir, CancelToken& cancel,
                           const ProgressFn& progress = {});
 
-// Elimina archivos .o2f-part huérfanos de un directorio de recepción.
+// Removes orphaned .o2f-part files from a receiving directory.
 std::size_t removeOrphanParts(const std::filesystem::path& dir);
 
 }  // namespace o2f

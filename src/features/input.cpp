@@ -1,14 +1,17 @@
 /*
- * OneInTwo — Control de teclado y ratón.
- * Estado: estructura documental; implementación pendiente.
+ * OneInTwo — Keyboard and mouse control. Status: documentary structure; pending implementation.
  *
- * Responsabilidades previstas:
- * - Mantener estados local, transición, remoto y recuperación, separados del estado general de conexión.
- * - Mapear pantallas y bordes, transmitir eventos normalizados y devolver el control al origen.
- * - Mantener teclas/botones activos, secuencia y generación de control; descartar eventos obsoletos.
- * - Coordinar captura y liberación mediante el contrato de escritorio sin ejecutar red en sus callbacks.
- * - Implementar temporizador de seguridad en el receptor y recuperación local en el origen.
- * - Liberar estados ante pérdida de conexión, bloqueo, revocación o cierre; definir comportamiento de entrada física local.
- * - No convertir todos los eventos en texto ni asumir que todas las plataformas admiten iniciar captura con un atajo.
+ * Responsibilities envisaged:
+ * - Maintain local states, transition, remote and recovery, separated from the general state of
+ *   connection.
+ * - Map screens and edges, transmit normalized events and return control to source.
+ * - Keep active keys/buttons, sequence and generation of control; discard obsolete events.
+ * - Coordinate capture and release using the desktop contract without running network on your
+ *   callbacks.
+ * - Implement security timer on the receiver and local recovery at source.
+ * - Release states for loss of connection, blocking, revocation or closure; define local physical
+ *   input behavior.
+ * - Do not convert all events into text or assume that all platforms support start capture with a
+ *   shortcut.
  */
 

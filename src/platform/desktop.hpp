@@ -9,14 +9,13 @@
 #include <vector>
 
 /*
- * Contrato entre lógica común y escritorio. Las demás operaciones nativas
- * siguen descritas en sus adaptadores y en ARQUITECTURA.md.
+ * Contract between common logic and desktop. The other native operations are described in their
+ * adapters and in ARCHITECTURE.md.
  *
- * El escritorio mantiene la geometría, el estado de la sesión gráfica y los
- * permisos del sistema. Su adaptador de portapapeles coordina texto y archivos.
- * La captura de entrada y la inyección son capacidades distintas y deben
- * normalizar eventos y declarar su afinidad de hilo. La apertura de URL se
- * delega al navegador local tras validar y confirmar la oferta.
+ * The desktop maintains the geometry, graphical session status and system permissions. Your
+ * clipboard adapter coordinates text and files. Input capture and injection are different
+ * capabilities and should normalize events and declare your yarn affinity. URL opening is
+ * delegated to the local browser after validating and confirming the offer.
  */
 
 namespace oneintwo {
@@ -36,12 +35,12 @@ public:
     virtual ~DesktopVisualCapture() = default;
     virtual VisualCaptureCapabilities visualCapabilities() const = 0;
 
-    // El adaptador retiene una sola fuente local por referencia.
+    // The adapter retains a single local source by reference.
     virtual void selectSource(VisualShareRef offer, VisualSourceKind kind,
                               std::function<void(VisualShareRef, DesktopResult)> selected) = 0;
-    // Se llama tras la aceptación. Los fallos de adquisición cierran la fuente.
+    // It's called after acceptance.
     virtual void startCapture(VisualShareRef offer, VisualCaptureCallbacks callbacks) = 0;
-    // Cancela el selector pendiente o libera la fuente activa.
+    // Cancel the pending selector or release the active source.
     virtual void stopCapture(VisualShareRef offer) = 0;
 };
 
@@ -55,15 +54,15 @@ public:
     virtual ~DesktopNotifications() = default;
     virtual NotificationCapabilities notificationCapabilities() const = 0;
     virtual void requestObservationPermission(std::function<void(DesktopResult)> complete) = 0;
-    // Devuelve una instantánea de las aplicaciones con avisos existentes. Puede
-    // solicitar consentimiento. No inicia la observación ni altera su línea base.
+    // Returns a snapshot of apps with existing ads. You can
+    // request consent. It does not initiate observation or alter its baseline.
     virtual void discoverApplications(
         std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete) = 0;
     virtual void startObserving(std::function<void(ObservedNotification)> observed,
                                 std::function<void(DesktopResult)> state_changed) = 0;
     virtual void stopObserving() = 0;
 
-    // peer_name procede de la sesión. El adaptador presenta el contenido como texto.
+    // peer_name comes from the session. The adapter presents the contents as text.
     virtual void presentNotice(const std::string& peer_name,
                                const RemoteNotification& notice,
                                std::function<void(DesktopResult)> complete) = 0;

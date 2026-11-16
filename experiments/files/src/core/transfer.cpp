@@ -1,5 +1,5 @@
-// Responsabilidad: escritura por bloques con hash incremental, verificación final
-// y colocación segura del resultado en el destino.
+// Responsibility: block writing with incremental hash, final verification
+// and secure placement of the result in the destination.
 #include "core/transfer.hpp"
 
 #include <algorithm>
@@ -38,10 +38,10 @@ StagedFile::StagedFile(const fs::path& stagingDir, const std::string& relPath,
     const fs::path parent = stagingDir / relative.parent_path();
     std::error_code ec;
     fs::create_directories(parent, ec);
-    if (ec && !fs::is_directory(parent)) throw Error("no se pudo preparar la carpeta de recepción");
+    if (ec && !fs::is_directory(parent)) throw Error("Could not close temporary folder: %s");
     partPath_ = parent / (relative.filename().u8string() + ".o2f-part");
     out_.open(partPath_, std::ios::binary | std::ios::trunc);
-    if (!out_) throw Error("no se pudo crear el archivo temporal de recepción");
+    if (!out_) throw Error("could not create temporary receipt file");
 }
 
 StagedFile::~StagedFile() {
@@ -56,20 +56,20 @@ void StagedFile::closeStream() {
 }
 
 void StagedFile::writeAt(std::uint64_t offset, const void* data, std::size_t len) {
-    if (offset != written_) throw Error("bloque fuera de orden en la recepción");
-    if (expectedSize_ - written_ < len) throw Error("se recibieron más bytes que el tamaño declarado");
+    if (offset != written_) throw Error("out of order block at reception");
+    if (expectedSize_ - written_ < len) throw Error("more bytes were received than the declared size");
     out_.write(static_cast<const char*>(data), static_cast<std::streamsize>(len));
-    if (!out_) throw Error("fallo al escribir el archivo temporal");
+    if (!out_) throw Error("failure to write the temporary file");
     hash_.update(data, len);
     written_ += len;
 }
 
 void StagedFile::finish(const std::string& expectedDigestHex) {
-    if (written_ != expectedSize_) throw Error("tamaño recibido distinto del declarado");
+    if (written_ != expectedSize_) throw Error("size received other than declared");
     const std::string actual = hash_.hexDigest();
     if (!fixedTimeHexEquals(actual, expectedDigestHex)) throw Error("digest SHA-256 no coincide");
     out_.flush();
-    if (!out_) throw Error("fallo al vaciar el archivo temporal");
+    if (!out_) throw Error("failure to empty temporary file");
     closeStream();
     finished_ = true;
 }
@@ -90,13 +90,13 @@ fs::path nextFreePath(const fs::path& destDir, const std::string& fileName, int&
             return candidate;
         }
     }
-    throw Error("demasiadas colisiones de nombre en el destino");
+    throw Error("Too many name collisions in the destination");
 }
 
 fs::path placeFileNoOverwrite(const fs::path& source, const fs::path& destDir,
                               const std::string& fileName) {
     std::error_code ec;
-    if (!fs::is_directory(destDir, ec)) throw Error("la carpeta de destino no existe");
+    if (!fs::is_directory(destDir, ec)) throw Error("destination folder does not exist");
     for (int n = 0; n < 1000; ++n) {
         const fs::path candidate = destDir / fs::u8path(suffixed(fileName, n));
         std::error_code existsEc;
@@ -106,18 +106,18 @@ fs::path placeFileNoOverwrite(const fs::path& source, const fs::path& destDir,
         if (!copyEc) return candidate;
         std::error_code afterEc;
         if (!fs::exists(candidate, afterEc)) {
-            throw Error("no se pudo escribir el archivo en el destino (permisos o espacio)");
+            throw Error("could not write the file to the destination (permits or space)");
         }
     }
-    throw Error("no se pudo resolver la colisión de nombre en el destino");
+    throw Error("the name collision at destination could not be resolved");
 }
 
 CopyOutStats copyOutOffer(const Offer& offer, const fs::path& offerDir, const fs::path& destDir,
                           CancelToken& cancel, const ProgressFn& progress) {
     std::error_code ec;
-    if (!fs::is_directory(offerDir, ec)) throw Error("la oferta de la caché no existe");
+    if (!fs::is_directory(offerDir, ec)) throw Error("the cache offer does not exist");
     fs::create_directories(destDir, ec);
-    if (!fs::is_directory(destDir)) throw Error("no se pudo crear la carpeta de destino");
+    if (!fs::is_directory(destDir)) throw Error("Could not close temporary folder: %s");
 
     CopyOutStats stats;
     std::map<std::string, fs::path> finalDirs;
@@ -131,7 +131,7 @@ CopyOutStats copyOutOffer(const Offer& offer, const fs::path& offerDir, const fs
         fs::path parent = destDir;
         if (!parentRel.empty()) {
             const auto it = finalDirs.find(parentRel);
-            if (it == finalDirs.end()) throw Error("manifiesto con carpeta padre ausente");
+            if (it == finalDirs.end()) throw Error("manifest with parent folder absent");
             parent = it->second;
         }
 
@@ -143,16 +143,16 @@ CopyOutStats copyOutOffer(const Offer& offer, const fs::path& offerDir, const fs
                 if (fs::create_directory(candidate, dirEc)) {
                     created = candidate;
                 } else if (!fs::exists(candidate, dirEc)) {
-                    throw Error("no se pudo crear una carpeta en el destino");
+                    throw Error("could not create folder in destination");
                 }
             }
-            if (created.empty()) throw Error("demasiadas colisiones de carpeta en el destino");
+            if (created.empty()) throw Error("too many folder collisions in the destination");
             finalDirs.emplace(entry.relPath, created);
         } else {
             const fs::path source = offerDir / fs::u8path(entry.relPath);
             std::error_code sizeEc;
             if (!fs::is_regular_file(source, sizeEc)) {
-                throw Error("falta un archivo verificado en la oferta de la caché");
+                throw Error("missing a verified file in the cache offer");
             }
             placeFileNoOverwrite(source, parent, name);
             stats.files += 1;

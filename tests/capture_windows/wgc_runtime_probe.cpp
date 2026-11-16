@@ -1,6 +1,6 @@
-// Comprueba la carga real de las dependencias del backend WGC sin crear una
-// sesión gráfica. Un WGC no soportado es un resultado válido; una DLL o un
-// entry point ausente es un fallo.
+// Check the actual load of the WGC backend dependencies without creating a
+// graphic session. An unsupported WGC is a valid result; a DLL or a
+// missing entry point is a bug.
 #include "platform/windows/visual/win32_port.hpp"
 #include "wgc_probe_core.hpp"
 

@@ -1,8 +1,8 @@
 #pragma once
-// Responsabilidad: cola acotada y sin asignaciones para comunicar el hilo de
-// captura con el bucle principal. Un productor y un consumidor.
+// Responsibility: bounded and unallocated tail to communicate the thread of
+// catch with the main loop. A producer and a consumer.
 //
-// Si la cola se llena se descarta el evento nuevo; el hook no debe bloquearse.
+// If the queue is filled the new event is discarded; the hook should not be blocked.
 
 #include <atomic>
 #include <cstddef>
@@ -12,7 +12,7 @@ namespace oit {
 template <typename T, size_t N>
 class SpscRing {
  public:
-  static_assert(N >= 2, "La cola necesita al menos dos posiciones");
+  static_assert(N >= 2, "The tail needs at least two positions");
 
   bool push(const T& value) noexcept {
     const size_t head = head_.load(std::memory_order_relaxed);

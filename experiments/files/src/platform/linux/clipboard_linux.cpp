@@ -1,6 +1,6 @@
-// Responsabilidad: publicación nativa en Ubuntu. Nautilus consume
-// x-special/gnome-copied-files y text/uri-list con rutas file:// locales y
-// legibles; GTK3 publica esos destinos tanto en X11 como en Wayland.
+// Responsibility: native publication in Ubuntu. Nautilus consumes
+// x-special/gnome-copied-files and text/uri-list with file:// local and
+// readable; GTK3 publishes those destinations in both X11 and Wayland.
 #include "platform/clipboard.hpp"
 
 #include <gtk/gtk.h>
@@ -79,15 +79,15 @@ struct PublishAction {
 void onPublishClicked(GtkButton* button, gpointer data) {
     auto& action = *static_cast<PublishAction*>(data);
     if (!publishSelection()) {
-        gtk_label_set_text(GTK_LABEL(action.status), "El escritorio rechazó la oferta.");
+        gtk_label_set_text(GTK_LABEL(action.status), "The desk rejected the offer.");
         return;
     }
     action.published = true;
     gtk_label_set_text(GTK_LABEL(action.status),
-                       "Archivos preparados. Vuelve a Nautilus y pega con Ctrl+V.\n"
-                       "Mantén esta ventana abierta hasta terminar el pegado.");
+                       "Files prepared. Go back to Nautilus and paste with Ctrl+V.\n"
+                       "Keep this window open until you finish the glue.");
     gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
-    std::puts("oferta GTK publicada tras acción local del usuario");
+    std::puts("offer GTK published after local action of the user");
     std::fflush(stdout);
 }
 
@@ -114,9 +114,9 @@ bool clipboardAvailable(std::string& why) {
 
 bool onDemandClipboardAvailable(std::string& why) {
     why =
-        "Linux: esta implementación solo publica rutas file:// locales. La entrega bajo "
-        "demanda exigiría exponer el contenido mediante un backend GIO/GVfs o FUSE que "
-        "Nautilus pueda leer; no está implementado en el experimento";
+        "Linux: this implementation only publishes file:// local routes. Delivery under "
+        "claim would require that the content be displayed by a backend GIO/GVfs or FUSE which "
+        "Nautilus can read; is not implemented in the experiment";
     return false;
 }
 
@@ -124,12 +124,12 @@ int runClipboardPublisher(const ClipboardRequest& request, bool flushOnExit, std
     err.clear();
     (void)flushOnExit;
     if (!request.localPaths.empty() && !request.offer.entries.empty()) {
-        err = "una publicación no puede combinar rutas locales y manifiesto remoto";
+        err = "a publication cannot combine local routes and remote manifest";
         return 1;
     }
     if (request.localPaths.empty()) {
-        err = "Linux solo admite publicación de archivos ya presentes en disco; "
-              "use el modo caché";
+        err = "Linux only supports publication of files already present on disk; "
+              "use cache mode";
         return 2;
     }
 
@@ -138,14 +138,14 @@ int runClipboardPublisher(const ClipboardRequest& request, bool flushOnExit, std
     std::string gnomeCopied = "copy";
     for (const std::string& path : request.localPaths) {
         if (path.empty() || path.front() != '/') {
-            err = "la ruta publicada debe ser absoluta";
+            err = "the published route must be absolute";
             return 1;
         }
         const std::string uri = "file://" + uriEncodePath(path);
         uris += uri + "\r\n";
         text += uri + "\n";
-        // Nautilus divide por LF y rechaza componentes vacíos: este formato
-        // no usa CRLF ni lleva un salto final, a diferencia de text/uri-list.
+        // Nautilus divides by LF and rejects empty components: this format
+        // does not use CRLF or carry a final jump, unlike text/uri-list.
         gnomeCopied += "\n" + uri;
     }
     g_uriPayload = uris;
@@ -156,10 +156,10 @@ int runClipboardPublisher(const ClipboardRequest& request, bool flushOnExit, std
     int argc = 1;
     char program[] = "oneintwo-files";
     char* argv[] = {program, nullptr};
-    // gtk_init_check espera char***; se pasa la dirección de un puntero al array.
+    // gtk_init_check waits char***; the direction of a pointer is passed to the array.
     char** argvPointer = argv;
     if (!gtk_init_check(&argc, &argvPointer)) {
-        err = "no se pudo abrir la sesión gráfica (DISPLAY/WAYLAND_DISPLAY)";
+        err = "Could not open graphical session (DISPLAY/WAYLAND_DISPLAY)";
         return 1;
     }
     g_clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
@@ -170,26 +170,26 @@ int runClipboardPublisher(const ClipboardRequest& request, bool flushOnExit, std
     PublishAction action;
     GtkWidget* window = nullptr;
     if (wayland) {
-        // Wayland requiere un evento local válido para set_selection. Un
-        // proceso sin ventana enviaba serial=0 y Nautilus no recibía la oferta.
+        // Wayland requires a local event valid for set_selection.
+        // process without window sent serial=0 and Nautilus did not receive the offer.
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-        gtk_window_set_title(GTK_WINDOW(window), "OneInTwo — prueba de archivos");
+        gtk_window_set_title(GTK_WINDOW(window), "OneInTwo — File Testing");
         gtk_container_set_border_width(GTK_CONTAINER(window), 16);
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
         gtk_container_add(GTK_CONTAINER(window), box);
         action.status = gtk_label_new(
-            "Pulsa Publicar archivos y después pega en Nautilus.\n"
-            "Cerrar esta ventana termina la publicación de prueba.");
+            "Press Publish files and then paste in Nautilus.\n"
+            "Close this window ends the test publication.");
         gtk_box_pack_start(GTK_BOX(box), action.status, TRUE, TRUE, 0);
-        GtkWidget* button = gtk_button_new_with_label("Publicar archivos");
+        GtkWidget* button = gtk_button_new_with_label("Publish Files");
         gtk_box_pack_start(GTK_BOX(box), button, FALSE, FALSE, 0);
         g_signal_connect(button, "clicked", G_CALLBACK(onPublishClicked), &action);
         g_signal_connect(window, "delete-event", G_CALLBACK(onPublishWindowClose), nullptr);
         gtk_widget_show_all(window);
-        std::puts("backend=gtk-wayland; esperando acción local en Publicar archivos");
+        std::puts("backend=gtk-wayland; waiting for local action in Publishing files");
         std::fflush(stdout);
     } else if (!publishSelection()) {
-        err = "el escritorio rechazó la oferta de archivos en el portapapeles";
+        err = "the desktop rejected the offer of files on the clipboard";
         return 1;
     }
     std::signal(SIGINT, onSignal);
@@ -201,7 +201,7 @@ int runClipboardPublisher(const ClipboardRequest& request, bool flushOnExit, std
     if (window != nullptr) {
         gtk_widget_destroy(window);
         if (!action.published) {
-            err = "publicación cancelada antes de la acción local del usuario";
+            err = "publication cancelled before local user action";
             return 1;
         }
     }

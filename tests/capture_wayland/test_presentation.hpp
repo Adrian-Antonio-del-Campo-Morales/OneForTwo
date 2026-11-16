@@ -9,9 +9,9 @@
 #include <vector>
 
 /*
- * Presentación local de prueba: patrones distinguibles para dos monitores y
- * para dos ventanas con el mismo título, más un consumidor temporal que anota
- * lo que el adaptador entrega. Este arnés vive solo en las pruebas.
+ * Local test presentation: distinguishable patterns for two monitors and for two windows with the
+ * same title, plus a temporary consumer who writes down what the adapter delivers. This harness
+ * lives only in the tests.
  */
 
 namespace oneintwo::test {
@@ -48,9 +48,8 @@ struct CaptureEvent {
 };
 
 /*
- * Consumidor temporal del contrato DesktopVisualCapture. Guarda el orden de
- * estados y fotogramas para comprobar que un cambio de disponibilidad se
- * anuncia antes de la imagen que lo acompaña.
+ * Temporary consumer of the DesktopVisualCapture contract. Saves the order of states and frames to
+ * check that a change of availability is announced before the accompanying image.
  */
 class CaptureHarness {
 public:

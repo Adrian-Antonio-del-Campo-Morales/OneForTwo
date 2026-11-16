@@ -1,5 +1,5 @@
-// Responsabilidad: codificar y decodificar tramas con límites explícitos.
-// No hay estructuras nativas en la red: todo es big-endian y longitud prefijada.
+// Responsibility: Encoding and decoding plots with explicit limits.
+// There are no native structures in the network: everything is big-endian and prefixed length.
 
 #include "protocol.hpp"
 

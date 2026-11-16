@@ -62,7 +62,7 @@ jobs:
           git config user.email "ci@users.noreply.github.com"
           git add ci-logs
           if (-not (git status --porcelain ci-logs)) {
-            Write-Host "Sin cambios en ci-logs"
+            Write-Host "No changes in ci-logs"
             exit 0
           }
           git commit -m "ci: windows build logs [skip ci]"
@@ -106,7 +106,7 @@ jobs:
             Tee-Object ci-logs/msix/build.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path $exe)) {
-            Write-Error "No se generó $exe"
+            Write-Error "The build did not produce $exe"
             exit 1
           }
 
@@ -173,7 +173,7 @@ jobs:
               [void]$process.WaitForExit(5000)
               $smoke = "unavailable"
               $lines += "install=timeout"
-              throw "Add-AppxPackage no terminó en 90 s."
+              throw "Add-AppxPackage did not finish within 90 seconds."
             }
             $installStatus = "missing"
             if (Test-Path -LiteralPath $installStatusPath) {
@@ -188,7 +188,7 @@ jobs:
               $lines += "install_exit=$installExit"
             }
             if ($installStatus -ne "ok") {
-              throw "Add-AppxPackage no completó: $installStatus"
+              throw "Add-AppxPackage did not complete: $installStatus"
             }
 
             $deadline = (Get-Date).AddSeconds(15)
@@ -198,7 +198,7 @@ jobs:
               Start-Sleep -Milliseconds 500
             } while ((Get-Date) -lt $deadline)
             if ($installed.Count -eq 0) {
-              throw "Add-AppxPackage terminó pero el paquete no aparece registrado."
+              throw "Add-AppxPackage finished, but the package is missing from the registry of installed packages."
             }
             $lines += "installed=$($installed[0].PackageFullName)"
 
@@ -286,7 +286,7 @@ jobs:
           $status | Set-Content ci-logs/msix/status.txt
           git add ci-logs/msix
           if (-not (git status --porcelain ci-logs/msix)) {
-            Write-Host "Sin cambios en ci-logs/msix"
+            Write-Host "No changes in ci-logs/msix"
             exit 0
           }
           git commit -m "ci: windows msix logs [skip ci]"

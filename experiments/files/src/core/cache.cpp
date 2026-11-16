@@ -1,5 +1,5 @@
-// Responsabilidad: diseño de la caché en disco, concesiones de uso y limpieza.
-// Estructura: offers/<id>/ (verificado), incoming/<id>/ (sin verificar),
+// Responsibility: disk cache design, usage concessions and cleaning.
+// Structure: offers/<id>/ (verified), incoming/<id=/ (unverified),
 // leases/<id>.lease (consumidor activo).
 #include "core/cache.hpp"
 
@@ -22,7 +22,7 @@ std::string utf8(const fs::path& p) { return p.u8string(); }
 
 Offer readOfferFromDir(const fs::path& dir) {
     std::ifstream in(dir / "manifest.tsv", std::ios::binary);
-    if (!in) throw Error("la oferta de la caché no tiene manifiesto");
+    if (!in) throw Error("the offer of the cache has no manifest");
     std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     return parseManifestText(text, Limits{});
 }
@@ -41,7 +41,7 @@ CacheStore::CacheStore(const std::string& rootUtf8) : root_(fs::u8path(rootUtf8)
     fs::create_directories(root_ / "incoming", ec);
     fs::create_directories(root_ / "leases", ec);
     if (!fs::is_directory(root_ / "offers") || !fs::is_directory(root_ / "incoming")) {
-        throw Error("no se pudo preparar la carpeta de caché");
+        throw Error("could not prepare cache folder");
     }
 }
 
@@ -50,7 +50,7 @@ fs::path CacheStore::newIncomingDir(const std::string& offerId) {
     const fs::path dir = root_ / "incoming" / (label + "-" + randomId(4));
     std::error_code ec;
     if (!fs::create_directories(dir, ec) || ec) {
-        throw Error("no se pudo crear el directorio de recepción");
+        throw Error("could not create reception directory");
     }
     return dir;
 }
@@ -62,24 +62,24 @@ void CacheStore::abandonIncoming(const fs::path& dir) {
 
 fs::path CacheStore::commitIncoming(const fs::path& incomingDir, const Offer& offer) {
     if (!isValidOpaqueId(offer.id, 64)) {
-        throw Error("la oferta recibida tiene un identificador no utilizable");
+        throw Error("the offer received has a non-usable identifier");
     }
     std::ofstream manifest(incomingDir / "manifest.tsv", std::ios::binary | std::ios::trunc);
-    if (!manifest) throw Error("no se pudo escribir el manifiesto de la oferta");
+    if (!manifest) throw Error("could not write offer manifest");
     const std::string text = serializeManifestText(offer);
     manifest.write(text.data(), static_cast<std::streamsize>(text.size()));
     manifest.close();
-    if (!manifest) throw Error("fallo al guardar el manifiesto de la oferta");
+    if (!manifest) throw Error("failure to keep the offer manifest");
 
     std::error_code ec;
     fs::path target = root_ / "offers" / offer.id.substr(0, 24);
     int n = 1;
     while (fs::exists(target, ec)) {
         target = root_ / "offers" / (offer.id.substr(0, 24) + "-" + std::to_string(++n));
-        if (n > 1000) throw Error("no se pudo asignar carpeta de oferta");
+        if (n > 1000) throw Error("could not assign offer folder");
     }
     fs::rename(incomingDir, target, ec);
-    if (ec) throw Error("no se pudo publicar la oferta verificada en la caché");
+    if (ec) throw Error("could not publish verified offer in cache");
     return target;
 }
 
@@ -99,13 +99,13 @@ fs::path CacheStore::findOfferDir(const std::string& offerId) const {
 
 std::unique_ptr<Lease> CacheStore::acquire(const std::string& offerId) {
     const fs::path dir = findOfferDir(offerId);
-    if (dir.empty()) throw Error("la oferta solicitada no está en la caché");
+    if (dir.empty()) throw Error("the requested offer is not in the cache");
     const fs::path leaseFile = root_ / "leases" / (offerId + ".lease");
     std::ofstream out(leaseFile, std::ios::binary | std::ios::trunc);
-    if (!out) throw Error("no se pudo registrar la concesión de uso");
+    if (!out) throw Error("the concession of use could not be registered");
     out << unixNow() << '\n';
     out.close();
-    if (!out) throw Error("no se pudo registrar la concesión de uso");
+    if (!out) throw Error("the concession of use could not be registered");
     return std::unique_ptr<Lease>(new Lease(leaseFile));
 }
 
@@ -173,7 +173,7 @@ std::size_t CacheStore::sweep(std::uint64_t maxAgeSeconds, std::uint64_t now) {
             const auto leaseAge = leaseEc ? -1 : ageSeconds(mtime);
             if (leaseAge >= 0 &&
                 static_cast<std::uint64_t>(leaseAge) < kStaleLeaseSeconds) {
-                continue;  // un consumidor mantiene la oferta
+                continue;  // a consumer keeps the supply
             }
             std::error_code removeLeaseEc;
             fs::remove(leaseFile, removeLeaseEc);

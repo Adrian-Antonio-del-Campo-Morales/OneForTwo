@@ -1,7 +1,7 @@
-// Responsabilidad: sesión de prueba entre dos instancias por dirección
-// explícita. Usa TLS con certificado fijado, intercambia mensajes del
-// protocolo y aplica la política del motor de sincronización. No descubre
-// equipos, no persiste confianza y no construye una interfaz de producto.
+// Responsibility: trial session between two instances by direction
+// Explicit. Use TLS with certificate fixed, exchange messages from
+// protocol and apply the sync engine policy.
+// equipment, trust does not persist and does not build a product interface.
 
 #include "net/peer.hpp"
 

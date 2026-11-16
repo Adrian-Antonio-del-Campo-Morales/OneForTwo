@@ -17,23 +17,23 @@ TEST_CASE(toast_xml_escapes_markup_and_controls) {
 
 TEST_CASE(toast_xml_presents_plain_text_with_attribution) {
     ToastText manual;
-    manual.title = "Reunión <hoy>";
+    manual.title = "Meeting < today>";
     manual.body = "Cuerpo & texto";
-    manual.peer_name = "PORTATIL-A";
+    manual.peer_name = "LAPTOP-A";
     const std::string manual_xml = build_toast_xml(manual);
     CHECK(manual_xml.find("<toast") == 0);
     CHECK(manual_xml.find("ToastGeneric") != std::string::npos);
-    CHECK(manual_xml.find("<text>Reunión &lt;hoy&gt;</text>") != std::string::npos);
+    CHECK(manual_xml.find("<text> &lt; today&gt;</text>") != std::string::npos);
     CHECK(manual_xml.find("<text>Cuerpo &amp; texto</text>") != std::string::npos);
     CHECK(manual_xml.find("<text>De PORTATIL-A</text>") != std::string::npos);
     CHECK(manual_xml.find("<actions") == std::string::npos);
     CHECK(manual_xml.find("launch=") == std::string::npos);
 
     ToastText forwarded = manual;
-    forwarded.app_name = "Visor de Documentos";
+    forwarded.app_name = "Document Viewer";
     const std::string forwarded_xml = build_toast_xml(forwarded);
-    CHECK(forwarded_xml.find("<text>Reunión &lt;hoy&gt;</text>") != std::string::npos);
-    CHECK(forwarded_xml.find("<text>Visor de Documentos</text>") != std::string::npos);
+    CHECK(forwarded_xml.find("<text> &lt; today&gt;</text>") != std::string::npos);
+    CHECK(forwarded_xml.find("<text>Document Viewer</text>") != std::string::npos);
     CHECK(forwarded_xml.find("<text>Cuerpo &amp; texto</text>") != std::string::npos);
     CHECK(forwarded_xml.find("<text>De PORTATIL-A</text>") != std::string::npos);
 }
@@ -56,7 +56,7 @@ TEST_CASE(observation_baseline_restarts_after_reconnection) {
     before.seed({20});
     CHECK(before.accept(21));
 
-    // Nueva línea base: 21 ya existía al volver a observar.
+    // New baseline: 21 already existed when you re-watched.
     ObservationBaseline after;
     after.seed({20, 21});
     CHECK(!after.accept(21));

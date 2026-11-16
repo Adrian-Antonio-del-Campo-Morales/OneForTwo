@@ -1,79 +1,77 @@
-# Primer ensayo de archivos Windows → Ubuntu
+# First Windows File Trial → Ubuntu
 
-Preparación: 5 de noviembre de 2026. El experimento de sincronización de texto
-está suspendido. Esta prueba utiliza únicamente el ejecutable de archivos;
-la publicación de archivos en el portapapeles es parte de su pegado nativo.
+Preparation: November 5, 2026. The text synchronization experiment is suspended. This test uses only
+the file executable; the publication of files on the clipboard is part of its native pasting.
 
-## Estado y objetivo
+## Status and objective
 
-- Windows: `192.168.1.147`, servidor de archivos en `47654/TCP`.
-- Ubuntu: `192.168.1.146`, receptor y destino de pegado en Nautilus.
-- Fuente Windows: `.local-state/lan-files/windows/datos`.
-- Cinco archivos, 5.551.150 bytes, con archivo vacío, Unicode y carpetas vacías.
-- [Manifiesto de comparación](windows-fixtures.json): estructura, tamaños y SHA-256 de los datos sintéticos.
-- Binario Windows ya compilado con las correcciones de archivos de `2ae444d`.
-- Se usan identidades propias de archivos, distintas a las del experimento de
-  texto. Windows conserva su clave en `.local-state/lan-files/windows/private.key`
-  y publica solo `public/windows.pem` y `public/windows.sha256` en esta carpeta.
-- No hay servidor ni regla temporal activos: primero deben acordarse los dos
-  comandos y el arranque con el agente Ubuntu.
+- Windows: `192.168.1.147`, file server in `47654/TCP`.
+- Ubuntu: `192.168.1.146`, receiver and destination glued to Nautilus.
+- Windows source: `.local-state/lan-files/windows/datos`.
+- Five files, 5.551.150 bytes, with empty file, Unicode and empty folders.
+- [Comparation manifest](windows-fixtures.json): structure, sizes and SHA-256 of synthetic data.
+- Windows binary already compiled with `2ae444d` file fixes.
+- File identities are used, different from those of the text experiment. Windows retains its key in
+  `.local-state/lan-files/windows/private.key` and publishes only `public/windows.pem` and
+  `public/windows.sha256` in this folder.
+- There is no active server or time rule: first the two commands must be remembered and the boot
+  with the Ubuntu agent.
 
-La prueba se considera superada cuando el usuario pega realmente `datos` en
-Nautilus y la comparación del destino coincide con el manifiesto. Recibir y
-verificar la caché, por sí solo, no valida el pegado.
+The test is considered overtaken when the user actually pastes `datos` into Nautilus and the
+destination comparison matches the manifest. Receive and verify the cache, by itself, does not
+validate the pasting.
 
-## Sincronización y preparación Ubuntu
+## == sync, corrected by elderman ==
 
-Conservar los cambios locales y obtener `origin/validation/windows`. Avanzar
-solo si es posible sin sobrescribir informes; no usar reset destructivo ni
-forzar la publicación. Las ramas pueden tener documentación diferente, pero
-antes de probar debe confirmarse que el código del experimento de archivos
-coincide, incluidos sus cambios de finalización de recepción y publicación GTK.
+Keep local changes and get `origin/validation/windows`. Advance only if possible without overwriting
+reports; do not use destructive reset or force publication. Branches may have different
+documentation, but before testing it must be confirmed that the code of the file experiment matches,
+including your GTK receiving and publishing completion changes.
 
-Usar el binario `experiments/files/build/ubuntu/oneintwo-files` y las
-dependencias locales Ubuntu ya verificadas, restringidas a ese proceso.
-No hace falta repetir la batería ni los ensayos locales que ya tienen evidencia.
+Use the already verified `experiments/files/build/ubuntu/oneintwo-files` binary and local Ubuntu
+dependencies, restricted to that process. There is no need to repeat the battery or the local tests
+that already have evidence.
 
-Preparar el destino **antes** de publicar, para no reemplazar luego la oferta
-de archivos copiando una ruta de texto:
+Prepare the destination **before** to publish, so as not to replace the file offer by copying a text
+path:
 
 ```bash
-mkdir -p .local-state/lan-files/ubuntu/pegado
+mkdir -p .local-state/lan-files/ubuntu/glue
 ```
 
-Abrir esa carpeta en Nautilus. Debe estar vacía. No copiar archivos hacia ella
-mediante comandos: el contenido final debe proceder del pegado del usuario.
-Si ya contiene datos de otro intento, usar otro destino vacío, sin borrarlos.
+Open that folder in Nautilus. It must be empty. Do not copy files to it by command: the final
+content must come from the pasting of the user. If it already contains data from another attempt,
+use another empty destination, without deleting them.
 
-Comprobar las huellas de las identidades dedicadas y las claves propias:
+Check the traces of the dedicated identities and the keys:
 
-- Windows fija Ubuntu, comunicada por su agente: `fc8fe7d1f4a48636d5fe87792883a1288f76e7db2d24cfaddad7f116d28b2fe5`.
+- Windows sets Ubuntu, communicated by its agent:
+  `fc8fe7d1f4a48636d5fe87792883a1288f76e7db2d24cfaddad7f116d28b2fe5`.
 - Ubuntu fija Windows: `6b06e68f0888ba23d88281a8a6fb69f6ad20f7da7b870201cc2278a61f8ccbf0`.
 
-El código C++ de archivos no ha cambiado respecto a `bb7df3b`; las revisiones
-posteriores añaden preparación y certificados públicos. Antes de conectar,
-confirmar un mismo SHA Git con esos documentos en ambas máquinas, conservando
-informes locales y sin forzar la sincronización.
+The C++ file code has not changed with respect to `bb7df3b`; subsequent revisions add preparation
+and public certificates. Before connecting, confirm the same SHA Git with those documents on both
+machines, keeping local reports and without forcing synchronization.
 
-## Arranque y recepción
+## Start and reception
 
-El comando Windows acordado será el siguiente, pero **no se ejecuta todavía**:
+The agreed Windows command will be as follows, but **is not yet executed**:
 
 ```powershell
 $env:Path = "C:\Program Files\OpenSSL-Win64\bin;" + $env:Path
 & 'D:\DEVEL\OneInTwo\experiments\files\build\windows-ready\Release\oneintwo-files.exe' --share --root 'D:\DEVEL\OneInTwo\.local-state\lan-files\windows\datos' --bind 192.168.1.147 --port 47654 --cert 'D:\DEVEL\OneInTwo\.local-state\lan-files\windows\cert.pem' --key 'D:\DEVEL\OneInTwo\.local-state\lan-files\windows\private.key' --client-pin fc8fe7d1f4a48636d5fe87792883a1288f76e7db2d24cfaddad7f116d28b2fe5 --timeout 120000
 ```
 
-La excepción de cortafuegos, cuando se acuerde abrirla, se limitará al
-ejecutable de archivos, `192.168.1.146` como origen, `192.168.1.147` como destino
-y 47654/TCP. La regla de preparación anticipada ya fue retirada.
+The firewall exception, when agreed to open it, will be limited to the file executable,
+`192.168.1.146` as source, `192.168.1.147` as destination and 47654/TCP. The advance preparation
+rule has already been removed.
 
-Tras confirmar comandos, revisión y preparación, esperar la
-confirmación explícita **«Windows sirviendo archivos»** antes de conectar.
+After confirming commands, revision and preparation, wait for explicit confirmation **"Windows
+serving files"** before connecting.
 
-Desde la raíz del repositorio, el comando Ubuntu propuesto es el siguiente.
-Su agente debe indicar las rutas reales de su nueva identidad en
-`UBUNTU_FILES_CERT` y `UBUNTU_FILES_KEY`, y confirmar el comando antes de ejecutarlo:
+From the root of the repository, the proposed Ubuntu command is as follows. Your agent must indicate
+the actual paths of your new identity in `UBUNTU_FILES_CERT` and `UBUNTU_FILES_KEY`, and confirm the
+command before executing it:
 
 ```bash
 ./experiments/files/build/ubuntu/oneintwo-files --receive-offer \
@@ -83,40 +81,38 @@ Su agente debe indicar las rutas reales de su nueva identidad en
   --cache .local-state/lan-files/ubuntu/cache --publish --timeout 120000
 ```
 
-No usar las identidades de texto para este nuevo caso ni subir claves privadas.
-Adaptar únicamente el entorno de bibliotecas al que ya se utilizó en Ubuntu.
+Do not use text identities for this new case or upload private keys. Adapt only the library
+environment that was already used in Ubuntu.
 
-No añadir `--to`: en este caso queremos comprobar el pegado en el explorador,
-no una copia directa efectuada por el programa.
+Do not add `--to`: in this case we want to check the pasted in the browser, not a direct copy made
+by the program.
 
-## Comprobación observable
+## Observable check
 
-1. El receptor completa TLS mutuo y recibe una oferta de cinco archivos.
-2. Los cinco contenidos se verifican antes de publicarse en caché.
-3. Aparece la ventana GTK. El usuario pulsa **Publicar archivos** y la deja abierta.
-4. En Nautilus, el usuario pega con Ctrl+V en el destino ya preparado.
-5. Debe aparecer una carpeta `datos`, incluidos `empty.dat` y las carpetas vacías.
-6. El agente Ubuntu compara ese `pegado/datos` con `windows-fixtures.json`:
-   mismas rutas de archivos y directorios, mismos tamaños y mismos SHA-256.
-7. Registrar confirmación del usuario y resultado de la comparación por separado.
-8. Cerrar la ventana GTK, recoger salida/log del receptor y comunicar el cierre
-   a Windows para detener su servidor y retirar su regla temporal.
+1. The full mutual TLS receiver receives a five file offer.
+2. All five contents are verified before being cached.
+3. The GTK window appears. The user presses **Publish files** and leaves it open.
+4. In Nautilus, the user pastes Ctrl+V into the destination already prepared.
+5. A `datos` folder must appear, including `empty.dat` and empty folders.
+6. Agent Ubuntu compares that `pegado/datos` to `windows-fixtures.json`: same paths of files and
+   directories, same sizes and same SHA-256.
+7. Register user confirmation and comparison result separately.
+8. Close the GTK window, collect salida/log from the receiver and communicate the shutdown to
+   Windows to stop your server and remove its time rule.
 
-Los logs pueden omitir progreso hasta vaciarse sus buffers; no confundir ausencia
-de salida inmediata con fallo de transferencia. El resultado debe apoyarse en
-la salida del cliente, la observación y los hashes del destino.
+Logs can skip progress until their buffers are emptied; do not confuse absence of immediate output
+with transfer failure. The result should be based on customer output, observation and destination
+hashes.
 
-## Límites de este primer caso
+## Limits of this first case
 
-Solo transferencia Windows → Ubuntu mediante caché y pegado asistido. No se
-certifican todavía la dirección inversa, pegado en Explorer, contenido bajo
-demanda, publicación automática en Ubuntu, cancelación entre equipos o
-colisiones. Se coordinarán después del primer resultado.
+Only transfer Windows → Ubuntu by cache and pasted assisted. The reverse address, pasted in
+Explorer, content on demand, automatic publication in Ubuntu, cancellation between teams or
+collisions are not yet certified. They will be coordinated after the first result.
 
-No activar teclado/ratón ni sincronización de texto. No iniciar pruebas extra
-de certificados o reconexión en paralelo. Conservar los originales y el destino
-como evidencia; no sobrescribir ni limpiar la caché mientras se esté pegando.
+Do not activate keyboard or mouse input or text synchronization. Do not start extra certificate testing or
+parallel reconnection. Keep the originals and destination as evidence; do not overwrite or clean the
+cache while it is pasting.
 
-Los resultados se incorporarán a [RESULTS.md](../RESULTS.md), junto con la
-revisión efectiva de ambos extremos y el resultado por archivo. Hasta observar
-el caso, permanece pendiente.
+The results will be incorporated into [RESULTS.md](../RESULTS.md), along with the actual revision of
+both ends and the result per file. Until the case is observed, it remains pending.

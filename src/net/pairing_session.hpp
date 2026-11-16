@@ -35,10 +35,10 @@ struct PairingCallbacks {
     std::function<void(std::string message)> failed;
 };
 
-// Ceremonia SAS sobre un canal TLS temporal no autenticado. Ninguno de los
-// dos extremos confía en el certificado hasta que las dos personas comparan
-// la misma SAS y ambos confirman. La huella que se guarda es la observada en
-// este canal, y solo se usa en conexiones posteriores con pin fijado.
+// Ceremony SAS on a channel TLS temporary unauthenticated.
+// two ends trust the certificate until the two people compare
+// the same SAS and both confirm.
+// this channel, and is only used in later connections with pin fixed.
 class PairingSession {
 public:
     PairingSession(SessionTransport& transport, PairingLocal local,
