@@ -1,0 +1,9 @@
+Test project D:/a/OneForTwo/OneForTwo/build/notifications
+    Start 1: notifications-core
+1/2 Test #1: notifications-core ...........................   Passed    0.30 sec
+    Start 2: notifications-windows-discovery-no-package
+2/2 Test #2: notifications-windows-discovery-no-package ...   Passed    0.02 sec
+
+100% tests passed out of 2
+
+Total Test time (real) =   0.36 sec
