@@ -15,7 +15,7 @@ La primera entrega de producto contempla envío manual y presentación nativa en
 
 ## Permisos, contenido y vigencia
 
-Los avisos manuales y los automáticos tienen permisos separados por sentido en cada par y empiezan desactivados. El perfil **Habitual** permite ambos y **Solo envíos** permite avisos manuales. **Pausa** suspende ambos. El reenvío requiere además el permiso de lectura del escritorio de origen y una lista local de aplicaciones vacía por defecto. Los avisos de OneInTwo y los que carezcan de una identidad de aplicación fiable se excluyen en origen. Al activar la observación se registra el estado previo para reenviar solo incorporaciones nuevas, sin reproducir avisos del centro de notificaciones.
+Los avisos manuales y los automáticos tienen permisos separados por sentido en cada par y empiezan desactivados. El perfil **Habitual** permite ambos y **Solo envíos** permite avisos manuales. **Pausa** suspende ambos. El reenvío requiere además el permiso de lectura del escritorio de origen y una lista local de aplicaciones vacía por defecto. La interfaz puebla esa lista con `SharedNotifications::discoverApplications`, una consulta asíncrona que puede solicitar consentimiento, no inicia la observación y devuelve las aplicaciones con avisos actuales. Los avisos de OneInTwo y los que carezcan de una identidad de aplicación fiable se excluyen en origen. Al activar la observación se registra el estado previo para reenviar solo incorporaciones nuevas, sin reproducir avisos del centro de notificaciones.
 
 Cada aviso lleva la generación de sesión, un identificador creciente por sentido, su modalidad, título y cuerpo. Los automáticos añaden un nombre visible de la aplicación de origen. El nombre verificado del equipo se obtiene localmente de la sesión. Los límites UTF-8 son 256 bytes para el título, 2048 para el cuerpo y 128 para el nombre visible. El título es obligatorio. Se rechazan datos mal formados o fuera de límite y se escapa el marcado al presentar. El identificador nativo de la aplicación se queda en origen.
 
@@ -47,6 +47,7 @@ El coordinador inyecta en `SharedNotifications` el adaptador nativo, la salida d
 | Entrada | Recorrido |
 | --- | --- |
 | Formulario | `sendManual` valida texto y permiso, asigna identificador y solicita envío a la sesión. |
+| Selección de aplicaciones | P llama a `SharedNotifications::discoverApplications` y muestra las `NotificationApplication` recibidas; al confirmar, llama a `setAllowedApplications`. |
 | Evento del escritorio | `forwardObserved` comprueba identidad de aplicación, lista permitida y exclusión de OneInTwo antes de construir el aviso remoto. |
 | Mensaje remoto | La sesión valida estructura y permiso. `receiveNotice` comprueba generación, orden, límites y vigencia, obtiene la identidad local del par y solicita presentación. |
 | Retirada de permiso | `setAuthorization` actualiza el estado, descarta pendientes afectados y detiene observación cuando deja de estar permitida. |
