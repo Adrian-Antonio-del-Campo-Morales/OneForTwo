@@ -2,9 +2,11 @@
 
 #include "../features/notifications.hpp"
 #include "../features/visual_share.hpp"
+#include "desktop_result.hpp"
 
 #include <functional>
 #include <string>
+#include <vector>
 
 /*
  * Contrato entre lógica común y escritorio. Las demás operaciones nativas
@@ -18,14 +20,6 @@
  */
 
 namespace oneintwo {
-
-enum class DesktopResult {
-    ready,
-    cancelled,
-    denied,
-    unavailable,
-    error,
-};
 
 struct VisualCaptureCapabilities {
     bool monitor = false;
@@ -61,6 +55,10 @@ public:
     virtual ~DesktopNotifications() = default;
     virtual NotificationCapabilities notificationCapabilities() const = 0;
     virtual void requestObservationPermission(std::function<void(DesktopResult)> complete) = 0;
+    // Devuelve una instantánea de las aplicaciones con avisos existentes. Puede
+    // solicitar consentimiento. No inicia la observación ni altera su línea base.
+    virtual void discoverApplications(
+        std::function<void(DesktopResult, std::vector<NotificationApplication>)> complete) = 0;
     virtual void startObserving(std::function<void(ObservedNotification)> observed,
                                 std::function<void(DesktopResult)> state_changed) = 0;
     virtual void stopObserving() = 0;

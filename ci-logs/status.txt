@@ -1,0 +1,4 @@
+runner=win25-vs2026
+configure=0
+build=0
+test=0

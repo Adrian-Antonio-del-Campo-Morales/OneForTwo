@@ -1,0 +1,16 @@
+﻿runner=win25-vs2026
+package=OneInTwo.Notifications.NativeCheck
+publisher=CN=OneInTwo Development
+version=1.0.0.0
+architecture=x64
+capability=userNotificationListener
+capability=runFullTrust
+executable=oneintwo_notifications_native_windows.exe
+msix=OneInTwo-NativeCheck.msix
+msix_sha256=AC1A98C2B940DF4FCB041A1B35F31BD0608759279374F1751E0298DA22086EBF
+certificate_thumbprint=B88650692B6885EDB7D184892E64BF54B2D14504
+signature=present
+signature_crypto=verified
+signature_signer=B88650692B6885EDB7D184892E64BF54B2D14504
+container=verified
+result=ok
