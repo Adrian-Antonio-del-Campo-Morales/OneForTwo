@@ -87,3 +87,175 @@ jobs:
               $resultText -notmatch "oneintwo_application") {
             throw "La prueba de arranque no se ejecutó correctamente"
           }
+
+  cmake-guards:
+    name: CMake SDK/API guards
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run negative CMake checks
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'cmake-guards.log'
+          $exitCode = 0
+          try {
+            ./tests/capture_windows/test_cmake_guards.ps1 2>&1 | Tee-Object -FilePath $log
+            $exitCode = $LASTEXITCODE
+          } catch {
+            $_ | Out-String | Out-File -Append -LiteralPath $log
+            $exitCode = 1
+          } finally {
+            if (Test-Path -LiteralPath $log) {
+              Get-Content -LiteralPath $log | Out-File -Append $env:GITHUB_STEP_SUMMARY
+            }
+          }
+          if ($exitCode -ne 0) {
+            $details = ''
+            if (Test-Path -LiteralPath $log) {
+              $details = (Get-Content -LiteralPath $log -Tail 60 | Out-String).Trim()
+              $details = $details -replace "`r", "" -replace "`n", "%0A"
+            }
+            if (-not $details) { $details = 'No CMake output was captured.' }
+            Write-Output "::error title=CMake guard failed::$details"
+            exit $exitCode
+          }
+
+      - name: Diagnose CMake guard failure
+        if: failure()
+        shell: pwsh
+        run: |
+          $output = & ./tests/capture_windows/test_cmake_guards.ps1 2>&1
+          $code = $LASTEXITCODE
+          $details = ($output | Out-String).Trim()
+          if (-not $details) { $details = "No output; exit=$code" }
+          $details = $details -replace "`r", "" -replace "`n", "%0A"
+          Write-Output "::error title=CMake guard diagnostics (exit $code)::$details"
+          exit 0
+
+  build:
+    name: WGC (MSVC x64, SDK ${{ matrix.sdk }})
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # El mínimo declarado por el backend.
+          - sdk: "10.0.19041.0"
+            platform: "x64,version=10.0.19041.0"
+            expected_sdk: "10.0.19041.0"
+            label: minimum
+          # SDK por defecto de la imagen; seguirá al SDK actual cuando se actualice.
+          - sdk: "default"
+            platform: "x64"
+            expected_sdk: "default"
+            label: current
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (${{ matrix.label }})
+        shell: pwsh
+        run: |
+          $buildDir = "build/windows-msvc-${{ matrix.sdk }}"
+          $log = Join-Path $buildDir 'configure.log'
+          New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
+          $cmakeArgs = @(
+            '-S', 'cmake/capture_windows',
+            '-B', $buildDir,
+            '-G', 'Visual Studio 17 2022',
+            '-A', "${{ matrix.platform }}",
+            '-DONEINTWO_BUILD_TESTS=ON',
+            '-DONEINTWO_CAPTURE_QT=OFF',
+            '-DONEINTWO_REQUIRE_WGC=ON'
+          )
+          & cmake @cmakeArgs 2>&1 | Tee-Object -FilePath $log
+          $configureExit = $LASTEXITCODE
+          if ($configureExit -ne 0) { exit $configureExit }
+
+      - name: Verify selected Windows SDK (${{ matrix.label }})
+        shell: pwsh
+        run: |
+          $buildDir = "build/windows-msvc-${{ matrix.sdk }}"
+          $log = Join-Path $buildDir 'configure.log'
+
+          function Get-SelectedSdk {
+            param([string]$LogPath)
+            $text = Get-Content -LiteralPath $LogPath -Raw
+            $match = [regex]::Match($text, "OneInTwo selected Windows SDK: '([^']+)'")
+            if (-not $match.Success) {
+              $match = [regex]::Match($text, 'Selecting Windows SDK version ([0-9.]+) to target Windows')
+            }
+            if (-not $match.Success) {
+              throw "No se encontró el SDK seleccionado en $LogPath"
+            }
+            return $match.Groups[1].Value
+          }
+
+          $selected = Get-SelectedSdk $log
+          Write-Host "Lane ${{ matrix.label }} selected Windows SDK: $selected"
+
+          $expected = "${{ matrix.expected_sdk }}"
+          if ($expected -ne 'default') {
+            if ($selected -ne $expected) {
+              throw "La lane ${{ matrix.label }} seleccionó Windows SDK '$selected', pero se esperaba '$expected'."
+            }
+            Write-Host "OK: ${{ matrix.label }} usa el SDK fijado $selected"
+          } else {
+            $probeSource = 'tests/capture_windows/default_sdk_probe'
+            $probeBuild = Join-Path $buildDir 'default-sdk-probe'
+            $probeLog = Join-Path $buildDir 'default-sdk-probe.log'
+            & cmake -S $probeSource -B $probeBuild -G 'Visual Studio 17 2022' -A 'x64' 2>&1 | Tee-Object -FilePath $probeLog
+            $probeExit = $LASTEXITCODE
+            if ($probeExit -ne 0) {
+              throw "No se pudo configurar la sonda del SDK por defecto; revisa $probeLog."
+            }
+            $defaultSdk = Get-SelectedSdk $probeLog
+            Write-Host "Runner default Windows SDK: $defaultSdk"
+            if ($selected -ne $defaultSdk) {
+              throw "La lane ${{ matrix.label }} seleccionó '$selected', pero el SDK por defecto del runner es '$defaultSdk'; debe usar -A x64 sin version=."
+            }
+            Write-Host "OK: ${{ matrix.label }} usa el SDK por defecto del runner ($selected)"
+          }
+
+      - name: Build backend, link check and tests (${{ matrix.label }})
+        shell: pwsh
+        run: |
+          $buildDir = "build/windows-msvc-${{ matrix.sdk }}"
+          $log = Join-Path $buildDir 'build.log'
+          & cmake --build $buildDir --config Release --target `
+            oneintwo_capture_windows oneintwo_capture_windows_link_check `
+            oneintwo_capture_windows_tests oneintwo_wgc_capture_tests `
+            oneintwo_wgc_probe_tests oneintwo_wgc_probe_fake oneintwo_wgc_smoke `
+            oneintwo_wgc_probe 2>&1 | Tee-Object -FilePath $log
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -ne 0) {
+            $message = (Get-Content -LiteralPath $log -Tail 80 | Out-String) -replace "`r", "" -replace "`n", "%0A"
+            Write-Output "::error title=MSVC build failed (${{ matrix.label }})::$message"
+            exit $exitCode
+          }
+
+      - name: Probe WGC runtime dependencies (${{ matrix.label }})
+        shell: pwsh
+        run: |
+          $probe = "build/windows-msvc-${{ matrix.sdk }}/Release/oneintwo_wgc_probe.exe"
+          if (-not (Test-Path -LiteralPath $probe)) {
+            Write-Output "::error title=WGC runtime probe missing (${{ matrix.label }})::$probe was not built"
+            exit 1
+          }
+          $output = & $probe 2>&1
+          $exitCode = $LASTEXITCODE
+          $output | Write-Host
+          if ($exitCode -ne 0) {
+            $message = ($output | Out-String) -replace "`r", "" -replace "`n", "%0A"
+            Write-Output "::error title=WGC runtime probe failed (${{ matrix.label }}) (exit $exitCode)::$message"
+            exit $exitCode
+          }
+
+      - name: Run capture tests (${{ matrix.label }})
+        shell: pwsh
+        run: >
+          ctest --test-dir build/windows-msvc-${{ matrix.sdk }} -C Release
+          --output-on-failure

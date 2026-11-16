@@ -1,5 +1,175 @@
 # Problemas pendientes
 
+## VISUAL-WIN-01 — Cerrar el selector sin callbacks después de destruir CaptureModel
+
+Estado: pendiente, detectado al documentar `feature/share-window` el 15 de
+noviembre de 2026.
+
+[`CaptureModel::selectSource`](src/platform/windows/visual/capture_model.cpp)
+entrega al puerto un callback que captura `this`. Al destruir el modelo se
+resetea la selección y se llama a `cancelPrompt()`, pero el selector real sólo
+publica `WM_CLOSE`; la respuesta puede llegar después de que el modelo haya
+desaparecido. Ese callback ejecutaría `post()` sobre un objeto ya liberado. Las
+pruebas actuales cubren la cancelación mientras el modelo sigue vivo, no la
+destrucción con un prompt pendiente.
+
+Reproducción:
+
+1. Poner
+   [`FakeCapturePort`](tests/capture_windows/fake_port.hpp) en modo deferred y
+   llamar a `selectSource`.
+2. Drenar `ModuleRuntime.post`.
+3. Destruir `CaptureModel` sin completar el prompt.
+4. Completar el prompt pendiente.
+5. Repetir con ASan o instrumentación equivalente de vida de objetos.
+
+**Criterio de aceptación:** una prueba de regresión demuestra que la respuesta
+tardía a un selector ya destruido no ejecuta callbacks, no accede a estado
+liberado y no provoca fallo; mientras el modelo sigue vivo, `stopCapture`
+entrega exactamente un resultado terminal `cancelled` y ningún callback
+posterior.
+
+## VISUAL-WIN-02 — Invalidar el HWND del selector y el owner al cerrarse
+
+Estado: pendiente, detectado en la revisión de la rama el 15 de noviembre de
+2026.
+
+En [`win32_selector.cpp`](src/platform/windows/visual/win32_selector.cpp),
+`prompt_window_` sólo se pone a `nullptr` cuando se llama a `cancelPrompt()`.
+Si el usuario cierra el selector con la X o con Cancelar, `WM_DESTROY` entrega
+el resultado pero deja el `HWND` almacenado. Una llamada posterior a
+`cancelPrompt()` puede enviar `WM_CLOSE` a un handle reutilizado; además,
+`WM_DESTROY` reactiva el owner con `EnableWindow` sin comprobar que siga siendo
+una ventana válida. Destruir el `QWidget` padre con el selector abierto expone
+el mismo problema.
+
+Reproducción:
+
+1. Abrir un selector, cerrarlo normalmente y conservar la instancia del puerto.
+2. Reutilizar o simular la reutilización del `HWND` cerrado.
+3. Llamar a `cancelPrompt()` y comprobar si llega un mensaje a la ventana
+   equivocada.
+4. Destruir el widget padre con el selector todavía abierto y observar la
+   reactivación del owner.
+
+**Criterio de aceptación:** al cerrar el selector por cualquier vía, el puerto
+deja de conservar su `HWND`, `cancelPrompt()` es un no-op después del cierre y
+nunca envía mensajes a un handle reutilizado; el owner sólo se reactiva si
+`IsWindow` confirma que sigue siendo válido. Una prueba de regresión cubre el
+cierre normal seguido de `cancelPrompt()` y la destrucción del padre con el
+selector abierto.
+
+## VISUAL-WIN-03 — Publicar cierre ante fallos repetidos de copia de frames
+
+Estado: pendiente, detectado en la revisión de la rama el 15 de noviembre de
+2026.
+
+[`WinRtFrameCopier::copy`](src/platform/windows/visual/wgc_capture.cpp) devuelve
+`false` si la textura no es `DXGI_FORMAT_B8G8R8A8_UNORM` o si falla `Map`.
+[`WgcCaptureCore::poll`](src/platform/windows/visual/wgc_capture_core.cpp)
+simplemente descarta ese frame y sigue sondeando. No publica `closed` ni ningún
+otro estado, por lo que el consumidor puede ver una imagen congelada sin saber
+que la captura dejó de ser útil. Además, si `copy` falla después de `Map`, el
+camino de excepción no garantiza `Unmap`.
+
+Reproducción:
+
+1. Ejecutar `oneintwo_wgc_capture_tests` con un `WgcFrame` falso cuyo `copyTo`
+   devuelva `false` de forma consecutiva.
+2. Comprobar que no se entrega ningún frame y que tampoco se publica `closed`.
+3. Introducir un fallo después de `Map` y comprobar el estado de la textura de
+   staging.
+
+**Criterio de aceptación:** tras un umbral documentado y probado (propuesta:
+10 fallos de copia consecutivos o 2 segundos sin copia válida), el núcleo
+publica `closed`, detiene el hilo y no entrega más callbacks. Toda llamada
+`Map` que tenga éxito se compensa con `Unmap` en éxito y en excepción. La prueba
+con frames falsos cubre el umbral, la parada y la ausencia de callbacks tardíos.
+
+## VISUAL-WIN-04 — Probar la identidad ante handles de ventana reutilizados
+
+Estado: pendiente de endurecimiento y prueba; riesgo documentado el 15 de
+noviembre de 2026.
+
+[`WinRtWgcSource::available`](src/platform/windows/visual/wgc_capture.cpp)
+comprueba `IsWindow` y que el PID de la ventana siga siendo el mismo, y para un
+monitor compara `GetMonitorInfo` con el nombre de dispositivo. Esto reduce el
+riesgo, pero no hay una prueba que reutilice un `HWND` o un `HMONITOR` con el
+mismo valor numérico para otra fuente. Las pruebas actuales cubren el cierre y
+la reapertura con el mismo título, no la reutilización efectiva del handle.
+
+Reproducción:
+
+1. Seleccionar una ventana y arrancar su captura.
+2. Simular con el puerto falso que la fuente desaparece y que el mismo handle
+   numérico pasa a identificar otra ventana o la misma ventana con otro PID.
+3. Entregar frames de la fuente nueva a la captura antigua.
+4. Repetir para un monitor que desaparece y vuelve con el mismo nombre.
+
+**Criterio de aceptación:** una prueba determinista demuestra que la operación
+antigua no entrega ningún frame de la fuente nueva y termina en `closed` antes
+de aceptar el siguiente; una invitación nueva sí puede seleccionar la fuente
+nueva. El adaptador no vuelve a localizar la fuente por título. La prueba y la
+validación manual registran el caso de reutilización de handle probado.
+
+## VISUAL-WIN-05 — Validar la captura WGC real en Windows
+
+Estado: pendiente de ejecución manual; el smoke de CI puede devolver skip 77.
+
+Las pruebas portables y el smoke cubren partes del camino, pero la matriz de
+producto no se ha ejecutado en un escritorio Windows real con el binario de
+esta rama. El smoke sólo comprueba un frame válido, el cierre y la ausencia de
+callbacks después de `stop`; no verifica contenido, DPI, cursor, borde de
+captura ni contenido protegido.
+
+**Criterio de aceptación:** en una sesión Windows 10/11 interactiva y
+desbloqueada, `oneintwo_wgc_smoke` termina con código 0 (no 77) y se registra
+una matriz con, al menos: dos ventanas solapadas con patrones distintos, cambio
+de monitor, redimensionado, minimización/restauración, cierre y reapertura con
+el mismo título, cancelación del selector, DPI al 100 % y 150 % y ventana
+protegida o elevada con su resultado esperado. Se registran build de Windows,
+SDK, GPU, resultado de cursor/borde y cualquier skip; no se declara soporte si
+el smoke sólo se omitió.
+
+## VISUAL-WAYLAND-01 — Validar el backend Wayland con portal y PipeWire reales
+
+Estado: pendiente de validación nativa; las pruebas actuales usan portal y
+PipeWire simulados.
+
+El backend [`../../linux/visual`](src/platform/linux/visual) exige que el portal
+ScreenCast anuncie `WINDOW`, que la respuesta acredite el tipo de fuente y que
+el nodo PipeWire autorizado entregue frames convertibles a BGRA. Las pruebas
+con dobles cubren el flujo y la cancelación, pero no la variación real de
+versiones de portales, compositores y formatos de PipeWire.
+
+**Criterio de aceptación:** en Ubuntu/Wayland con un portal que anuncie
+`WINDOW`, seleccionar una sola ventana, recibir frames BGRA, cambiar su tamaño,
+minimizarla y restaurarla registrando si el portal suspende o mantiene el
+stream, cerrarla y cancelar una selección. Se comprueba que no se sustituye por
+un monitor ni se captura una región, y se registran compositor, versión del
+portal, formato PipeWire y resultado. Si el portal no acredita el tipo, la
+operación debe quedar `unavailable`, no “funcionar” por fallback.
+
+## VISUAL-INTEGRATION-01 — Conectar captura, VisualShare, codec, transporte y visor
+
+Estado: pendiente; [`visual_share.cpp`](src/features/visual_share.cpp) sigue
+siendo el stub del coordinador y el backend no se puede usar como producto
+autónomo.
+
+El contrato visual común debe mantener una operación, validar permisos,
+revisiones, secuencia y límites, codificar JPEG, transportar fragmentos y
+presentar en el visor. También debe cubrir la ausencia de frames, el bloqueo de
+sesión y el cierre de la fuente con la política de actividad ya documentada.
+
+**Criterio de aceptación:** dos instancias con backends reales completan el
+recorrido seleccionar → invitar → aceptar → ver imagen → detener, sin enviar
+vídeo antes de la aceptación. Minimizar y cerrar la fuente vacían el visor y
+terminan la operación; un bloqueo de sesión o una retirada de permiso la
+terminan sin reanudación automática. Una fuente que deja de entregar frames
+activa el temporizador de actividad y cierra o vacía el visor según el estado
+acordado. No se registran títulos, etiquetas de fuente ni frames. La prueba
+integrada y la manual registran plataformas, versiones y límites de lo
+comprobado.
 ## FEATURE-SHARE-SCREEN — Pendientes de integración de la entrega P
 
 Proceden de [la documentación de la feature](docs/feature-share-screen/README.md) y
